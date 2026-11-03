@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">LofiQ</string>
+    <string name="tagline">Music without limits</string>
+    <string name="notification_channel_name">LofiQ Playback</string>
+    <string name="notification_channel_desc">Shows playback controls and music information</string>
+
+    <!-- Home Screen Widgets -->
+    <string name="widget_now_playing_lofiq">Now Playing LofiQ</string>
+    <string name="widget_compact_square_title">Now Playing LofiQ</string>
+    <string name="widget_compact_square_desc">Square Player (2×2) with artwork, song details, and playback controls</string>
+    <string name="widget_wide_player_title">Now Playing LofiQ</string>
+    <string name="widget_wide_player_desc">Wide Player (4×2) with artwork, song details, and playback controls</string>
+    <string name="widget_minimal_pill_title">Now Playing LofiQ</string>
+    <string name="widget_minimal_pill_desc">Pill Player (4×1) with favorite, shuffle, and playback controls</string>
+</resources>

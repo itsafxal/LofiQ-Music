@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_bg_pill"
+    android:clipToOutline="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:gravity="center_vertical">
+
+    <!-- Left: Circular Artwork (Click to open app) -->
+    <ImageView
+        android:id="@+id/widget_artwork"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:src="@drawable/widget_placeholder_circle"
+        android:scaleType="fitCenter"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/app_name" />
+
+    <!-- Right: Column with Song Title on Top, and 5 Controls Below -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <!-- Top: Song Title / Artist (Click to open app) -->
+        <TextView
+            android:id="@+id/widget_song_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="LofiQ Music" />
+
+        <!-- Bottom: 5 Icons in Horizontal Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Like / Favorite -->
+            <ImageButton
+                android:id="@+id/widget_btn_like"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/widget_btn_circle_ripple"
+                android:src="@drawable/ic_widget_heart_outline"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Favorite" />
+
+            <!-- Previous -->
+            <ImageButton
+                android:id="@+id/widget_btn_prev"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/widget_btn_circle_ripple"
+                android:src="@drawable/ic_widget_prev"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Previous Track" />
+
+            <!-- Play / Pause -->
+            <ImageButton
+                android:id="@+id/widget_btn_play_pause"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/widget_btn_circle_ripple"
+                android:src="@drawable/ic_widget_play"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Play Pause" />
+
+            <!-- Next -->
+            <ImageButton
+                android:id="@+id/widget_btn_next"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/widget_btn_circle_ripple"
+                android:src="@drawable/ic_widget_next"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Next Track" />
+
+            <!-- Shuffle -->
+            <ImageButton
+                android:id="@+id/widget_btn_shuffle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/widget_btn_circle_ripple"
+                android:src="@drawable/ic_widget_shuffle_off"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Shuffle" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

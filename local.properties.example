@@ -1,0 +1,21 @@
+## LofiQ Local Configuration Example
+# Copy this file to 'local.properties' and fill in your local Android SDK location and API credentials.
+# NOTE: Never commit 'local.properties' to version control.
+
+# Location of the Android SDK on your local machine
+sdk.dir=/path/to/your/Android/Sdk
+
+# Optional: Last.fm API credentials for scrobbling support
+# Obtain your free API key and secret from https://www.last.fm/api/account/create
+LASTFM_API_KEY=
+LASTFM_API_SECRET=
+
+# Optional: Production Android Release Signing
+# Never commit your production keystore or passwords to version control.
+# These can also be passed via environment variables (e.g., in CI/CD).
+# RELEASE_KEYSTORE_PATH=/path/to/your/release-keystore.jks
+# RELEASE_KEYSTORE_PASSWORD=your_store_password
+# RELEASE_KEY_ALIAS=your_key_alias
+# RELEASE_KEY_PASSWORD=your_key_password
+
+

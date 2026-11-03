@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:name=".LofiQApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LofiQ"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:requestLegacyExternalStorage="true"
+        tools:targetApi="35">
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.LofiQ.Splash"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Default Purple Icon Alias (Enabled by default) -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityDefault"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/app_name"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Crimson Red Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityRed"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_red"
+            android:roundIcon="@mipmap/ic_launcher_red_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Sapphire Blue Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityBlue"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_blue"
+            android:roundIcon="@mipmap/ic_launcher_blue_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Emerald Green Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityGreen"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_green"
+            android:roundIcon="@mipmap/ic_launcher_green_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Sunset Orange Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityOrange"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_orange"
+            android:roundIcon="@mipmap/ic_launcher_orange_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Midnight Obsidian Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityBlack"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_black"
+            android:roundIcon="@mipmap/ic_launcher_black_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Neon Pink Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityPink"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_pink"
+            android:roundIcon="@mipmap/ic_launcher_pink_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Golden Amber Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityAmber"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_amber"
+            android:roundIcon="@mipmap/ic_launcher_amber_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Electric Teal Icon Alias -->
+        <activity-alias
+            android:name="${applicationId}.MainActivityTeal"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_teal"
+            android:roundIcon="@mipmap/ic_launcher_teal_round"
+            android:label="@string/app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity
+            android:name=".core.crash.CrashReportActivity"
+            android:exported="false"
+            android:process=":crash_handler"
+            android:theme="@style/Theme.LofiQ" />
+
+        <service
+            android:name=".playback.service.LofiQMediaSessionService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".data.spotify.PlaylistImportService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- ========================================== -->
+        <!-- Home Screen Music Widgets (BitChord Style)  -->
+        <!-- ========================================== -->
+
+        <!-- 1. 2x2 Compact Square Player Widget -->
+        <receiver
+            android:name=".widget.CompactSquareWidgetProvider"
+            android:label="@string/widget_now_playing_lofiq"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_compact_square_2x2_info" />
+        </receiver>
+
+        <!-- 2. 4x2 Wide Music Player Widget -->
+        <receiver
+            android:name=".widget.WidePlayerWidgetProvider"
+            android:label="@string/widget_now_playing_lofiq"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_wide_4x2_info" />
+        </receiver>
+
+        <!-- 3. 4x1 Minimal Pill Player Widget -->
+        <receiver
+            android:name=".widget.MinimalPillWidgetProvider"
+            android:label="@string/widget_now_playing_lofiq"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_minimal_pill_4x1_info" />
+        </receiver>
+
+        <!-- Widget Playback Actions Broadcast Receiver -->
+        <receiver
+            android:name=".widget.MusicWidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.lofiq.widget.ACTION_PLAY_PAUSE" />
+                <action android:name="com.lofiq.widget.ACTION_PREV" />
+                <action android:name="com.lofiq.widget.ACTION_NEXT" />
+                <action android:name="com.lofiq.widget.ACTION_SHUFFLE" />
+                <action android:name="com.lofiq.widget.ACTION_TOGGLE_FAVORITE" />
+                <action android:name="com.lofiq.widget.ACTION_UPDATE_ALL" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

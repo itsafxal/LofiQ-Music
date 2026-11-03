@@ -1,0 +1,305 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Identifies whether the authenticated caller is the designated host of a Listen Together room.
+    // Strictly enforces host identity consistency: caller must match hostId, and if participants map
+    // is present with caller's entry, caller's role must be 'host'.
+    // Any participant claiming role: 'host' who does not match hostId is strictly prevented from gaining host privileges.
+    function isRoomHost(roomData) {
+      return isAuthenticated() &&
+        ('hostId' in roomData) &&
+        roomData.hostId == request.auth.uid &&
+        (!('participants' in roomData) ||
+         !(request.auth.uid in roomData.participants) ||
+         (roomData.participants[request.auth.uid] is map &&
+          ('role' in roomData.participants[request.auth.uid]) &&
+          roomData.participants[request.auth.uid].role == 'host'));
+    }
+
+    // Validates host updates: enforces explicit field allowlist, preserves host ownership,
+    // validates removedKeys(), and keeps listenerCount consistent with participant changes
+    function isValidHostUpdate() {
+      let docDiff = request.resource.data.diff(resource.data);
+      let isParticipantsChanged = 'participants' in docDiff.affectedKeys();
+      let hasBeforePart = ('participants' in resource.data) && resource.data.participants is map;
+      let hasAfterPart = ('participants' in request.resource.data) && request.resource.data.participants is map;
+
+      return isRoomHost(resource.data) &&
+        (('hostId' in resource.data) && ('hostId' in request.resource.data) && request.resource.data.hostId == resource.data.hostId) &&
+        (('roomCode' in resource.data) && ('roomCode' in request.resource.data) && request.resource.data.roomCode == resource.data.roomCode) &&
+        docDiff.affectedKeys().hasOnly([
+          'active', 'listenerCount', 'songId', 'songTitle', 'songArtist',
+          'songAlbum', 'songArtworkUrl', 'songDurationSeconds', 'songProviderId',
+          'isPlaying', 'positionMs', 'lastUpdatedMs', 'recentReactions',
+          'participants', 'roomName', 'hostName'
+        ]) &&
+        // If room remains active, host participant entry must remain present with immutable id and role 'host'
+        (request.resource.data.active == false ||
+         (hasAfterPart &&
+          (resource.data.hostId in request.resource.data.participants) &&
+          request.resource.data.participants[resource.data.hostId] is map &&
+          request.resource.data.participants[resource.data.hostId].role == 'host' &&
+          request.resource.data.participants[resource.data.hostId].id == resource.data.hostId &&
+          request.resource.data.participants[resource.data.hostId].keys().hasOnly(['id', 'role', 'lastSeenMs']) &&
+          (!('lastSeenMs' in request.resource.data.participants[resource.data.hostId]) || request.resource.data.participants[resource.data.hostId].lastSeenMs is int))) &&
+        // If participants map is modified:
+        // 1. Host cannot inject/add new participant keys (only guests can join)
+        // 2. Host cannot modify other participants' entries (only host's own entry can be changed)
+        // 3. Host cannot remove their own entry while room is active
+        // 4. Host's own entry modification is strictly limited to heartbeat (lastSeenMs)
+        (!isParticipantsChanged || (
+          hasBeforePart && hasAfterPart &&
+          request.resource.data.participants.diff(resource.data.participants).addedKeys().size() == 0 &&
+          request.resource.data.participants.diff(resource.data.participants).changedKeys().hasOnly([resource.data.hostId]) &&
+          (request.resource.data.active == false || !(resource.data.hostId in request.resource.data.participants.diff(resource.data.participants).removedKeys())) &&
+          (!(resource.data.hostId in request.resource.data.participants.diff(resource.data.participants).changedKeys()) ||
+           request.resource.data.participants[resource.data.hostId].diff(resource.data.participants[resource.data.hostId]).affectedKeys().hasOnly(['lastSeenMs']))
+        )) &&
+        // Listener count consistency:
+        // While active, listenerCount must decrease by exactly the number of pruned participants
+        // When closing room, listenerCount resets to 0 (or unchanged)
+        (request.resource.data.active == true ?
+          (isParticipantsChanged ?
+            (request.resource.data.listenerCount == resource.data.listenerCount - request.resource.data.participants.diff(resource.data.participants).removedKeys().size() &&
+             request.resource.data.listenerCount >= 1) :
+            request.resource.data.listenerCount == resource.data.listenerCount) :
+          (request.resource.data.listenerCount == 0 || request.resource.data.listenerCount == resource.data.listenerCount));
+    }
+
+    // Validates a new guest joining an active room
+    function isValidGuestJoin() {
+      return resource.data.active == true &&
+        request.resource.data.active == true &&
+        ('participants' in resource.data) &&
+        ('participants' in request.resource.data) &&
+        !(request.auth.uid in resource.data.participants) &&
+        (request.auth.uid in request.resource.data.participants) &&
+        request.resource.data.participants[request.auth.uid].role == 'guest' &&
+        request.resource.data.participants[request.auth.uid].id == request.auth.uid &&
+        request.resource.data.participants[request.auth.uid].keys().hasOnly(['id', 'role', 'lastSeenMs']) &&
+        // Set of keys proves ONLY caller's key was added using valid Set operations (no existing participant removed or replaced)
+        request.resource.data.participants.keys().toSet().difference(resource.data.participants.keys().toSet()) == [request.auth.uid].toSet() &&
+        resource.data.participants.keys().toSet().difference(request.resource.data.participants.keys().toSet()).size() == 0 &&
+        // Nested diff proves ONLY caller's participant entry was added
+        request.resource.data.participants.diff(resource.data.participants).affectedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.participants.diff(resource.data.participants).addedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.participants.diff(resource.data.participants).removedKeys().size() == 0 &&
+        request.resource.data.participants.diff(resource.data.participants).changedKeys().size() == 0 &&
+        // Host entry in participants is untouched
+        (!('hostId' in resource.data) ||
+         !(resource.data.hostId in resource.data.participants) ||
+         (resource.data.hostId in request.resource.data.participants &&
+          request.resource.data.participants[resource.data.hostId] == resource.data.participants[resource.data.hostId])) &&
+        // Listener count increments by exactly 1
+        request.resource.data.listenerCount == resource.data.listenerCount + 1 &&
+        // Playback and room configuration keys are completely untouched
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listenerCount', 'participants']);
+    }
+
+    // Validates periodic heartbeat from an existing active guest
+    function isValidGuestHeartbeat() {
+      return resource.data.active == true &&
+        request.resource.data.active == true &&
+        ('participants' in resource.data) &&
+        ('participants' in request.resource.data) &&
+        (request.auth.uid in resource.data.participants) &&
+        (request.auth.uid in request.resource.data.participants) &&
+        resource.data.participants[request.auth.uid].role == 'guest' &&
+        request.resource.data.participants[request.auth.uid].role == 'guest' &&
+        request.resource.data.participants[request.auth.uid].id == request.auth.uid &&
+        request.resource.data.participants[request.auth.uid].keys().hasOnly(['id', 'role', 'lastSeenMs']) &&
+        ('lastSeenMs' in request.resource.data.participants[request.auth.uid]) &&
+        ('lastSeenMs' in resource.data.participants[request.auth.uid]) &&
+        request.resource.data.participants[request.auth.uid].lastSeenMs is int &&
+        request.resource.data.participants[request.auth.uid].lastSeenMs != resource.data.participants[request.auth.uid].lastSeenMs &&
+        request.resource.data.participants[request.auth.uid].diff(resource.data.participants[request.auth.uid]).affectedKeys().hasOnly(['lastSeenMs']) &&
+        request.resource.data.participants.keys().toSet() == resource.data.participants.keys().toSet() &&
+        request.resource.data.participants.diff(resource.data.participants).affectedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.listenerCount == resource.data.listenerCount &&
+        (!('hostId' in resource.data) ||
+         !(resource.data.hostId in resource.data.participants) ||
+         (resource.data.hostId in request.resource.data.participants &&
+          request.resource.data.participants[resource.data.hostId] == resource.data.participants[resource.data.hostId])) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']);
+    }
+
+    // Validates emoji reaction sent by an active room participant
+    function isValidGuestReaction() {
+      let hasReactions = 'recentReactions' in request.resource.data;
+      let rxList = hasReactions ? request.resource.data.recentReactions : [];
+      let existingList = ('recentReactions' in resource.data) ? resource.data.recentReactions : [];
+      let lastRx = (rxList is list && rxList.size() > 0) ? rxList[rxList.size() - 1] : null;
+
+      return resource.data.active == true &&
+        request.resource.data.active == true &&
+        ('participants' in resource.data) &&
+        (request.auth.uid in resource.data.participants) &&
+        rxList is list &&
+        rxList.size() > 0 &&
+        rxList.size() <= 50 &&
+        // Caller can append ONLY ONE new reaction (list size increases by exactly 1)
+        rxList.size() == existingList.size() + 1 &&
+        // Enforce strict append-only: all existing reactions must remain unchanged and in exact original order
+        (existingList.size() == 0 ? rxList == [lastRx] : existingList.concat([lastRx]) == rxList) &&
+        lastRx != null &&
+        lastRx.keys().hasOnly(['id', 'emoji', 'timestampMs']) &&
+        lastRx.id is string &&
+        lastRx.id.size() > 0 &&
+        lastRx.id.size() <= 64 &&
+        lastRx.emoji in ['🔥', '❤️', '🎵', '👏', '🎉', '😍', '✨'] &&
+        lastRx.timestampMs is int &&
+        lastRx.timestampMs <= request.time.toMillis() + 60000 &&
+        lastRx.timestampMs >= request.time.toMillis() - 300000 &&
+        request.resource.data.listenerCount == resource.data.listenerCount &&
+        (!('participants' in request.resource.data.diff(resource.data).affectedKeys())) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recentReactions']);
+    }
+
+    // Validates an active guest leaving the room
+    function isValidGuestLeave() {
+      return resource.data.active == true &&
+        request.resource.data.active == true &&
+        ('participants' in resource.data) &&
+        ('participants' in request.resource.data) &&
+        (request.auth.uid in resource.data.participants) &&
+        !(request.auth.uid in request.resource.data.participants) &&
+        // Set of keys proves ONLY caller's key was removed using valid Set operations (no other participant deleted or substituted)
+        resource.data.participants.keys().toSet().difference(request.resource.data.participants.keys().toSet()) == [request.auth.uid].toSet() &&
+        request.resource.data.participants.keys().toSet().difference(resource.data.participants.keys().toSet()).size() == 0 &&
+        // Nested diff proves ONLY caller's participant entry was removed
+        request.resource.data.participants.diff(resource.data.participants).affectedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.participants.diff(resource.data.participants).removedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.participants.diff(resource.data.participants).addedKeys().size() == 0 &&
+        request.resource.data.participants.diff(resource.data.participants).changedKeys().size() == 0 &&
+        // Listener count decrements by exactly 1 (cannot be arbitrarily reset to 0)
+        request.resource.data.listenerCount == resource.data.listenerCount - 1 &&
+        request.resource.data.listenerCount >= 0 &&
+        // Host entry in participants is untouched
+        (!('hostId' in resource.data) ||
+         !(resource.data.hostId in resource.data.participants) ||
+         (resource.data.hostId in request.resource.data.participants &&
+          request.resource.data.participants[resource.data.hostId] == resource.data.participants[resource.data.hostId])) &&
+        // Playback and room configuration keys are completely untouched
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listenerCount', 'participants']);
+    }
+
+    // Comprehensive guest authorization aggregator
+    function isValidGuestUpdate() {
+      return isAuthenticated() && (
+        isValidGuestJoin() ||
+        isValidGuestHeartbeat() ||
+        isValidGuestReaction() ||
+        isValidGuestLeave()
+      );
+    }
+
+    // =========================================================================
+    // 1. User Profiles and User Subcollections
+    // Path: /users/{userId}
+    // =========================================================================
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && (!('uid' in request.resource.data) || request.resource.data.uid == userId);
+      allow delete: if isOwner(userId);
+
+      // Favorites & Liked Songs Subcollections
+      match /favorites/{songId} { allow read, write: if isOwner(userId); }
+      match /liked_songs/{songId} { allow read, write: if isOwner(userId); }
+      match /likedSongs/{songId} { allow read, write: if isOwner(userId); }
+      match /favoriteSongs/{songId} { allow read, write: if isOwner(userId); }
+
+      // Custom Playlists Subcollections
+      match /playlists/{playlistId} { allow read, write: if isOwner(userId); }
+      match /custom_playlists/{playlistId} { allow read, write: if isOwner(userId); }
+      match /user_playlists/{playlistId} { allow read, write: if isOwner(userId); }
+
+      // NOTE: /settings/credentials and arbitrary catch-all subcollections
+      // are omitted intentionally. On-device DataStore sandbox is the definitive storage.
+      // Any unknown subcollection falls through to default deny.
+    }
+
+    // =========================================================================
+    // 2. Legacy / Root Favorites Collection
+    // Path: /favorites/{favoriteId}
+    // =========================================================================
+    match /favorites/{favoriteId} {
+      allow read: if isAuthenticated() && (
+        (('userId' in resource.data) && resource.data.userId == request.auth.uid) ||
+        (('uid' in resource.data) && resource.data.uid == request.auth.uid)
+      );
+      allow create: if isAuthenticated() && (
+        // At least one ownership field must be specified
+        (('userId' in request.resource.data) || ('uid' in request.resource.data)) &&
+        // If userId exists, it must match caller
+        (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid) &&
+        // If uid exists, it must match caller
+        (!('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid)
+      );
+      allow update: if isAuthenticated() && (
+        // Must own the existing favorite via userId or uid
+        ((('userId' in resource.data) && resource.data.userId == request.auth.uid) ||
+         (('uid' in resource.data) && resource.data.uid == request.auth.uid)) &&
+        // Existing ownership fields cannot be removed or altered
+        (!('userId' in resource.data) || (('userId' in request.resource.data) && request.resource.data.userId == resource.data.userId)) &&
+        (!('uid' in resource.data) || (('uid' in request.resource.data) && request.resource.data.uid == resource.data.uid)) &&
+        // If new ownership field is added on update, it must match caller
+        (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid) &&
+        (!('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid)
+      );
+      allow delete: if isAuthenticated() && (
+        ((('userId' in resource.data) && resource.data.userId == request.auth.uid) ||
+         (('uid' in resource.data) && resource.data.uid == request.auth.uid))
+      );
+    }
+
+    // =========================================================================
+    // 3. Listen Together Live Rooms
+    // Path: /listen_together_rooms/{roomCode}
+    // =========================================================================
+    match /listen_together_rooms/{roomCode} {
+      // Active rooms are readable by authenticated users; Inactive rooms are restricted to host and participants
+      allow read: if isAuthenticated() && (
+        resource.data.active == true ||
+        isRoomHost(resource.data) ||
+        (('participants' in resource.data) && (request.auth.uid in resource.data.participants))
+      );
+
+      // Authenticated users can create a room, designating themselves as the host with valid schema
+      allow create: if isAuthenticated() &&
+        request.resource.data.active == true &&
+        request.resource.data.listenerCount == 1 &&
+        request.resource.data.hostId == request.auth.uid &&
+        request.resource.data.roomCode == roomCode &&
+        ('participants' in request.resource.data) &&
+        (request.auth.uid in request.resource.data.participants) &&
+        request.resource.data.participants[request.auth.uid].role == 'host' &&
+        request.resource.data.participants[request.auth.uid].id == request.auth.uid &&
+        request.resource.data.participants.keys().toSet() == [request.auth.uid].toSet();
+
+      // Room updates: Host has full management authority; Guests have strictly validated operation types
+      allow update: if isValidHostUpdate() || isValidGuestUpdate();
+
+      // Only the host can delete the room
+      allow delete: if isRoomHost(resource.data);
+    }
+
+    // =========================================================================
+    // 4. Default Deny Rule
+    // Explicitly reject all other database paths and collections
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

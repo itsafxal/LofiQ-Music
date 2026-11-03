@@ -1,0 +1,49 @@
+{
+  "_comment": "Example Firebase Configuration for Open Source Contributors. Copy this file to 'app/google-services.json' and fill in your Firebase project values.",
+  "project_info": {
+    "project_number": "123456789000",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789000:android:abcdef0123456789abcdef",
+        "android_client_info": {
+          "package_name": "com.sargamify.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "123456789000-exampleclientid1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sargamify.app",
+            "certificate_hash": "0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "client_id": "123456789000-exampleclientid2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSy_YOUR_DUMMY_FIREBASE_API_KEY_HERE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "123456789000-exampleclientid2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

@@ -1,0 +1,14 @@
+# Auto-detect text files and perform LF normalization
+* text=auto
+
+# GitHub Linguist language overrides
+*.kt linguist-detectable=true linguist-language=Kotlin
+*.kts linguist-detectable=true linguist-language=Kotlin
+
+# Ignore build artifacts, wrappers, and config files in language breakdown
+gradlew linguist-vendored=true
+gradlew.bat linguist-vendored=true
+gradle/** linguist-vendored=true
+*.xml linguist-vendored=true
+*.properties linguist-vendored=true
+*.toml linguist-vendored=true

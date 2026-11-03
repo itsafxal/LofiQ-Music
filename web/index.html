@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LofiQ — White & Black Liquid Glass Audio Experience</title>
+  <meta name="description" content="Experience studio-grade 320kbps lossless audio, real-time Listen Together rooms, word-by-word synced lyrics, and an in-app audio output switcher in a pure monochrome liquid glass interface for Android." />
+  
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  
+  <!-- Modern Typography: Inter & Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css?v=bw_liquid_glass_20261011" />
+</head>
+<body>
+  <!-- Ambient Liquid Glass Mesh / Molten Monochrome Glows -->
+  <div class="liquid-mesh" aria-hidden="true">
+    <div class="liquid-orb orb-1"></div>
+    <div class="liquid-orb orb-2"></div>
+    <div class="liquid-orb orb-3"></div>
+    <div class="liquid-grid"></div>
+  </div>
+
+  <!-- Sleek Liquid Glass Floating Header -->
+  <header>
+    <div class="nav-container liquid-glass-nav">
+      <a href="#" class="logo-brand" aria-label="LofiQ Home">
+        <div class="logo-wrapper">
+          <img src="assets/logo.png" alt="LofiQ Logo" class="logo-img" />
+          <div class="logo-glare"></div>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-text">LofiQ</span>
+          <span class="logo-tagline">Liquid Glass Edition</span>
+        </div>
+      </a>
+      
+      <nav class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#experience" class="nav-link">Experience</a>
+        <a href="#download" class="nav-link">Download</a>
+        <a href="#changelog" class="nav-link">Changelog</a>
+        <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="nav-cta dynamic-download-btn" id="header-download-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download APK</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main>
+    <!-- HERO SECTION -->
+    <section class="hero" id="hero">
+      <div class="hero-content">
+        <!-- Live Release Status Pill -->
+        <div class="liquid-pill-badge">
+          <span class="pulse-dot"></span>
+          <span class="badge-text">Latest Build <strong class="dynamic-version">v1.0.1</strong> is Ready</span>
+          <span class="badge-tag">Android 8.0+</span>
+        </div>
+        
+        <!-- Hero Title -->
+        <h1 class="hero-title">
+          Pure Sound. <br />
+          <span class="metallic-text">Liquid Glass.</span>
+        </h1>
+        
+        <!-- Hero Subtitle -->
+        <p class="hero-subtitle">
+          Engineered in black & white monochrome clarity. Studio-grade 320kbps lossless streaming, real-time Listen Together multi-device sync, synced karaoke lyrics, and seamless audio output routing.
+        </p>
+
+        <!-- Liquid Download & Action Buttons -->
+        <div class="hero-actions">
+          <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-btn-primary dynamic-download-btn" id="hero-primary-download">
+            <span class="btn-shine"></span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span class="btn-content">
+              <span class="btn-title">Download APK</span>
+              <span class="btn-meta"><span class="dynamic-size">21.6 MB</span> • Free & Clean</span>
+            </span>
+          </a>
+
+          <a href="#download" class="liquid-btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Scan QR / Info</span>
+          </a>
+        </div>
+
+        <!-- System Specifications -->
+        <div class="hero-specs">
+          <span class="spec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <span>Android 8.0 to 15+</span>
+          </span>
+          <span class="spec-divider">•</span>
+          <span class="spec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>100% Ad-Free & Open</span>
+          </span>
+          <span class="spec-divider">•</span>
+          <span class="spec-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Lossless 320kbps</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- DESKTOP / MOBILE LIQUID GLASS INTERACTIVE PHONE MOCKUP -->
+      <div class="mockup-container" id="experience">
+        <div class="phone-mockup liquid-glass-card" id="interactive-phone">
+          <div class="glass-reflection-overlay"></div>
+          
+          <!-- Dynamic Notch Island -->
+          <div class="phone-notch">
+            <div class="notch-sensor"></div>
+            <div class="notch-speaker"></div>
+            <div class="notch-camera"></div>
+          </div>
+
+          <!-- Live Room Synced Tag -->
+          <div class="mockup-room-pill">
+            <span class="room-live-tag">
+              <span class="pulse-dot"></span>
+              <span>Listen Together</span>
+            </span>
+            <span class="room-code-tag">SRG-4829</span>
+          </div>
+
+          <!-- Album Art with Frosted Glass Overlay -->
+          <div class="album-art-container">
+            <img src="assets/logo.png" alt="LofiQ Studio Art" class="album-logo-hero" id="player-art" />
+            <div class="album-gloss"></div>
+            <div class="audio-eq-overlay" id="visualizer">
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+            </div>
+          </div>
+
+          <!-- Track Metadata -->
+          <div class="track-meta">
+            <div class="track-info">
+              <div class="track-title" id="track-title">Kesariya (From "Brahmastra")</div>
+              <div class="track-artist">Arijit Singh, Pritam</div>
+            </div>
+            <span class="track-badge-320k">320k FLAC</span>
+          </div>
+
+          <!-- Seekbar with Interactive Scrub Simulation -->
+          <div class="player-seekbar" id="seekbar" title="Click to seek">
+            <div class="player-progress" id="progress-bar"></div>
+            <div class="seekbar-handle" id="progress-handle"></div>
+          </div>
+          <div class="player-timestamps">
+            <span id="time-current">01:42</span>
+            <span id="time-total">04:28</span>
+          </div>
+
+          <!-- Interactive Playback Controls -->
+          <div class="player-controls">
+            <button class="ctrl-btn" id="ctrl-prev" aria-label="Previous Track" title="Previous Track">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button class="ctrl-btn ctrl-play" id="ctrl-play" aria-label="Toggle Play/Pause" title="Play or Pause">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" id="play-icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="ctrl-btn" id="ctrl-next" aria-label="Next Track" title="Next Track">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+          </div>
+
+          <!-- In-App Audio Output Switcher Widget -->
+          <div class="audio-output-pill" id="audio-output-pill" title="Tap to switch output source">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+            <span id="output-text">Output: Studio Device (320kbps)</span>
+            <span class="output-switch-indicator">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                <path d="M16 16h5v5"></path>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIQUID GLASS FEATURES SHOWCASE -->
+    <section id="features" class="features-section">
+      <div class="section-header">
+        <span class="section-tag">Liquid Glass Engineering</span>
+        <h2 class="section-title">Formed in Glass. Tuned for Fidelity.</h2>
+        <p class="section-desc">Every layer built with precision to bring high-resolution sound, instantaneous streaming, and communal listening to your fingertips.</p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1: 320kbps Audio -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </div>
+          <span class="feature-badge">Dual Pipeline</span>
+          <h3 class="card-title">320kbps Lossless Audio</h3>
+          <p class="card-desc">High-bitrate streaming pipeline fusing direct studio JioSaavn sources with instantaneous YouTube InnerTube failover for instant sub-second playback.</p>
+        </div>
+
+        <!-- Feature 2: Listen Together -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="feature-badge">Multi-Device</span>
+          <h3 class="card-title">Listen Together Live Sync</h3>
+          <p class="card-desc">Create private rooms with friends with sub-frame millisecond drift correction, live emoji reactions, and real-time synchronized playback controls.</p>
+        </div>
+
+        <!-- Feature 3: Audio Output Switcher -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+            </svg>
+          </div>
+          <span class="feature-badge">Direct Routing</span>
+          <h3 class="card-title">In-App Audio Switcher</h3>
+          <p class="card-desc">Switch seamlessly between your Phone Speaker, paired Bluetooth Headsets, and Wired Aux without ever navigating into system settings.</p>
+        </div>
+
+        <!-- Feature 4: Synced Lyrics -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </div>
+          <span class="feature-badge">Karaoke Engine</span>
+          <h3 class="card-title">Real-Time Synced Lyrics</h3>
+          <p class="card-desc">Word-by-word synchronized scrolling lyrics fetched automatically via LRCLIB & Kugou dual-providers with zero lag.</p>
+        </div>
+
+        <!-- Feature 5: Artist Portraits -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="10 8 16 12 10 16 10 8"></polygon>
+            </svg>
+          </div>
+          <span class="feature-badge">Studio Visuals</span>
+          <h3 class="card-title">HD Studio Artist Visuals</h3>
+          <p class="card-desc">High-definition 500x500 studio artist portraits with real-time dynamic monochrome glass tinting extracted directly from active artwork.</p>
+        </div>
+
+        <!-- Feature 6: Auto Updates -->
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <span class="feature-badge">1-Tap Upgrade</span>
+          <h3 class="card-title">Seamless In-App Updates</h3>
+          <p class="card-desc">Integrated updater checks releases on start. Download and install future updates in the background directly through Android FileProvider.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEDICATED LIQUID GLASS DOWNLOAD STATION -->
+    <section id="download" class="download-section">
+      <div class="download-container liquid-glass-card">
+        <div class="download-glass-glow"></div>
+        
+        <div class="download-grid">
+          <!-- Left: Download Pitch & CTA -->
+          <div class="download-info">
+            <div class="download-badge">
+              <span class="download-shield">✓</span>
+              <span>Official Release • Verified APK</span>
+            </div>
+
+            <h2 class="download-title">
+              Get LofiQ for Android. <br />
+              <span class="metallic-text">Free. Clean. Unlimited.</span>
+            </h2>
+
+            <p class="download-subtitle">
+              Enjoy unbounded music streaming with 320kbps fidelity, offline caching, and group listening. No subscriptions, no ads, no trackers.
+            </p>
+
+            <!-- Prominent Primary Download Action -->
+            <div class="download-button-wrapper">
+              <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mega dynamic-download-btn" id="mega-download-btn">
+                <div class="mega-btn-shine"></div>
+                <div class="mega-btn-icon-wrap">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <div class="mega-btn-text">
+                  <span class="mega-btn-label">Download APK Directly</span>
+                  <span class="mega-btn-sub">Version <strong class="dynamic-version">v1.0.1</strong> • <span class="dynamic-size">21.6 MB</span></span>
+                </div>
+              </a>
+            </div>
+
+            <!-- Verification Metadata Pills -->
+            <div class="download-meta-tags">
+              <span class="meta-tag">⚡ ARM64 / Universal</span>
+              <span class="meta-tag">🛡️ SHA-256 Verified</span>
+              <span class="meta-tag">🔋 Low Battery Footprint</span>
+              <span class="meta-tag">📶 Offline Ready</span>
+            </div>
+          </div>
+
+          <!-- Right: Desktop QR Code & Mobile Scan Deck -->
+          <div class="download-qr-deck">
+            <div class="qr-glass-card">
+              <div class="qr-code-wrapper">
+                <!-- High-contrast monochrome SVG QR code representation that directs to the APK -->
+                <svg class="qr-svg" viewBox="0 0 200 200" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Background -->
+                  <rect width="200" height="200" fill="#000000" rx="12" />
+                  
+                  <!-- Corner Finder 1 (Top Left) -->
+                  <rect x="20" y="20" width="50" height="50" fill="#ffffff" rx="8" />
+                  <rect x="26" y="26" width="38" height="38" fill="#000000" rx="4" />
+                  <rect x="34" y="34" width="22" height="22" fill="#ffffff" rx="3" />
+
+                  <!-- Corner Finder 2 (Top Right) -->
+                  <rect x="130" y="20" width="50" height="50" fill="#ffffff" rx="8" />
+                  <rect x="136" y="26" width="38" height="38" fill="#000000" rx="4" />
+                  <rect x="144" y="34" width="22" height="22" fill="#ffffff" rx="3" />
+
+                  <!-- Corner Finder 3 (Bottom Left) -->
+                  <rect x="20" y="130" width="50" height="50" fill="#ffffff" rx="8" />
+                  <rect x="26" y="136" width="38" height="38" fill="#000000" rx="4" />
+                  <rect x="34" y="144" width="22" height="22" fill="#ffffff" rx="3" />
+
+                  <!-- QR Data Modules / Rhythm -->
+                  <rect x="80" y="25" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="100" y="25" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="80" y="45" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="105" y="45" width="10" height="10" fill="#ffffff" rx="2" />
+                  
+                  <rect x="25" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="45" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="25" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+
+                  <rect x="80" y="80" width="40" height="40" fill="#ffffff" rx="8" />
+                  <circle cx="100" cy="100" r="12" fill="#000000" />
+                  <polygon points="97,94 107,100 97,106" fill="#ffffff" />
+
+                  <rect x="135" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="155" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="145" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="165" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+
+                  <rect x="85" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="105" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="85" y="155" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="105" y="155" width="10" height="10" fill="#ffffff" rx="2" />
+
+                  <rect x="135" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="155" y="145" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="135" y="165" width="10" height="10" fill="#ffffff" rx="2" />
+                  <rect x="165" y="165" width="10" height="10" fill="#ffffff" rx="2" />
+                </svg>
+              </div>
+              <div class="qr-caption">
+                <span class="qr-title">Scan from your Phone</span>
+                <span class="qr-sub">Instantly download on Android</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Step Liquid Glass Installation Steps -->
+        <div class="install-steps">
+          <div class="step-card">
+            <span class="step-num">01</span>
+            <h4 class="step-heading">Download APK</h4>
+            <p class="step-desc">Tap the button above or scan the QR code to download the standalone APK file.</p>
+          </div>
+          <div class="step-card">
+            <span class="step-num">02</span>
+            <h4 class="step-heading">Allow Unknown Apps</h4>
+            <p class="step-desc">When prompted by Chrome or Files, tap "Allow from this source" to permit installation.</p>
+          </div>
+          <div class="step-card">
+            <span class="step-num">03</span>
+            <h4 class="step-heading">Enjoy Studio Fidelity</h4>
+            <p class="step-desc">Open LofiQ, create or join a listening room, and stream 320kbps lossless music.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHANGELOG & TECHNICAL SPECS -->
+    <section id="changelog" class="changelog-section">
+      <div class="changelog-card liquid-glass-card">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag">Release Notes</div>
+            <h3 class="changelog-title">What's New in LofiQ</h3>
+            <p class="changelog-date dynamic-date">November 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip dynamic-version">v1.0.1</span>
+            <span class="version-stable">Stable Release</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list" id="changelog-items">
+          <li><span class="bullet">&#10022;</span> 🏷️ Clean Widget Label: Renamed all widgets to "Now Playing LofiQ" eliminating corrupted parentheses on launcher home screens.</li>
+          <li><span class="bullet">&#10022;</span> 🎵 Song Details on Square Player (2×2): Integrated track title and artist name above centered playback controls.</li>
+          <li><span class="bullet">&#10022;</span> 🖼️ Full-Bleed Artwork: Resolved corner clipping gaps by letting the widget container smoothly clip solid full-bleed bitmaps.</li>
+          <li><span class="bullet">&#10022;</span> ⚡ Instant Live Updates & Background Store: Restores persisted queue from database and starts background playback when the widget is tapped even if the app was closed.</li>
+          <li><span class="bullet">&#10022;</span> ❤️ Complete Remote Controls: Direct Play/Pause, Next, Previous, Shuffle, and Favorite heart toggles directly from your home screen.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- MOBILE STICKY FLOATING LIQUID GLASS BAR -->
+  <div class="mobile-sticky-dock" id="mobile-dock" aria-label="Quick Mobile Download Bar">
+    <div class="dock-inner liquid-glass-card">
+      <div class="dock-info">
+        <img src="assets/logo.png" alt="LofiQ" class="dock-logo" />
+        <div class="dock-text">
+          <span class="dock-title">LofiQ</span>
+          <span class="dock-meta"><span class="dynamic-version">v1.0.1</span> &bull; <span class="dynamic-size">21.6 MB</span></span>
+        </div>
+      </div>
+      <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="dock-download-btn dynamic-download-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ULTRA-CLEAN MONOCHROME FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img src="assets/logo.png" alt="LofiQ" class="footer-logo" />
+          <span class="footer-title">LofiQ</span>
+        </div>
+        <p class="footer-desc">Crafted with Jetpack Compose & Media3. Designed in pure Liquid Glass aesthetics.</p>
+      </div>
+
+      <div class="footer-meta">
+        <p>&copy; 2026 LofiQ. Developed by <a href="https://itsafxal.vercel.app" target="_blank" rel="noopener noreferrer">Afsal</a>.</p>
+        <div class="footer-links">
+          <a href="#hero">Back to Top &uarr;</a>
+          <a href="#features">Features</a>
+          <a href="#download">Download APK</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js?v=bw_liquid_glass_20261011"></script>
+</body>
+</html>

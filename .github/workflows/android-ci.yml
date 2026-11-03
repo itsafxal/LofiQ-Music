@@ -1,0 +1,65 @@
+name: LofiQ Android CI & Security Audit
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, Test & Security Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Node.js for Firestore Rules Testing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prepare Local Properties & Dummy Firebase Config (for CI)
+        run: |
+          cp local.properties.example local.properties
+          if [ ! -f app/google-services.json ]; then
+            echo "Copying example google-services.json for CI compilation"
+            cp app/google-services.json.example app/google-services.json
+          fi
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Run Firestore Security Rules Unit Tests
+        run: node test/firestore_rules_test.js
+
+      - name: Run Android Release Unit Tests
+        run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
+
+      - name: Assemble Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Secret Scan Verification
+        run: |
+          echo "Scanning for hardcoded private API secrets in codebase..."
+          # Check for known committed Last.fm secret in codebase
+          if grep -r --exclude-dir={.git,build,scratch} "86ebfe38221fa0c2d3cf3832d2077e68" .; then
+            echo "::error::Found hardcoded Last.fm API secret in codebase!"
+            exit 1
+          fi
+          echo "No exposed secrets detected in working tree."
+

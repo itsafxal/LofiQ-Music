@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="root" />
+        <!-- Exclude user session cookies and tokens from cloud backup -->
+        <exclude domain="root" path="files/datastore/lofiq_auth_preferences.preferences_pb" />
+        <exclude domain="root" path="files/datastore/lofiq_spotify_preferences.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" />
+        <exclude domain="root" path="files/datastore/lofiq_auth_preferences.preferences_pb" />
+        <exclude domain="root" path="files/datastore/lofiq_spotify_preferences.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>
