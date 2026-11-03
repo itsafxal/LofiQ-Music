@@ -52,6 +52,12 @@ android {
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
             }
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+        getByName("debug") {
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
@@ -59,8 +65,10 @@ android {
         release {
             isMinifyEnabled = false
             val releaseSigning = signingConfigs.findByName("release")
-            if (releaseSigning?.storeFile != null) {
-                signingConfig = releaseSigning
+            signingConfig = if (releaseSigning?.storeFile != null) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

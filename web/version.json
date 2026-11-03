@@ -4,8 +4,8 @@
   "minSupportedVersion": 1,
   "releaseDate": "2026-11-03",
   "apkUrl": "/downloads/LofiQ.apk",
-  "apkSize": "21.6 MB",
-  "checksum": "7222e194e3ae39c703afa0e70e388649538fd708e63607c3087eabeff0b88a27",
+  "apkSize": "21.7 MB",
+  "checksum": "5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222",
   "releaseNotes": [
     "🚀 Official Production Release (V1.0.2 - Build 65)",
     "🔒 Synchronized Firebase Anonymous Authentication: Resolved startup race condition with coroutine Mutex deduplication and persistent session reuse across launches.",
