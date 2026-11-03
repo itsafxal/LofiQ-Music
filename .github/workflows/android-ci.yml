@@ -28,7 +28,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Set up Node.js for Firestore Rules Testing
+      - name: Set up Node.js for Tooling & Tests
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -47,6 +47,9 @@ jobs:
       - name: Run Firestore Security Rules Unit Tests
         run: node test/firestore_rules_test.js
 
+      - name: Validate Release Artifacts Integrity
+        run: node scripts/validate_release_artifacts.mjs
+
       - name: Run Android Release Unit Tests
         run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
 
@@ -62,4 +65,3 @@ jobs:
             exit 1
           fi
           echo "No exposed secrets detected in working tree."
-

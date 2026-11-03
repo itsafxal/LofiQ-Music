@@ -1,11 +1,13 @@
 {
-  "name": "lofiq-security-tests",
-  "version": "1.0.1",
+  "name": "lofiq-tooling",
+  "version": "1.0.2",
   "private": true,
-  "description": "Firestore Security Rules and Audit Tests for LofiQ",
+  "description": "Release verification, dual deployment, and security test harness for LofiQ",
   "scripts": {
     "test": "node test/firestore_rules_test.js",
-    "test:emulator": "jest --testPathPattern=firestore_emulator --runInBand"
+    "test:emulator": "jest --testPathPattern=firestore_emulator --runInBand",
+    "validate:release": "node scripts/validate_release_artifacts.mjs",
+    "verify:deployments": "node scripts/verify_dual_deployments.mjs"
   },
   "jest": {
     "testMatch": [
