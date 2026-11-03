@@ -72,6 +72,7 @@ fun CrashReportScreen(
 
     val diagnosticInfo = buildString {
         appendLine("--- LOFIQ DIAGNOSTICS ---")
+        appendLine("App: LofiQ V${com.lofiq.BuildConfig.VERSION_NAME} (Build ${com.lofiq.BuildConfig.VERSION_CODE})")
         appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
         appendLine("Android SDK: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
         appendLine("Error: $errorMessage")
@@ -156,7 +157,7 @@ fun CrashReportScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.SDK_INT})",
+                        text = "App: LofiQ V${com.lofiq.BuildConfig.VERSION_NAME} (Build ${com.lofiq.BuildConfig.VERSION_CODE}) | Device: ${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.SDK_INT})",
                         color = Color(0xFFB0B0B0),
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace

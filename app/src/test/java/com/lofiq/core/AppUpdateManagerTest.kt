@@ -158,6 +158,18 @@ class AppUpdateManagerTest {
 
         // User on newer build -> false
         assertFalse(manager.isUpdateAvailable(65, "1.0.2", 64, "1.0.1"))
+
+        // Legacy version string (e.g. 2.5.3 with code 63) vs new version (1.0.2 with code 65) -> true
+        assertTrue(manager.isUpdateAvailable(63, "2.5.3", 65, "1.0.2"))
+
+        // Exact match -> false
+        assertFalse(manager.isUpdateAvailable(65, "1.0.2", 65, "1.0.2"))
+
+        // Bumped version code -> true
+        assertTrue(manager.isUpdateAvailable(65, "1.0.2", 66, "1.0.3"))
+
+        // Lower remote version code -> false
+        assertFalse(manager.isUpdateAvailable(65, "1.0.2", 64, "1.0.1"))
     }
 
     @Test
@@ -284,6 +296,85 @@ class AppUpdateManagerTest {
         val info = result.getOrThrow()
         assertTrue(primaryHit)
         assertTrue("Secondary should be invoked on HTTP 503", secondaryHit)
+        assertEquals(EndpointType.SECONDARY, info.resolvedEndpoint)
+    }
+
+    @Test
+    fun `primary failure with stale secondary does not falsely claim app is up to date and leaks no host`() = runTest {
+        val staleSecondaryJson = """
+            {
+                "versionCode": 64,
+                "versionName": "1.0.1",
+                "releaseDate": "2026-11-03",
+                "apkUrl": "https://mybackuplofiq.netlify.app/downloads/LofiQ.apk",
+                "apkSize": "21.6 MB",
+                "checksum": "$sampleChecksum",
+                "releaseNotes": ["Stale backup release notes"]
+            }
+        """.trimIndent()
+
+        val client = createMockClient { req ->
+            val url = req.url.toString()
+            if (url.contains("lofiq-web.vercel.app")) {
+                throw SocketTimeoutException("Primary timed out")
+            } else if (url.contains("mybackuplofiq.netlify.app")) {
+                jsonResponse(req, staleSecondaryJson)
+            } else {
+                jsonResponse(req, "{}", 404, "Not Found")
+            }
+        }
+
+        val manager = AppUpdateManager(client)
+        // Current version is 65 (newer than secondary's 64)
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
+
+        // Must FAIL so that UI does not falsely show "LofiQ is up to date!"
+        assertTrue("Check must fail when secondary mirror is stale", result.isFailure)
+        val exception = result.exceptionOrNull()
+        assertNotNull(exception)
+        assertTrue(exception is SanitizedUpdateException)
+        assertEquals(AppUpdateManager.MSG_ERROR_CONNECTING, exception!!.message)
+
+        // Zero host leakage verification
+        val msg = exception.message ?: ""
+        assertFalse("Must never expose Netlify hostname in error", msg.contains("netlify", ignoreCase = true))
+        assertFalse("Must never expose Vercel hostname in error", msg.contains("vercel", ignoreCase = true))
+        assertFalse("Must never expose URLs in error", msg.contains("http://", ignoreCase = true) || msg.contains("https://", ignoreCase = true))
+    }
+
+    @Test
+    fun `primary failure with newer secondary offers update successfully`() = runTest {
+        val newerSecondaryJson = """
+            {
+                "versionCode": 66,
+                "versionName": "1.0.3",
+                "releaseDate": "2026-11-04",
+                "apkUrl": "https://mybackuplofiq.netlify.app/downloads/LofiQ.apk",
+                "apkSize": "22 MB",
+                "checksum": "$sampleChecksum",
+                "releaseNotes": ["Newer backup release notes"]
+            }
+        """.trimIndent()
+
+        val client = createMockClient { req ->
+            val url = req.url.toString()
+            if (url.contains("lofiq-web.vercel.app")) {
+                throw SocketTimeoutException("Primary timed out")
+            } else if (url.contains("mybackuplofiq.netlify.app")) {
+                jsonResponse(req, newerSecondaryJson)
+            } else {
+                jsonResponse(req, "{}", 404, "Not Found")
+            }
+        }
+
+        val manager = AppUpdateManager(client)
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
+
+        assertTrue(result.isSuccess)
+        val info = result.getOrThrow()
+        assertTrue(info.hasUpdate)
+        assertEquals(66, info.versionCode)
+        assertEquals("1.0.3", info.versionName)
         assertEquals(EndpointType.SECONDARY, info.resolvedEndpoint)
     }
 

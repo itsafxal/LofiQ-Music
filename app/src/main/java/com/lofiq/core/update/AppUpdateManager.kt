@@ -162,7 +162,9 @@ class AppUpdateManager @Inject constructor(
      * 4. Non-qualifying failures (401, 403, 404, malformed metadata) fail immediately without fallback.
      */
     suspend fun checkForUpdate(
-        customEndpoint: String? = null
+        customEndpoint: String? = null,
+        currentVersionCode: Int = BuildConfig.VERSION_CODE,
+        currentVersionName: String = BuildConfig.VERSION_NAME
     ): Result<UpdateInfo> = withContext(Dispatchers.IO) {
         if (!customEndpoint.isNullOrBlank()) {
             val endpoint = UpdateEndpoint(
@@ -170,13 +172,13 @@ class AppUpdateManager @Inject constructor(
                 metadataUrl = customEndpoint,
                 defaultApkUrl = customEndpoint.substringBefore("/version.json") + "/downloads/LofiQ.apk"
             )
-            return@withContext fetchMetadataFromEndpoint(endpoint).mapCatching { it }
+            return@withContext fetchMetadataFromEndpoint(endpoint, currentVersionCode, currentVersionName).mapCatching { it }
         }
 
         val primaryStartTime = System.currentTimeMillis()
 
         // 1. Always attempt PRIMARY (Vercel) first
-        val primaryResult = fetchMetadataFromEndpoint(PRIMARY_ENDPOINT)
+        val primaryResult = fetchMetadataFromEndpoint(PRIMARY_ENDPOINT, currentVersionCode, currentVersionName)
         if (primaryResult.isSuccess) {
             val info = primaryResult.getOrThrow()
             logDiagnostic(
@@ -216,9 +218,25 @@ class AppUpdateManager @Inject constructor(
             extra = "Switching to emergency backup due to primary ${category.name}"
         )
 
-        val secondaryResult = fetchMetadataFromEndpoint(SECONDARY_ENDPOINT)
+        val secondaryResult = fetchMetadataFromEndpoint(SECONDARY_ENDPOINT, currentVersionCode, currentVersionName)
         if (secondaryResult.isSuccess) {
             val info = secondaryResult.getOrThrow()
+
+            // Critical safeguard: Check if secondary endpoint is stale relative to current build.
+            // If primary was unreachable and secondary returns older metadata, secondary is stale
+            // and must NOT falsely claim the application is up to date.
+            if (info.versionCode < currentVersionCode) {
+                logDiagnostic(
+                    endpoint = EndpointType.SECONDARY,
+                    requestType = "METADATA_FETCH",
+                    status = "STALE_BACKUP",
+                    category = FailureCategory.UNKNOWN,
+                    durationMs = System.currentTimeMillis() - secondaryStartTime,
+                    extra = "Secondary metadata is stale (${info.versionCode} < $currentVersionCode) while primary was unavailable"
+                )
+                return@withContext Result.failure(SanitizedUpdateException(MSG_ERROR_CONNECTING, primaryException))
+            }
+
             logDiagnostic(
                 endpoint = EndpointType.SECONDARY,
                 requestType = "METADATA_FETCH",
@@ -423,12 +441,17 @@ class AppUpdateManager @Inject constructor(
     /**
      * Fetches and parses release metadata from a given [UpdateEndpoint].
      */
-    private fun fetchMetadataFromEndpoint(endpoint: UpdateEndpoint): Result<UpdateInfo> {
+    private fun fetchMetadataFromEndpoint(
+        endpoint: UpdateEndpoint,
+        currentVersionCode: Int = BuildConfig.VERSION_CODE,
+        currentVersionName: String = BuildConfig.VERSION_NAME
+    ): Result<UpdateInfo> {
         return try {
             val request = Request.Builder()
                 .url(endpoint.metadataUrl)
                 .header("User-Agent", "LofiQ-Android/${BuildConfig.VERSION_NAME}")
-                .header("Cache-Control", "no-cache")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
                 .build()
 
             val response = okHttpClient.newCall(request).execute()
@@ -437,7 +460,7 @@ class AppUpdateManager @Inject constructor(
             }
 
             val body = response.body?.string() ?: return Result.failure(IOException("Empty response body"))
-            val info = parseAndValidateMetadata(body, endpoint)
+            val info = parseAndValidateMetadata(body, endpoint, currentVersionCode, currentVersionName)
             Result.success(info)
         } catch (e: Throwable) {
             Result.failure(e)
@@ -501,7 +524,9 @@ class AppUpdateManager @Inject constructor(
      */
     fun parseAndValidateMetadata(
         jsonString: String,
-        endpoint: UpdateEndpoint
+        endpoint: UpdateEndpoint,
+        currentVersionCode: Int = BuildConfig.VERSION_CODE,
+        currentVersionName: String = BuildConfig.VERSION_NAME
     ): UpdateInfo {
         val json = try {
             JSONObject(jsonString)
@@ -553,8 +578,8 @@ class AppUpdateManager @Inject constructor(
         }
 
         val hasUpdate = isUpdateAvailable(
-            currentVersionCode = BuildConfig.VERSION_CODE,
-            currentVersionName = BuildConfig.VERSION_NAME,
+            currentVersionCode = currentVersionCode,
+            currentVersionName = currentVersionName,
             remoteVersionCode = versionCode,
             remoteVersionName = versionName
         )
@@ -749,22 +774,9 @@ class AppUpdateManager @Inject constructor(
         currentVersionCode: Int = BuildConfig.VERSION_CODE,
         currentVersionName: String = BuildConfig.VERSION_NAME,
         remoteVersionCode: Int,
-        remoteVersionName: String
+        remoteVersionName: String = ""
     ): Boolean {
-        val cleanCurrentName = currentVersionName.trim().removePrefix("v").removePrefix("V")
-        val cleanRemoteName = remoteVersionName.trim().removePrefix("v").removePrefix("V")
-
-        if (cleanRemoteName.isBlank() || cleanCurrentName.isBlank()) {
-            return remoteVersionCode > currentVersionCode
-        }
-
-        val semVerDiff = compareSemanticVersions(cleanRemoteName, cleanCurrentName)
-
-        return when {
-            semVerDiff > 0 -> true
-            semVerDiff < 0 -> false
-            else -> remoteVersionCode > currentVersionCode
-        }
+        return remoteVersionCode > currentVersionCode
     }
 
     /**

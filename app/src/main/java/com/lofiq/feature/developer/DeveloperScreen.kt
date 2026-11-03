@@ -448,7 +448,7 @@ fun DeveloperScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "LofiQ • Liquid Glass Edition",
+                            text = "LofiQ V${BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = AccentWhite,
@@ -456,7 +456,7 @@ fun DeveloperScreen(
                             )
                         )
                         Text(
-                            text = "Version ${BuildConfig.VERSION_NAME} • Built with Jetpack Compose & Media3",
+                            text = "Liquid Glass Edition • Built with Jetpack Compose & Media3",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextSecondary,
                                 fontSize = 11.sp

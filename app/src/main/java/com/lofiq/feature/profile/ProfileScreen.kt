@@ -289,14 +289,14 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "LofiQ",
+                            text = "LofiQ V${com.lofiq.BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = AccentWhite
                             )
                         )
                         Text(
-                            text = "Version ${com.lofiq.BuildConfig.VERSION_NAME} • Music without limits",
+                            text = "Music without limits",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextSecondary,
                                 fontSize = 11.5.sp
@@ -362,7 +362,7 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "v${update.versionName} (${update.apkSize})",
+                                text = "LofiQ V${update.versionName} (${update.apkSize})",
                                 color = AccentWhite,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp

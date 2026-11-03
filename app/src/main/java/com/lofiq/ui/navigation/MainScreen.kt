@@ -557,7 +557,7 @@ fun MainScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "v${update.versionName} (${update.apkSize})",
+                                text = "LofiQ V${update.versionName} (${update.apkSize})",
                                 color = TextPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp
