@@ -15,6 +15,7 @@ import com.lofiq.ui.navigation.MainScreen
 import com.lofiq.ui.performance.resolvePerformanceRefreshRate
 import com.lofiq.ui.performance.supportedPerformanceRefreshRates
 import com.lofiq.ui.theme.LofiQTheme
+import com.lofiq.core.common.LofiQLogger
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,9 +89,11 @@ class MainActivity : ComponentActivity() {
             runCatching { downloadManager.ensureLofiQDirectoryExists() }
             runCatching { appUpdateManager.schedulePeriodicUpdateCheck(applicationContext) }
             runCatching {
-                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                if (auth.currentUser == null) {
-                    auth.signInAnonymously()
+                val authResult = listenTogetherManager.ensureFirebaseAuth()
+                if (authResult.isSuccess) {
+                    LofiQLogger.i(LofiQLogger.Category.APP, "Startup silent Firebase auth verified: UID ${authResult.getOrNull()}")
+                } else {
+                    LofiQLogger.w(LofiQLogger.Category.APP, "Startup silent Firebase auth deferred: ${authResult.exceptionOrNull()?.message}")
                 }
             }
         }

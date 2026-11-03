@@ -22,6 +22,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -33,8 +35,11 @@ class FirebaseAuthRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dispatchers: DispatcherProvider
 ) {
-    private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    internal var firebaseAuthInstance: FirebaseAuth? = null
+    private val firebaseAuth: FirebaseAuth
+        get() = firebaseAuthInstance ?: FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    private val authMutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.io)
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         scope = scope,
@@ -146,24 +151,47 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
+    suspend fun getOrSignInAnonymous(): Result<String> = withContext(dispatchers.io) {
+        val existing = firebaseAuth.currentUser
+        if (existing != null) {
+            return@withContext Result.success(existing.uid)
+        }
+        authMutex.withLock {
+            val doubleCheck = firebaseAuth.currentUser
+            if (doubleCheck != null) {
+                return@withContext Result.success(doubleCheck.uid)
+            }
+            try {
+                val authResult = firebaseAuth.signInAnonymously().await()
+                val user = authResult.user ?: throw IllegalStateException("Firebase user is null after anonymous sign-in")
+                LofiQLogger.i(LofiQLogger.Category.APP, "Anonymous Firebase sign-in successful: ${user.uid}")
+                Result.success(user.uid)
+            } catch (e: Exception) {
+                LofiQLogger.e(LofiQLogger.Category.APP, "Anonymous Firebase sign-in failed: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+    }
+
     suspend fun continueAsGuest(): Result<FirebaseUserProfile> = withContext(dispatchers.io) {
-        try {
-            val authResult = firebaseAuth.signInAnonymously().await()
-            val user = authResult.user ?: throw IllegalStateException("Firebase anonymous user is null")
+        val authResult = getOrSignInAnonymous()
+        if (authResult.isSuccess) {
+            val uid = authResult.getOrThrow()
+            val user = firebaseAuth.currentUser
             val profile = FirebaseUserProfile(
-                uid = user.uid,
-                displayName = "Guest Listener",
-                email = null,
-                photoUrl = null,
-                isAnonymous = true
+                uid = uid,
+                displayName = user?.displayName ?: "Guest Listener",
+                email = user?.email,
+                photoUrl = user?.photoUrl?.toString(),
+                isAnonymous = user?.isAnonymous ?: true
             )
             setOnboardingCompleted(true)
-            LofiQLogger.i(LofiQLogger.Category.APP, "Anonymous Guest login successful")
+            LofiQLogger.i(LofiQLogger.Category.APP, "Anonymous Guest login successful for: $uid")
             Result.success(profile)
-        } catch (e: Exception) {
-            // Even if offline, mark onboarding completed so guest can proceed
-            setOnboardingCompleted(true)
-            Result.success(FirebaseUserProfile(uid = "guest_${System.currentTimeMillis()}", displayName = "Guest Listener", isAnonymous = true))
+        } else {
+            val ex = authResult.exceptionOrNull() ?: Exception("Anonymous sign-in failed")
+            LofiQLogger.e(LofiQLogger.Category.APP, "continueAsGuest failed: ${ex.message}", ex)
+            Result.failure(ex)
         }
     }
 

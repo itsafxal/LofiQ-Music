@@ -165,9 +165,14 @@ class FirebaseAuthViewModel @Inject constructor(
 
     fun continueAsGuest() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            firebaseAuthRepository.continueAsGuest()
-            _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = firebaseAuthRepository.continueAsGuest()
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            } else {
+                val errorMsg = result.exceptionOrNull()?.localizedMessage ?: "Guest login failed"
+                _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
+            }
         }
     }
 

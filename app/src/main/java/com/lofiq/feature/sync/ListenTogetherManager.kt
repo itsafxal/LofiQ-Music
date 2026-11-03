@@ -1,10 +1,14 @@
 package com.lofiq.feature.sync
 
 import androidx.annotation.VisibleForTesting
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.lofiq.core.common.DispatcherProvider
 import com.lofiq.core.common.LofiQLogger
 import com.lofiq.core.model.Song
@@ -58,6 +62,8 @@ class ListenTogetherManager @Inject constructor(
     private val firebaseAuth: com.google.firebase.auth.FirebaseAuth
         get() = firebaseAuthInstance ?: com.google.firebase.auth.FirebaseAuth.getInstance()
 
+    private val authMutex = Mutex()
+
     private val _syncState = MutableStateFlow<ListenTogetherState>(ListenTogetherState.Disconnected)
     val syncState: StateFlow<ListenTogetherState> = _syncState.asStateFlow()
 
@@ -85,20 +91,61 @@ class ListenTogetherManager @Inject constructor(
         }
     }
 
-    private suspend fun ensureFirebaseAuth(): String? {
-        return try {
-            val auth = firebaseAuth
-            val currentUser = auth.currentUser
-            if (currentUser != null) {
-                return currentUser.uid
+    /**
+     * Ensures an authenticated Firebase user exists, reusing an existing session or signing in anonymously.
+     * Synchronized with Mutex to prevent duplicate or concurrent authentication operations.
+     */
+    suspend fun ensureFirebaseAuth(): Result<String> = withContext(dispatchers.io) {
+        val auth = firebaseAuth
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            return@withContext Result.success(currentUser.uid)
+        }
+        authMutex.withLock {
+            val doubleCheck = auth.currentUser
+            if (doubleCheck != null) {
+                return@withContext Result.success(doubleCheck.uid)
             }
-            val result = auth.signInAnonymously().await()
-            val uid = result.user?.uid
-            LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Silent anonymous Firebase auth success (UID: $uid)")
-            uid
-        } catch (e: Exception) {
-            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Silent Firebase anonymous auth failed: ${e.message}")
-            null
+            try {
+                val result = auth.signInAnonymously().await()
+                val uid = result.user?.uid ?: throw IllegalStateException("Firebase user is null after anonymous sign-in")
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Silent anonymous Firebase auth success (UID: $uid)")
+                Result.success(uid)
+            } catch (e: Exception) {
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Silent Firebase anonymous auth failed: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    internal fun classifyAuthError(throwable: Throwable?): String {
+        if (throwable == null) return "Firebase authentication failed"
+        val msg = throwable.message.orEmpty()
+        return when {
+            throwable is FirebaseNetworkException || msg.contains("network", ignoreCase = true) || msg.contains("unreachable", ignoreCase = true) ->
+                "Network error: Unable to connect to Firebase authentication service. Please check your internet connection."
+            msg.contains("app check", ignoreCase = true) || msg.contains("appcheck", ignoreCase = true) || msg.contains("403", ignoreCase = true) ->
+                "Firebase App Check verification failed. Please verify safety attestation or App Check tokens."
+            msg.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true) || msg.contains("admin-restricted-operation", ignoreCase = true) ->
+                "Anonymous authentication is disabled in Firebase Console. Please enable Anonymous Auth under Firebase Authentication -> Sign-in method."
+            msg.contains("user-disabled", ignoreCase = true) ->
+                "Firebase account has been disabled."
+            else -> "Firebase authentication failed: ${throwable.localizedMessage ?: msg}"
+        }
+    }
+
+    internal fun classifyFirestoreError(throwable: Throwable): String {
+        val msg = throwable.message.orEmpty()
+        return when {
+            msg.contains("PERMISSION_DENIED", ignoreCase = true) ->
+                "Firestore Permission Denied. Your session is not authorized to perform this operation. Check Firestore security rules."
+            msg.contains("UNAUTHENTICATED", ignoreCase = true) ->
+                "Firebase Unauthenticated. Valid Firebase credentials are required."
+            msg.contains("UNAVAILABLE", ignoreCase = true) || msg.contains("DEADLINE_EXCEEDED", ignoreCase = true) || msg.contains("network", ignoreCase = true) ->
+                "Firebase Network Unavailable. Please check your internet connection and try again."
+            msg.contains("app check", ignoreCase = true) || msg.contains("appcheck", ignoreCase = true) ->
+                "Firebase App Check rejected the Firestore request."
+            else -> "Firestore error: ${throwable.localizedMessage ?: msg}"
         }
     }
 
@@ -108,8 +155,15 @@ class ListenTogetherManager @Inject constructor(
     suspend fun lookupRoom(code: String): Triple<Boolean, String?, String?> = withContext(dispatchers.io) {
         val cleanCode = normalizeCode(code)
         if (cleanCode.isBlank()) return@withContext Triple(false, null, "Invalid room code")
+
+        val authResult = ensureFirebaseAuth()
+        if (authResult.isFailure) {
+            val errorMsg = classifyAuthError(authResult.exceptionOrNull())
+            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Lookup aborted - auth failed: $errorMsg")
+            return@withContext Triple(false, null, errorMsg)
+        }
+
         try {
-            ensureFirebaseAuth()
             val doc = firestore.collection("listen_together_rooms")
                 .document(cleanCode)
                 .get()
@@ -123,14 +177,9 @@ class ListenTogetherManager @Inject constructor(
             }
             Triple(false, null, "Room not found")
         } catch (e: Exception) {
-            val msg = e.message ?: "Lookup error"
-            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Lookup error for $cleanCode: $msg")
-            val errorHint = if (msg.contains("PERMISSION_DENIED", ignoreCase = true)) {
-                "Firebase permission denied (enable Anonymous Auth / check Firestore rules)"
-            } else {
-                msg
-            }
-            Triple(false, null, errorHint)
+            val userFriendlyError = classifyFirestoreError(e)
+            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Lookup error for $cleanCode: $userFriendlyError", e)
+            Triple(false, null, userFriendlyError)
         }
     }
 
@@ -153,10 +202,28 @@ class ListenTogetherManager @Inject constructor(
         val positionMs = engine?.playerState?.value?.currentPositionMs ?: 0L
 
         scope.launch(dispatchers.io) {
-            try {
-                val hostId = ensureFirebaseAuth() ?: UUID.randomUUID().toString()
-                currentParticipantId = hostId
+            val authResult = ensureFirebaseAuth()
+            if (authResult.isFailure) {
+                val error = authResult.exceptionOrNull()
+                val friendlyError = classifyAuthError(error)
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Cannot create room - auth failure: $friendlyError", error)
+                withContext(dispatchers.main) {
+                    onResult(false, null, friendlyError)
+                }
+                return@launch
+            }
 
+            val hostId = authResult.getOrThrow()
+            currentParticipantId = hostId
+
+            // Spark Plan compatible: proactively clean up any previous inactive rooms created by this host
+            runCatching {
+                cleanupHostInactiveRooms(hostId)
+            }.onFailure { e ->
+                LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Pre-creation room cleanup warning: ${e.message}")
+            }
+
+            try {
                 val initialData = hashMapOf<String, Any?>(
                     "roomCode" to roomCode,
                     "roomName" to cleanRoomName,
@@ -189,7 +256,7 @@ class ListenTogetherManager @Inject constructor(
                     .set(initialData)
                     .await()
 
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Created Firestore room successfully: $roomCode ($cleanRoomName)")
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Created Firestore room successfully: $roomCode ($cleanRoomName) with hostId=$hostId")
 
                 withContext(dispatchers.main) {
                     _syncState.value = ListenTogetherState.Connected(
@@ -209,13 +276,8 @@ class ListenTogetherManager @Inject constructor(
                     onResult(true, roomCode, null)
                 }
             } catch (e: Exception) {
-                val errMsg = e.message ?: "Failed to write room to cloud"
-                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Failed to create Firestore room: $errMsg", e)
-                val userFriendlyError = if (errMsg.contains("PERMISSION_DENIED", ignoreCase = true)) {
-                    "Firestore Permission Denied. Please enable Anonymous Auth and check Firestore Rules in Firebase Console."
-                } else {
-                    "Failed to create room: $errMsg"
-                }
+                val userFriendlyError = classifyFirestoreError(e)
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Failed to create Firestore room: $userFriendlyError", e)
                 withContext(dispatchers.main) {
                     onResult(false, null, userFriendlyError)
                 }
@@ -239,10 +301,21 @@ class ListenTogetherManager @Inject constructor(
         }
 
         scope.launch(dispatchers.io) {
-            try {
-                val joinerId = ensureFirebaseAuth() ?: UUID.randomUUID().toString()
-                currentParticipantId = joinerId
+            val authResult = ensureFirebaseAuth()
+            if (authResult.isFailure) {
+                val error = authResult.exceptionOrNull()
+                val friendlyError = classifyAuthError(error)
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Cannot join room - auth failure: $friendlyError", error)
+                withContext(dispatchers.main) {
+                    onResult(false, friendlyError)
+                }
+                return@launch
+            }
 
+            val joinerId = authResult.getOrThrow()
+            currentParticipantId = joinerId
+
+            try {
                 val doc = firestore.collection("listen_together_rooms")
                     .document(cleanCode)
                     .get()
@@ -300,13 +373,8 @@ class ListenTogetherManager @Inject constructor(
 
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Joined Firestore room: $cleanCode")
             } catch (e: Exception) {
-                val errMsg = e.message ?: "Failed to join room"
-                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Failed to join room: $errMsg", e)
-                val userFriendlyError = if (errMsg.contains("PERMISSION_DENIED", ignoreCase = true)) {
-                    "Firestore Permission Denied. Please enable Anonymous Auth in Firebase Console."
-                } else {
-                    errMsg
-                }
+                val userFriendlyError = classifyFirestoreError(e)
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[SYNC] Failed to join room: $userFriendlyError", e)
                 withContext(dispatchers.main) {
                     onResult(false, userFriendlyError)
                 }
@@ -633,7 +701,10 @@ class ListenTogetherManager @Inject constructor(
                                 "active" to false,
                                 "listenerCount" to 0
                             )
-                        )
+                        ).await()
+                        if (!participantId.isNullOrBlank()) {
+                            cleanupHostInactiveRooms(participantId)
+                        }
                     } else {
                         // Joiner leaving: decrement listener count and remove participant entry
                         val updates = hashMapOf<String, Any>(
@@ -651,6 +722,40 @@ class ListenTogetherManager @Inject constructor(
         }
 
         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Disconnected from Listen Together (room=$roomCode, isHost=$isHost)")
+    }
+
+    /**
+     * Deletes inactive rooms previously owned by this host.
+     * 100% Firebase Spark Plan compatible (zero paid Cloud Functions or Blaze upgrade required).
+     * Strictly verifies that hostId matches and active == false before deletion.
+     * Never deletes active rooms, other users' rooms, auth accounts, or user data.
+     */
+    suspend fun cleanupHostInactiveRooms(hostId: String): Int = withContext(dispatchers.io) {
+        if (hostId.isBlank()) return@withContext 0
+        var deletedCount = 0
+        try {
+            val snapshot = firestore.collection("listen_together_rooms")
+                .whereEqualTo("hostId", hostId)
+                .whereEqualTo("active", false)
+                .get()
+                .await()
+
+            for (doc in snapshot.documents) {
+                val docHostId = doc.getString("hostId")
+                val isActive = doc.getBoolean("active") ?: false
+                if (docHostId == hostId && !isActive) {
+                    doc.reference.delete().await()
+                    deletedCount++
+                    LofiQLogger.d(LofiQLogger.Category.PLAYBACK, "[SYNC] Cleaned up inactive host room: ${doc.id}")
+                }
+            }
+            if (deletedCount > 0) {
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SYNC] Inactive room cleanup completed: pruned $deletedCount room(s) for host $hostId")
+            }
+        } catch (e: Exception) {
+            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[SYNC] Inactive room cleanup encountered error: ${e.message}")
+        }
+        deletedCount
     }
 
     @VisibleForTesting
