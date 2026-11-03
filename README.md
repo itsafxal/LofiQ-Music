@@ -4,9 +4,9 @@
 
 <br/><br/>
 
-[![Version](https://img.shields.io/badge/Release-LofiQ%20V1.0.1%20%28Code%2064%29-38bdf8?style=for-the-badge&logo=android&logoColor=white)](https://github.com/itsafxal/LofiQ-Music/releases)
-[![Build Status](https://img.shields.io/badge/Unit%20Tests-152%2F152%20Passing-22c55e?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/itsafxal/LofiQ-Music/actions)
-[![Firestore Rules](https://img.shields.io/badge/Firestore%20Rules-58%2F58%20Verified-a855f7?style=for-the-badge&logo=firebase&logoColor=white)](firestore.rules)
+[![Version](https://img.shields.io/badge/Release-LofiQ%20V1.0.2%20%28Code%2065%29-38bdf8?style=for-the-badge&logo=android&logoColor=white)](https://github.com/itsafxal/LofiQ-Music/releases)
+[![Build Status](https://img.shields.io/badge/Unit%20Tests-184%2F184%20Passing-22c55e?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/itsafxal/LofiQ-Music/actions)
+[![Firestore Rules](https://img.shields.io/badge/Firestore%20Rules-60%2F60%20Verified-a855f7?style=for-the-badge&logo=firebase&logoColor=white)](firestore.rules)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-35%20%28Android%2015%29-3ddc84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](LICENSE)
@@ -17,7 +17,7 @@
 
 <br/>
 
-[**🌐 Official Website**](https://lofiq-web.vercel.app/) &nbsp;•&nbsp; [**📦 Download APK (v1.0.1)**](https://lofiq-web.vercel.app/downloads/LofiQ.apk) &nbsp;•&nbsp; [**🚀 Releases**](https://github.com/itsafxal/LofiQ-Music/releases)
+[**🌐 Official Website**](https://lofiq-web.vercel.app/) &nbsp;•&nbsp; [**📦 Download APK (v1.0.2)**](https://lofiq-web.vercel.app/downloads/LofiQ.apk) &nbsp;•&nbsp; [**🚀 Releases**](https://github.com/itsafxal/LofiQ-Music/releases)
 
 </div>
 
@@ -41,7 +41,7 @@
 - [14. Release Signing Configuration](#14-release-signing-configuration)
 - [15. Website & APK Distribution](#15-website--apk-distribution)
 - [16. Automated In-App Failover Architecture](#16-automated-in-app-failover-architecture)
-- [17. Version Information — V1.0.1](#17-version-information--v101)
+- [17. Version Information — V1.0.2](#17-version-information--v102)
 - [18. Contribution Guidelines](#18-contribution-guidelines)
 - [19. License Information](#19-license-information)
 - [20. Credits & Acknowledgements](#20-credits--acknowledgements)
@@ -430,25 +430,24 @@ To protect against edge CDN outages or regional network restrictions, LofiQ feat
 
 ---
 
-## 17. Version Information — V1.0.1
+## 17. Version Information — V1.0.2
 
 | Specification | Value |
 |:---|:---|
-| **Release Name** | **LofiQ V1.0.1** |
-| **Android `versionName`** | `1.0.1` |
-| **Android `versionCode`** | `64` |
+| **Release Name** | **LofiQ V1.0.2** |
+| **Android `versionName`** | `1.0.2` |
+| **Android `versionCode`** | `65` |
 | **Package ID (`applicationId`)** | `com.sargamify.app` |
-| **SHA-256 Checksum** | `a4b05df41187a5f889e6e9bc01000261a4abd95ec70930f8d5ba0cb6c6a528ef` |
-| **APK File Size** | `21.6 MB` (`22,646,728 bytes`) |
+| **SHA-256 Checksum** | `7222e194e3ae39c703afa0e70e388649538fd708e63607c3087eabeff0b88a27` |
+| **APK File Size** | `21.6 MB` (`22,647,689 bytes`) |
 | **Release Date** | November 2026 |
 
-### 🚀 What's New in V1.0.1
-- **Cloud Firestore Security Hardening:** Formally verified rules with strict append-only reactions and default-deny protection.
-- **Android Platform Security:** Firebase App Check with Play Integrity, scoped FileProvider paths, and encrypted session protection excluding auth tokens from backups.
-- **Decoupled Release Signing:** Environment and local property fallback for secure production APK signing.
-- **Three Premium Home Screen Widgets:** Wide (4×2), Square (2×2), and Pill (4×1) widgets with full-bleed artwork and direct playback controls.
-- **Listen Together Real-Time Lounges:** Multi-device music synchronization with drift compensation and live floating emoji reaction streams.
-- **Resilient Update Architecture:** Seamless background automatic failover protecting against hosting outages.
+### 🚀 What's New in V1.0.2
+- **Synchronized Firebase Anonymous Authentication:** Resolved startup race condition with coroutine Mutex deduplication and persistent session reuse across launches.
+- **Listen Together Lifecycle Hardening:** Strictly verified Firebase UID ownership for hosts and participants with complete elimination of random UUID fallbacks.
+- **Spark Plan Inactive Room Cleanup:** Automated host-driven inactive room garbage collection operating within free Spark plan quotas with zero Cloud Functions.
+- **Truthful Diagnostic Error Classification:** Granular diagnostic reporting separating network timeouts, App Check rejections, and Firestore security rule boundaries.
+- **Official Firestore Emulator Verification:** Formally verified against Google Local Emulator Suite with 60/60 passing security rule assertions.
 
 ---
 

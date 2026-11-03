@@ -1,18 +1,17 @@
 {
-  "versionCode": 64,
-  "versionName": "1.0.1",
+  "versionCode": 65,
+  "versionName": "1.0.2",
   "minSupportedVersion": 1,
   "releaseDate": "2026-11-03",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.6 MB",
-  "checksum": "a4b05df41187a5f889e6e9bc01000261a4abd95ec70930f8d5ba0cb6c6a528ef",
+  "checksum": "7222e194e3ae39c703afa0e70e388649538fd708e63607c3087eabeff0b88a27",
   "releaseNotes": [
-    "🚀 Official Open Source Production Release (V1.0.1)",
-    "🔒 Production Cloud Firestore Security Hardening: Formally verified security rules with strict append-only reactions, host identity agreement, and default-deny protection.",
-    "🛡️ Android Platform Security: Firebase App Check with Play Integrity, scoped FileProvider paths, and encrypted session protection excluding auth tokens from backups.",
-    "🔑 Decoupled Release Signing: Environment and local property fallback for secure production APK signing without debug key exposure.",
-    "🎵 Three Premium Home Screen Widgets: Wide (4×2), Square (2×2), and Pill (4×1) widgets with full-bleed artwork and direct playback controls.",
-    "👥 Listen Together Real-Time Lounges: Multi-device music synchronization with drift compensation and live floating emoji reaction streams.",
-    "⚡ Resilient Update Architecture: High-availability release distribution with automatic background failover."
+    "🚀 Official Production Release (V1.0.2 - Build 65)",
+    "🔒 Synchronized Firebase Anonymous Authentication: Resolved startup race condition with coroutine Mutex deduplication and persistent session reuse across launches.",
+    "👥 Listen Together Lifecycle Hardening: Strictly verified Firebase UID ownership for hosts and participants with elimination of random UUID fallbacks.",
+    "🧹 Spark Plan Inactive Room Cleanup: Automated host-driven inactive room garbage collection operating within free Spark plan quotas with zero Cloud Functions.",
+    "🛡️ Truthful Error Classification: Granular diagnostic reporting separating network timeouts, App Check rejections, and Firestore security rule boundaries.",
+    "⚡ Official Firestore Emulator Verification: Formally verified against Google Local Emulator Suite with 60/60 passing security rule assertions."
   ]
 }
