@@ -62,7 +62,7 @@ class AppUpdateManager @Inject constructor(
 
         // Primary (Vercel) and Resilient Fallback (Netlify) Update Endpoints
         const val DEFAULT_UPDATE_ENDPOINT = "https://lofiq-web.vercel.app/version.json"
-        const val NETLIFY_FALLBACK_ENDPOINT = "https://musicapplofiq.netlify.app/version.json"
+        const val NETLIFY_FALLBACK_ENDPOINT = "https://mybackuplofiq.netlify.app/version.json"
     }
 
     /**
@@ -321,9 +321,9 @@ class AppUpdateManager @Inject constructor(
     ): Result<File> = withContext(Dispatchers.IO) {
         val candidateUrls = linkedSetOf(apkUrl)
         if (apkUrl.contains("lofiq-web.vercel.app")) {
-            candidateUrls.add(apkUrl.replace("lofiq-web.vercel.app", "musicapplofiq.netlify.app"))
-        } else if (!apkUrl.contains("musicapplofiq.netlify.app")) {
-            candidateUrls.add("https://musicapplofiq.netlify.app/downloads/LofiQ.apk")
+            candidateUrls.add(apkUrl.replace("lofiq-web.vercel.app", "mybackuplofiq.netlify.app"))
+        } else if (!apkUrl.contains("mybackuplofiq.netlify.app")) {
+            candidateUrls.add("https://mybackuplofiq.netlify.app/downloads/LofiQ.apk")
         }
 
         var lastException: Exception? = null

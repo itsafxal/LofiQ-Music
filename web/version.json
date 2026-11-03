@@ -4,14 +4,19 @@
   "minSupportedVersion": 1,
   "releaseDate": "2026-11-03",
   "apkUrl": "/downloads/LofiQ.apk",
+  "primaryUrl": "https://lofiq-web.vercel.app/downloads/LofiQ.apk",
+  "backupUrl": "https://mybackuplofiq.netlify.app/downloads/LofiQ.apk",
+  "primaryWebsite": "https://lofiq-web.vercel.app",
+  "backupWebsite": "https://mybackuplofiq.netlify.app",
   "apkSize": "21.6 MB",
   "checksum": "a4b05df41187a5f889e6e9bc01000261a4abd95ec70930f8d5ba0cb6c6a528ef",
   "releaseNotes": [
-    "🚀 Initial Official Open Source Release (v1.0.1)",
+    "🚀 Official Open Source Production Release (V1.0.1)",
     "🔒 Production Cloud Firestore Security Hardening: Formally verified security rules with strict append-only reactions, host identity agreement, and default-deny protection.",
     "🛡️ Android Platform Security: Firebase App Check with Play Integrity, scoped FileProvider paths, and encrypted session protection excluding auth tokens from backups.",
     "🔑 Decoupled Release Signing: Environment and local property fallback for secure production APK signing without debug key exposure.",
     "🎵 Three Premium Home Screen Widgets: Wide (4×2), Square (2×2), and Pill (4×1) widgets with full-bleed artwork and direct playback controls.",
-    "👥 Listen Together Real-Time Lounges: Multi-device music synchronization with drift compensation and live floating emoji reaction streams."
+    "👥 Listen Together Real-Time Lounges: Multi-device music synchronization with drift compensation and live floating emoji reaction streams.",
+    "🌐 Dual-Website High Availability: Integrated primary distribution on Vercel with automatic failover to Netlify backup mirror."
   ]
 }

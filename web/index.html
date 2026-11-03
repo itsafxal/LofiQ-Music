@@ -66,6 +66,11 @@
           <span class="badge-text">Latest Build <strong class="dynamic-version">v1.0.1</strong> is Ready</span>
           <span class="badge-tag">Android 8.0+</span>
         </div>
+
+        <!-- High-Availability Mirror Indicator -->
+        <div class="mirror-badge" id="mirror-badge">
+          🌐 <strong>Official Primary Site (Vercel)</strong> • <a href="https://mybackuplofiq.netlify.app">Backup Mirror (Netlify)</a>
+        </div>
         
         <!-- Hero Title -->
         <h1 class="hero-title">
@@ -337,7 +342,7 @@
             </p>
 
             <!-- Prominent Primary Download Action -->
-            <div class="download-button-wrapper">
+            <div class="dual-download-actions">
               <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mega dynamic-download-btn" id="mega-download-btn">
                 <div class="mega-btn-shine"></div>
                 <div class="mega-btn-icon-wrap">
@@ -348,10 +353,23 @@
                   </svg>
                 </div>
                 <div class="mega-btn-text">
-                  <span class="mega-btn-label">Download APK Directly</span>
+                  <span class="mega-btn-label">Download APK (Primary Node)</span>
                   <span class="mega-btn-sub">Version <strong class="dynamic-version">v1.0.1</strong> • <span class="dynamic-size">21.6 MB</span></span>
                 </div>
               </a>
+
+              <a href="https://mybackuplofiq.netlify.app/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mirror" id="backup-mirror-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span id="backup-mirror-btn-text">Download via Backup Mirror (Netlify)</span>
+              </a>
+            </div>
+
+            <div class="checksum-card">
+              <span>SHA-256 Checksum: </span><strong id="dynamic-checksum">a4b05df41187a5f889e6e9bc01000261a4abd95ec70930f8d5ba0cb6c6a528ef</strong>
             </div>
 
             <!-- Verification Metadata Pills -->
@@ -508,8 +526,9 @@
         <p>&copy; 2026 LofiQ. Developed by <a href="https://itsafxal.vercel.app" target="_blank" rel="noopener noreferrer">Afsal</a>.</p>
         <div class="footer-links">
           <a href="#hero">Back to Top &uarr;</a>
-          <a href="#features">Features</a>
-          <a href="#download">Download APK</a>
+          <a href="https://lofiq-web.vercel.app" id="footer-primary-link">Primary (Vercel)</a>
+          <a href="https://mybackuplofiq.netlify.app" id="footer-backup-link">Backup Mirror (Netlify)</a>
+          <a href="https://github.com/itsafxal/LofiQ-Music" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
         </div>
       </div>
     </div>
