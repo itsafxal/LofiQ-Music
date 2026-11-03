@@ -978,4 +978,121 @@ describe('LofiQ Production Firestore Security Rules (Official Emulator)', () => 
     await assertFails(authedDb.doc('arbitrary_collection/doc1').get());
     await assertFails(authedDb.doc('arbitrary_collection/doc1').set({ foo: 'bar' }));
   });
+
+  // =========================================================================
+  // 8. Listen Together Room Cleanup & Security Rules Verification
+  // =========================================================================
+  test('Authenticated host CAN query their own inactive rooms', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-CLEANUP-1').set({
+        roomCode: 'SRG-CLEANUP-1',
+        hostId: 'host1',
+        active: false,
+        listenerCount: 0,
+        participants: { host1: { id: 'host1', role: 'host' } }
+      });
+    });
+
+    const hostDb = testEnv.authenticatedContext('host1').firestore();
+    const query = hostDb.collection('listen_together_rooms')
+      .where('hostId', '==', 'host1')
+      .where('active', '==', false);
+    await assertSucceeds(query.get());
+  });
+
+  test('Authenticated host CAN delete their own inactive room', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-CLEANUP-2').set({
+        roomCode: 'SRG-CLEANUP-2',
+        hostId: 'host1',
+        active: false,
+        listenerCount: 0,
+        participants: { host1: { id: 'host1', role: 'host' } }
+      });
+    });
+
+    const hostDb = testEnv.authenticatedContext('host1').firestore();
+    await assertSucceeds(hostDb.doc('listen_together_rooms/SRG-CLEANUP-2').delete());
+  });
+
+  test(`Host CANNOT delete another user's inactive room`, async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-OTHER-INACTIVE').set({
+        roomCode: 'SRG-OTHER-INACTIVE',
+        hostId: 'bob',
+        active: false,
+        listenerCount: 0,
+        participants: { bob: { id: 'bob', role: 'host' } }
+      });
+    });
+
+    const aliceDb = testEnv.authenticatedContext('alice').firestore();
+    await assertFails(aliceDb.doc('listen_together_rooms/SRG-OTHER-INACTIVE').delete());
+  });
+
+  test(`Host CANNOT delete another user's active room`, async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-OTHER-ACTIVE').set({
+        roomCode: 'SRG-OTHER-ACTIVE',
+        hostId: 'bob',
+        active: true,
+        listenerCount: 1,
+        participants: { bob: { id: 'bob', role: 'host' } }
+      });
+    });
+
+    const aliceDb = testEnv.authenticatedContext('alice').firestore();
+    await assertFails(aliceDb.doc('listen_together_rooms/SRG-OTHER-ACTIVE').delete());
+  });
+
+  test('Non-host participant CANNOT delete a room', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-GUEST-DEL').set({
+        roomCode: 'SRG-GUEST-DEL',
+        hostId: 'host1',
+        active: false,
+        listenerCount: 1,
+        participants: {
+          host1: { id: 'host1', role: 'host' },
+          guest1: { id: 'guest1', role: 'guest' }
+        }
+      });
+    });
+
+    const guestDb = testEnv.authenticatedContext('guest1').firestore();
+    await assertFails(guestDb.doc('listen_together_rooms/SRG-GUEST-DEL').delete());
+  });
+
+  test('Unauthenticated user CANNOT delete any room', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-ANON-DEL').set({
+        roomCode: 'SRG-ANON-DEL',
+        hostId: 'host1',
+        active: false,
+        listenerCount: 0,
+        participants: { host1: { id: 'host1', role: 'host' } }
+      });
+    });
+
+    const unauthedDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(unauthedDb.doc('listen_together_rooms/SRG-ANON-DEL').delete());
+  });
+
+  test(`Stranger CANNOT query another user's inactive rooms`, async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('listen_together_rooms/SRG-SECRET-INACTIVE').set({
+        roomCode: 'SRG-SECRET-INACTIVE',
+        hostId: 'bob',
+        active: false,
+        listenerCount: 0,
+        participants: { bob: { id: 'bob', role: 'host' } }
+      });
+    });
+
+    const strangerDb = testEnv.authenticatedContext('stranger').firestore();
+    const query = strangerDb.collection('listen_together_rooms')
+      .where('hostId', '==', 'bob')
+      .where('active', '==', false);
+    await assertFails(query.get());
+  });
 });
