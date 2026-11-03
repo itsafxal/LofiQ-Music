@@ -240,7 +240,12 @@ class SettingsViewModel @Inject constructor(
     fun downloadAndInstallUpdate(context: Context, updateInfo: UpdateInfo) {
         viewModelScope.launch {
             _updateState.update { it.copy(isDownloading = true, downloadProgress = 0f) }
-            val result = appUpdateManager.downloadApk(context, updateInfo.apkUrl, updateInfo.checksum) { progress ->
+            val result = appUpdateManager.downloadApk(
+                context = context,
+                apkUrl = updateInfo.apkUrl,
+                expectedChecksum = updateInfo.checksum,
+                endpointType = updateInfo.resolvedEndpoint
+            ) { progress ->
                 _updateState.update { it.copy(downloadProgress = progress) }
             }
             result.onSuccess { file ->

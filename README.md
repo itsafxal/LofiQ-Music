@@ -17,7 +17,7 @@
 
 <br/>
 
-[**🌐 Primary Release Portal**](https://lofiq-web.vercel.app/) &nbsp;•&nbsp; [**🛡️ Backup Mirror Portal**](https://mybackuplofiq.netlify.app/) &nbsp;•&nbsp; [**📦 Download APK (v1.0.1)**](https://lofiq-web.vercel.app/downloads/LofiQ.apk) &nbsp;•&nbsp; [**🚀 Releases**](https://github.com/itsafxal/LofiQ-Music/releases)
+[**🌐 Official Website**](https://lofiq-web.vercel.app/) &nbsp;•&nbsp; [**📦 Download APK (v1.0.1)**](https://lofiq-web.vercel.app/downloads/LofiQ.apk) &nbsp;•&nbsp; [**🚀 Releases**](https://github.com/itsafxal/LofiQ-Music/releases)
 
 </div>
 
@@ -40,7 +40,7 @@
 - [13. Firebase Setup](#13-firebase-setup)
 - [14. Release Signing Configuration](#14-release-signing-configuration)
 - [15. Website & APK Distribution](#15-website--apk-distribution)
-- [16. Dual-Website High Availability & Fallback](#16-dual-website-high-availability--fallback)
+- [16. Automated In-App Failover Architecture](#16-automated-in-app-failover-architecture)
 - [17. Version Information — V1.0.1](#17-version-information--v101)
 - [18. Contribution Guidelines](#18-contribution-guidelines)
 - [19. License Information](#19-license-information)
@@ -134,7 +134,7 @@ LofiQ includes three premium, fully interactive **App Widgets** with full-bleed 
 | **Cloud Identity** | Firebase Authentication | Google Sign-In, Email/Password, Anonymous |
 | **App Security** | Firebase App Check | Play Integrity API attestation |
 | **Background Work** | AndroidX WorkManager | 2.10.0 periodic background update checks |
-| **Web Infrastructure** | Vercel & Netlify | Dual-edge global distribution with automated CORS |
+| **Web Infrastructure** | Vercel Edge Network | Global edge CDN release distribution with automated CORS |
 
 ---
 
@@ -174,7 +174,7 @@ flowchart TD
         O[JioSaavn API]
         P[YouTube InnerTube]
         Q[Cloud Firestore]
-        R[Vercel / Netlify Update Mirror]
+        R[Vercel Edge Distribution Portal]
     end
 
     UI_Layer --> State_Layer
@@ -405,32 +405,28 @@ RELEASE_KEY_PASSWORD=your_key_password
 
 ## 15. Website & APK Distribution
 
-LofiQ distributes releases and automated in-app updates via its included `web/` release portal:
+LofiQ distributes releases and automated in-app updates via its public distribution portal on Vercel:
 
 ```mermaid
 flowchart LR
-    A[LofiQ Release V1.0.1] -->|Static Edge Hosting| B[Primary Website: Vercel]
-    A -->|Mirror Backup| C[Backup Website: Netlify]
-    B -->|version.json| D[LofiQ Android In-App Updater]
-    C -->|Fallback version.json| D
-    D -->|Download APK| E[Android FileProvider]
-    E -->|1-Tap Install| F[PackageInstaller]
+    A[LofiQ Release V1.0.1] -->|Static Edge CDN| B[Vercel Public Portal]
+    B -->|version.json| C[LofiQ In-App Update Engine]
+    C -->|Download APK| D[Android FileProvider]
+    D -->|1-Tap Install| E[PackageInstaller]
 ```
 
-- **Primary Website:** [`https://lofiq-web.vercel.app`](https://lofiq-web.vercel.app)
-- **Backup Mirror Website:** [`https://mybackuplofiq.netlify.app`](https://mybackuplofiq.netlify.app)
-- **Direct APK Download:** [`/downloads/LofiQ.apk`](https://lofiq-web.vercel.app/downloads/LofiQ.apk)
+- **Official Website:** [`https://lofiq-web.vercel.app`](https://lofiq-web.vercel.app)
+- **Direct APK Download:** [`https://lofiq-web.vercel.app/downloads/LofiQ.apk`](https://lofiq-web.vercel.app/downloads/LofiQ.apk)
 
 ---
 
-## 16. Dual-Website High Availability & Fallback
+## 16. Automated In-App Failover Architecture
 
-To prevent service interruptions due to CDN outages or regional restrictions, LofiQ features dual-website deployment:
+To protect against edge CDN outages or regional network restrictions, LofiQ features an intelligent client-side automatic failover engine:
 
-1. **Primary Node (Vercel):** Serves `version.json` and `LofiQ.apk` with global edge caching and automated CORS headers via `vercel.json`.
-2. **Backup Mirror (Netlify):** Operates as an independent mirror with identical version metadata, SHA-256 verification, and APK binaries.
-3. **In-App Resilient Fallback:** The Android `AppUpdateManager` queries the primary endpoint first; if Vercel is unreachable, it automatically queries the Netlify fallback endpoint.
-4. **Web Graceful Failover:** Both websites cross-link to each other and detect host environments dynamically.
+1. **Primary Distribution (Vercel):** Serves `version.json` and `LofiQ.apk` with global edge caching and automated CORS headers via `vercel.json`.
+2. **Transparent Operational Fallback:** When qualifying network disruptions occur (e.g., DNS failures, connection timeouts, or HTTP 5xx server errors), the client's internal update manager automatically routes requests to an emergency operational backup endpoint without disrupting the user experience or exposing internal infrastructure.
+3. **Strict Integrity Verification:** Every update payload—regardless of the source endpoint—is verified against a trusted SHA-256 digest before invoking Android's package installer.
 
 ---
 
@@ -452,7 +448,7 @@ To prevent service interruptions due to CDN outages or regional restrictions, Lo
 - **Decoupled Release Signing:** Environment and local property fallback for secure production APK signing.
 - **Three Premium Home Screen Widgets:** Wide (4×2), Square (2×2), and Pill (4×1) widgets with full-bleed artwork and direct playback controls.
 - **Listen Together Real-Time Lounges:** Multi-device music synchronization with drift compensation and live floating emoji reaction streams.
-- **Dual-Website High Availability:** Seamless distribution across Vercel primary and Netlify backup mirror.
+- **Resilient Update Architecture:** Seamless background automatic failover protecting against hosting outages.
 
 ---
 

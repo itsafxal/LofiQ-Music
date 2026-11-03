@@ -216,32 +216,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
   }
-  /* =========================================================================
-     5. Dual-Site Mirror Detection & Failover Handling
-     ========================================================================= */
-  const isNetlify = window.location.hostname.includes('netlify.app');
-  const mirrorBadge = document.getElementById('mirror-badge');
-  const backupMirrorBtn = document.getElementById('backup-mirror-btn');
-  const backupMirrorBtnText = document.getElementById('backup-mirror-btn-text');
-  const footerPrimaryLink = document.getElementById('footer-primary-link');
-  const footerBackupLink = document.getElementById('footer-backup-link');
-
-  if (isNetlify) {
-    if (mirrorBadge) {
-      mirrorBadge.innerHTML = '🛡️ <strong>Official Backup Mirror (Netlify)</strong> • <a href="https://lofiq-web.vercel.app">Switch to Primary (Vercel)</a>';
-      mirrorBadge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
-      mirrorBadge.style.color = '#c084fc';
-    }
-    if (backupMirrorBtn) {
-      backupMirrorBtn.href = 'https://lofiq-web.vercel.app/downloads/LofiQ.apk';
-      if (backupMirrorBtnText) backupMirrorBtnText.textContent = 'Download via Primary Node (Vercel)';
-    }
-    if (footerBackupLink) {
-      footerBackupLink.innerHTML = '<strong>Backup Mirror (Current)</strong>';
-    }
-  } else {
-    if (footerPrimaryLink) {
-      footerPrimaryLink.innerHTML = '<strong>Primary Node (Current)</strong>';
-    }
-  }
 });

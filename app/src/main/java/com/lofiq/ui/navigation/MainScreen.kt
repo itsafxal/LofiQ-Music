@@ -117,7 +117,12 @@ fun MainScreen(
                     isDownloadingUpdate = true
                     updateDownloadProgress = 0f
                     coroutineScope.launch {
-                        val result = appUpdateManager.downloadApk(context, currentInfo.apkUrl, currentInfo.checksum) { progress ->
+                        val result = appUpdateManager.downloadApk(
+                            context = context,
+                            apkUrl = currentInfo.apkUrl,
+                            expectedChecksum = currentInfo.checksum,
+                            endpointType = currentInfo.resolvedEndpoint
+                        ) { progress ->
                             updateDownloadProgress = progress
                         }
                         result.onSuccess { file ->
@@ -141,7 +146,12 @@ fun MainScreen(
                             isDownloadingUpdate = true
                             updateDownloadProgress = 0f
                             coroutineScope.launch {
-                                val downloadResult = appUpdateManager.downloadApk(context, info.apkUrl, info.checksum) { progress ->
+                                val downloadResult = appUpdateManager.downloadApk(
+                                    context = context,
+                                    apkUrl = info.apkUrl,
+                                    expectedChecksum = info.checksum,
+                                    endpointType = info.resolvedEndpoint
+                                ) { progress ->
                                     updateDownloadProgress = progress
                                 }
                                 downloadResult.onSuccess { file ->
@@ -626,7 +636,12 @@ fun MainScreen(
                                 isDownloadingUpdate = true
                                 updateDownloadProgress = 0f
                                 coroutineScope.launch {
-                                    val result = appUpdateManager.downloadApk(context, update.apkUrl, update.checksum) { progress ->
+                                    val result = appUpdateManager.downloadApk(
+                                        context = context,
+                                        apkUrl = update.apkUrl,
+                                        expectedChecksum = update.checksum,
+                                        endpointType = update.resolvedEndpoint
+                                    ) { progress ->
                                         updateDownloadProgress = progress
                                     }
                                     result.onSuccess { file ->

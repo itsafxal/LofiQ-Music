@@ -1,0 +1,10 @@
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Access-Control-Allow-Origin: *
+/downloads/*
+  Content-Disposition: attachment
+  Cache-Control: public, max-age=3600
+/version.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
