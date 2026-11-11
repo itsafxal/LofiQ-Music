@@ -14,11 +14,11 @@ Phase 7 successfully synchronized the Windows Desktop `v1.0.2` implementation, a
 | Workstream | Status | Evidence & Notes |
 | :--- | :---: | :--- |
 | **Android Codebase Protection (`app/`)** | **VERIFIED** | `git diff -- app/` is empty; `./gradlew testDebugUnitTest` passed locally in 4m 8s |
-| **Git Synchronization (`main`)** | **VERIFIED** | Commits `a0b1740`, `29ea531`, and `0140b19` cleanly pushed to `origin/main`; existing tag `v1.0.2` (`aeec71b`) preserved intact |
-| **Windows Static Analysis & Test Gate** | **VERIFIED** | `flutter analyze --no-fatal-infos` exits `0` (29 warnings resolved); **51/51** tests pass (`desktop/test_summary.json`) |
-| **GitHub Actions Windows Release (`43048875150`)** | **VERIFIED** | Compiled native `LofiQ.exe` (`windows-2022`, MSVC 2022, Flutter `3.44.5`), packaged `.exe` & `.zip` via Inno Setup 6 |
+| **Git Synchronization (`main`)** | **VERIFIED** | Commits `a0b1740`, `29ea531`, `0140b19`, `4da640f`, `113e110`, `72ccfe1` pushed cleanly to `origin/main`; existing tag `v1.0.2` (`aeec71b`) preserved intact |
+| **Windows Static Analysis & Test Gate** | **VERIFIED** | `flutter analyze --no-fatal-infos` exits `0` (warnings resolved); **46/46** unit/widget tests pass post-branding (`51/51` in `desktop/test_summary.json`) |
+| **GitHub Actions Windows Release (`43052919675`)** | **VERIFIED** | Compiled native `LofiQ.exe` (`windows-2022`, MSVC 2022, Flutter `3.44.5`), packaged `.exe` & `.zip` via Inno Setup 6 with official LofiQ logo icon embedded |
 | **GitHub Release `v1.0.2` Publication** | **VERIFIED** | Published 4 assets: Setup `.exe`, Portable `.zip`, `LofiQ.apk`, and `SHA256SUMS.txt` |
-| **CI Binary Runtime Verification (Windows x64)** | **VERIFIED** | Downloaded CI artifacts, verified byte-for-byte SHA-256 checksums, extracted & launched CI-built `LofiQ.exe` (`HasExited: False`) |
+| **CI Binary Verification & Embedded Icon** | **VERIFIED** | Verified byte-for-byte SHA-256 checksums, extracted embedded Win32 icons (`127, 5, 242` purple LofiQ icon) from both Setup EXE & `LofiQ.exe`, confirmed bundled `app_logo.png` asset (`HasExited: False` verified on prior CI binary; latest unsigned binary blocked locally by Windows Application Control policy inside hidden `.gemini` AppData directory) |
 | **Unified Multi-Platform Website (`web/`)** | **VERIFIED** | Liquid Glass platform switcher (`Android` / `Windows`), dual Windows CTAs, dynamic `/version.json` hydration, pre-flight validation exits `0` |
 | **Primary Deployment (Vercel)** | **VERIFIED** | Live at `https://lofiq-web.vercel.app/` returning HTTP `200 OK` for HTML, JS, CSS, `version.json`, and `LofiQ.apk` (`22,761,734` bytes) |
 | **Interactive Chrome DevTools Visual Audit** | **BLOCKED** | Chrome remote debugging (`chrome://inspect/#remote-debugging` / `DevToolsActivePort`) was unavailable in the local session |
@@ -40,14 +40,16 @@ Phase 7 successfully synchronized the Windows Desktop `v1.0.2` implementation, a
 2. **`29ea531`** — `fix(desktop): resolve static analysis warnings and optimize release workflow triggers`
    - Cleaned 29 analyzer warnings (unused imports and `artworkUrl.isNotEmpty` null-safety checks across desktop screens and integration test files) so `flutter analyze --no-fatal-infos` passes cleanly in CI.
    - Separated deterministic unit/widget tests (`test/unit`, `test/widget_test.dart` — 46/46 passing) from hardware/network integration probes in CI, fixed PowerShell backtick escaping for `$env:GITHUB_STEP_SUMMARY`, added `-SkipBuild` support in [`desktop/installer/package_release.ps1`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/installer/package_release.ps1), and configured step 12 in [`.github/workflows/lofiq-windows-release.yml`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/.github/workflows/lofiq-windows-release.yml) to publish `LofiQ.apk`, `LofiQ-v1.0.2-Windows-Setup.exe`, `LofiQ-v1.0.2-Windows-Portable.zip`, and `SHA256SUMS.txt`.
-3. **`0140b19`** — `chore(web): synchronize verified CI Windows v1.0.2 binary sizes and SHA-256 checksums`
-   - Updated [`web/version.json`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/version.json), [`web/index.html`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/index.html), and [`web/app.js`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/app.js) with exact sizes (`16.1 MB` setup installer, `19.4 MB` portable ZIP) and verified SHA-256 hashes from GitHub Release `v1.0.2`.
+3. **`0140b19` / `113e110`** — `chore(web)` & `fix(web): restore white text contrast on Windows hero CTA and fix mobile download deck alignment`
+   - Updated [`web/version.json`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/version.json), [`web/index.html`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/index.html), [`web/styles.css`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/styles.css), and [`web/app.js`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/web/app.js) with dark-glass white text overrides for `.hero-windows-btn`, mobile stacking alignment, and cache-busted asset query strings.
+4. **`72ccfe1`** — `feat(desktop): embed official LofiQ app icon into Windows executable, installer, and desktop UI`
+   - Converted Android's 512x512 `app_logo.png` into rounded-squircle [`desktop/assets/images/app_logo.png`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/assets/images/app_logo.png) and hybrid multi-resolution [`desktop/windows/runner/resources/app_icon.ico`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/windows/runner/resources/app_icon.ico) (`256x256` PNG + `64x64..16x16` 32-bit DIB), and updated [`window_titlebar.dart`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/lib/ui/components/window_titlebar.dart), [`desktop_shell.dart`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/lib/ui/navigation/desktop_shell.dart), and [`pubspec.yaml`](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/desktop/pubspec.yaml).
 
 ---
 
-## 4. Windows CI/CD Build & Release Certification (`43048875150`)
+## 4. Windows CI/CD Build & Release Certification (`43052919675`)
 
-Triggered automatically on push of `29ea531` to `main`:
+Triggered automatically on push of `72ccfe1` to `main`:
 - **Runner:** `windows-2022` (MSVC 2022 toolchain, Flutter `3.44.5` stable, Inno Setup 6)
 - **All 14 Job Steps Concluded:** `success`
   1. Checkout Source Code (`success`)
@@ -70,24 +72,17 @@ URL: `https://github.com/itsafxal/LofiQ-Music/releases/tag/v1.0.2`
 
 | Artifact | Size (Bytes) | Human Size | Verified SHA-256 Checksum | Download HTTP Check |
 | :--- | :---: | :---: | :--- | :---: |
-| **`LofiQ-v1.0.2-Windows-Setup.exe`** | `16,906,057` | `16.1 MB` | `2355ebba2191acee637db3c62540944ccfa05399aaedc3060374e6e06a426144` | `302 -> 200 OK` |
-| **`LofiQ-v1.0.2-Windows-Portable.zip`** | `20,358,018` | `19.4 MB` | `6bcadde933088ef028c58a355f94cc64b24b40a5ddde472865d483e0c79fbde2` | `302 -> 200 OK` |
+| **`LofiQ-v1.0.2-Windows-Setup.exe`** | `17,345,949` | `16.5 MB` | `95910c5d74c086cb1c43321c84df9e26de6655f303d28260da51b582d2cd8945` | `302 -> 200 OK` |
+| **`LofiQ-v1.0.2-Windows-Portable.zip`** | `20,665,176` | `19.7 MB` | `c74de7cd48306092edb5cdef7187d94e2afbf5d98554c1d64f547125ff2a49d4` | `302 -> 200 OK` |
 | **`LofiQ.apk`** | `22,761,734` | `21.7 MB` | `5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222` | `302 -> 200 OK` |
 | **`SHA256SUMS.txt`** | `201` | `201 B` | Contains matching SHA-256 lines for `.exe` & `.zip` | `302 -> 200 OK` |
 
-### Local Windows Binary Execution Verification
+### Local Windows Binary & Embedded Icon Verification
 
 - Downloaded both `LofiQ-v1.0.2-Windows-Setup.exe` and `LofiQ-v1.0.2-Windows-Portable.zip` from GitHub Releases to a temporary scratch folder.
 - Confirmed local `Get-FileHash -Algorithm SHA256` output matched GitHub's `SHA256SUMS.txt` byte-for-byte.
-- Extracted `LofiQ-v1.0.2-Windows-Portable.zip` and verified bundled runtime dependencies:
-  - `LofiQ.exe` (`91,136` bytes — `ProductName: LofiQ Music Player`, `ProductVersion: 1.0.2+65`, `FileDescription: LofiQ Desktop Music Player`)
-  - `flutter_windows.dll` (`21,284,864` bytes)
-  - `libmpv-2.dll` (`15,525,902` bytes)
-  - `media_kit_libs_windows_audio_plugin.dll` (`12,800` bytes)
-  - `smtc_windows.dll` (`380,928` bytes)
-  - `dartjni.dll` (`59,904` bytes)
-  - `data/` assets directory
-- Launched extracted `LofiQ.exe` via `Start-Process`; confirmed process remained running (`HasExited: False`, `ProcessName: LofiQ`) with zero missing DLL errors, then closed cleanly and removed temporary scratch files.
+- Extracted the embedded Win32 icons using `[System.Drawing.Icon]::ExtractAssociatedIcon` from both `LofiQ-v1.0.2-Windows-Setup.exe` and extracted `LofiQ.exe`; visually and programmatically verified (`RGB: 127, 5, 242`) both carry the official LofiQ logo icon.
+- Extracted `LofiQ-v1.0.2-Windows-Portable.zip` and verified bundled `data/flutter_assets/assets/images/app_logo.png` alongside runtime DLLs (`flutter_windows.dll`, `libmpv-2.dll`, `media_kit_libs_windows_audio_plugin.dll`, `smtc_windows.dll`, `dartjni.dll`). Note: direct launch via `Start-Process` from inside `.gemini` AppData was blocked by Windows Application Control policy on unsigned binaries in that hidden directory (`LofiQ.exe` previously executed cleanly with `HasExited: False` prior to icon embedding).
 
 ---
 
@@ -110,11 +105,11 @@ Top-level Android updater keys (`versionCode`, `versionName`, `minSupportedVersi
 
 ### Primary Hosting: Vercel (`https://lofiq-web.vercel.app/`) — **VERIFIED**
 
-Vercel's GitHub App automatically deployed commit `0140b19`. Direct HTTP verification after push confirmed:
+Vercel's GitHub App automatically deployed updates to `main`. Direct HTTP verification confirmed:
 
 | Endpoint | HTTP Status | Content-Type | Cache-Control | Content-Length / Check |
 | :--- | :---: | :--- | :--- | :--- |
-| `/` | `200 OK` | `text/html; charset=utf-8` | `public, max-age=0, must-revalidate` | Contains `16.1 MB`, `19.4 MB`, Windows SHA-256, & platform tabs |
+| `/` | `200 OK` | `text/html; charset=utf-8` | `public, max-age=0, must-revalidate` | Contains `16.5 MB`, `19.7 MB`, Windows SHA-256, `styles.css?v=bw_liquid_glass_20261111_v2` |
 | `/version.json` | `200 OK` | `application/json; charset=utf-8` | `no-cache, no-store, must-revalidate` | Root `1.0.2` (65) + `"android"` + `"windows"` objects |
 | `/styles.css?v=...` | `200 OK` | `text/css; charset=utf-8` | `public, max-age=0, must-revalidate` | Valid CSS |
 | `/app.js?v=...` | `200 OK` | `application/javascript; charset=utf-8` | `public, max-age=0, must-revalidate` | Valid JS |

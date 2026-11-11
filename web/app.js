@@ -46,10 +46,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         winVerElements.forEach(el => el.textContent = `v${win.versionName || '1.0.2'}`);
 
         const winInstallerSizeEl = document.querySelector('.dynamic-win-installer-size');
-        if (winInstallerSizeEl) winInstallerSizeEl.textContent = win.installerSize || '16.1 MB';
+        if (winInstallerSizeEl) winInstallerSizeEl.textContent = win.installerSize || '16.5 MB';
 
         const winPortableSizeEl = document.querySelector('.dynamic-win-portable-size');
-        if (winPortableSizeEl) winPortableSizeEl.textContent = win.portableSize || '19.4 MB';
+        if (winPortableSizeEl) winPortableSizeEl.textContent = win.portableSize || '19.7 MB';
 
         const winInstallerCsEl = document.getElementById('win-installer-checksum');
         if (winInstallerCsEl && win.installerChecksum) {
