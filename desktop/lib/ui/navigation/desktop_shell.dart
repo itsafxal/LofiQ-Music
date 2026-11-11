@@ -123,15 +123,10 @@ class _DesktopShellState extends State<DesktopShell> {
             child: Row(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [LofiQColors.brandPurple, LofiQColors.brandTeal],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(9.0),
                     boxShadow: [
                       BoxShadow(
                         color: LofiQColors.brandPurple.withValues(alpha: 0.45),
@@ -140,8 +135,27 @@ class _DesktopShellState extends State<DesktopShell> {
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9.0),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 34,
+                      height: 34,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [LofiQColors.brandPurple, LofiQColors.brandTeal],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(9.0),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -15,16 +15,25 @@ class WindowsTitlebar extends StatelessWidget {
       child: Row(
         children: [
           // LofiQ icon & title
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [LofiQColors.brandPurple, LofiQColors.brandPurpleLight],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5.0),
+            child: Image.asset(
+              'assets/images/app_logo.png',
+              width: 22,
+              height: 22,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [LofiQColors.brandPurple, LofiQColors.brandPurpleLight],
+                  ),
+                  borderRadius: BorderRadius.circular(5.0),
+                ),
+                child: const Icon(Icons.graphic_eq_rounded, size: 14, color: Colors.white),
               ),
-              borderRadius: BorderRadius.circular(4.0),
             ),
-            child: const Icon(Icons.graphic_eq_rounded, size: 14, color: Colors.white),
           ),
           const SizedBox(width: 10.0),
           const Text(
