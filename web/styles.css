@@ -1356,14 +1356,15 @@ main {
 .liquid-download-secondary {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 28px;
+  gap: 14px;
+  padding: 16px 30px;
   background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
   text-decoration: none;
   border-radius: 9999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: var(--blur-subtle);
+  -webkit-backdrop-filter: var(--blur-subtle);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   font-weight: 700;
   font-size: 0.95rem;
@@ -1372,20 +1373,23 @@ main {
 
 .liquid-download-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.42);
   transform: translateY(-2px);
   color: #ffffff;
   box-shadow: 0 12px 30px rgba(255, 255, 255, 0.15);
 }
 
 .secondary-btn-icon {
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .secondary-btn-text {
@@ -1395,14 +1399,15 @@ main {
 }
 
 .secondary-btn-label {
-  font-size: 0.96rem;
+  font-size: 1.02rem;
   font-weight: 700;
+  color: #ffffff;
   line-height: 1.2;
 }
 
 .secondary-btn-sub {
-  font-size: 0.74rem;
-  color: var(--text-muted);
+  font-size: 0.78rem;
+  color: var(--text-silver);
   font-weight: 500;
 }
 
@@ -1459,24 +1464,42 @@ main {
 .hero-windows-btn {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 26px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.24);
   border-radius: 9999px;
   color: #ffffff;
   text-decoration: none;
   font-weight: 700;
   font-size: 0.95rem;
   backdrop-filter: var(--blur-subtle);
-  transition: all 0.25s ease;
+  -webkit-backdrop-filter: var(--blur-subtle);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.hero-windows-btn .btn-title {
+  color: #ffffff;
+}
+
+.hero-windows-btn .btn-meta {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-windows-btn .btn-meta strong {
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .hero-windows-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.45);
   transform: translateY(-2px);
   color: #ffffff;
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.15), var(--glass-highlight);
 }
 
 /* Changelog Platform Switcher */
@@ -1493,7 +1516,7 @@ main {
 .changelog-tab-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-silver);
   font-family: var(--font-sans);
   font-size: 0.82rem;
   font-weight: 600;
@@ -1501,6 +1524,10 @@ main {
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.changelog-tab-btn:hover {
+  color: #ffffff;
 }
 
 .changelog-tab-btn.active {
@@ -1763,6 +1790,8 @@ footer {
 .footer-links {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   font-size: 0.82rem;
 }
@@ -1828,6 +1857,10 @@ footer {
     justify-content: center;
   }
 
+  .download-actions-row {
+    justify-content: center;
+  }
+
   .install-steps {
     grid-template-columns: 1fr;
     gap: 14px;
@@ -1887,14 +1920,17 @@ footer {
   }
 
   .liquid-btn-primary,
-  .liquid-btn-secondary {
+  .liquid-btn-secondary,
+  .hero-windows-btn {
     width: 100%;
     justify-content: center;
     padding: 14px 20px;
   }
 
-  .liquid-btn-primary .btn-content {
+  .liquid-btn-primary .btn-content,
+  .hero-windows-btn .btn-content {
     align-items: center;
+    text-align: center;
   }
 
   .phone-mockup {
@@ -1918,13 +1954,14 @@ footer {
     border-radius: 26px;
   }
 
-  .liquid-download-mega {
+  .liquid-download-mega,
+  .liquid-download-secondary {
     width: 100%;
     justify-content: center;
     padding: 14px 20px;
   }
 
-  .download-qr-deck {
+  #platform-deck-android .download-qr-deck {
     display: none; /* Mobile visitors don't need a QR code since they're already on phone */
   }
 
@@ -1960,6 +1997,20 @@ footer {
   }
 }
 
+@media (max-width: 480px) {
+  .platform-switch {
+    max-width: 100%;
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .platform-btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    gap: 6px;
+  }
+}
+
 @media (max-width: 400px) {
   .hero-title {
     font-size: 1.95rem;
@@ -1973,14 +2024,15 @@ footer {
 
 /* Checksum Display Card */
 .checksum-card {
-  margin-top: 18px;
+  margin-top: 4px;
+  margin-bottom: 20px;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-silver);
   word-break: break-all;
 }
 
