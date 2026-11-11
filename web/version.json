@@ -13,5 +13,48 @@
     "🧹 Spark Plan Inactive Room Cleanup: Automated host-driven inactive room garbage collection operating within free Spark plan quotas with zero Cloud Functions.",
     "🛡️ Truthful Error Classification: Granular diagnostic reporting separating network timeouts, App Check rejections, and Firestore security rule boundaries.",
     "⚡ Official Firestore Emulator Verification: Formally verified against Google Local Emulator Suite with 60/60 passing security rule assertions."
-  ]
+  ],
+  "android": {
+    "versionCode": 65,
+    "versionName": "1.0.2",
+    "minSupportedVersion": 1,
+    "releaseDate": "2026-11-03",
+    "apkUrl": "/downloads/LofiQ.apk",
+    "apkSize": "21.7 MB",
+    "checksum": "5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222",
+    "releaseNotes": [
+      "🚀 Official Production Release (V1.0.2 - Build 65)",
+      "🔒 Synchronized Firebase Anonymous Authentication with persistent session reuse.",
+      "👥 Listen Together Lifecycle Hardening with strict UID ownership.",
+      "🧹 Automated host-driven inactive room garbage collection.",
+      "🛡️ Granular diagnostic reporting for network and App Check status.",
+      "⚡ Verified against Google Local Emulator Suite."
+    ]
+  },
+  "windows": {
+    "versionName": "1.0.2",
+    "versionCode": 65,
+    "releaseDate": "2026-11-11",
+    "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Setup.exe",
+    "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Portable.zip",
+    "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/SHA256SUMS.txt",
+    "installerSize": "~25 MB",
+    "portableSize": "~28 MB",
+    "systemRequirements": {
+      "os": "Windows 10 / Windows 11 (64-bit x64)",
+      "processor": "1 GHz or faster 64-bit processor",
+      "ram": "2 GB RAM minimum (4 GB recommended)",
+      "storage": "150 MB available space",
+      "audio": "Windows Core Audio / WASAPI compatible audio output"
+    },
+    "releaseNotes": [
+      "🚀 Official Windows Desktop Production Release (V1.0.2 - Build 65)",
+      "🎵 High-Fidelity Audio Engine: Real WASAPI audio playback via media_kit & libmpv",
+      "🎛️ 10-Band Graphic Equalizer, Bass Boost & Spatial Virtualizer",
+      "🌊 Equal-Power Dual-Player Crossfade with predictive preloading",
+      "⌨️ Windows System Media Transport Controls (SMTC) & Hardware Media Keys",
+      "📂 Local Music Library Scanning & Offline Playback (MP3, FLAC, M4A, WAV)",
+      "🎤 Synchronized Karaoke Lyrics (LRCLIB Integration)"
+    ]
+  }
 }

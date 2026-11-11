@@ -1,52 +1,163 @@
 document.addEventListener('DOMContentLoaded', async () => {
   /* =========================================================================
-     1. Dynamic Version & Metadata Loading (from version.json)
+     1. Unified Android + Windows Dynamic Version & Metadata Loading
      ========================================================================= */
+  let versionManifest = null;
+
   try {
     const res = await fetch('/version.json');
     if (res.ok) {
-      const data = await res.json();
+      versionManifest = await res.json();
+      const data = versionManifest;
       
-      // Update Version Badges
+      // Update Android Version Badges & Metadata
+      const androidVersion = data.android?.versionName || data.versionName || '1.0.2';
+      const androidSize = data.android?.apkSize || data.apkSize || '21.7 MB';
+      const androidDate = data.android?.releaseDate || data.releaseDate || 'November 2026';
+      const androidApkUrl = data.android?.apkUrl || data.apkUrl || '/downloads/LofiQ.apk';
+      const androidChecksum = data.android?.checksum || data.checksum || '';
+
       const versionElements = document.querySelectorAll('.dynamic-version');
-      versionElements.forEach(el => el.textContent = `v${data.versionName}`);
+      versionElements.forEach(el => el.textContent = `v${androidVersion}`);
 
       const dateElements = document.querySelectorAll('.dynamic-date');
-      dateElements.forEach(el => el.textContent = data.releaseDate || 'October 2026');
+      dateElements.forEach(el => el.textContent = androidDate);
 
       const sizeElements = document.querySelectorAll('.dynamic-size');
-      sizeElements.forEach(el => el.textContent = data.apkSize || '31.0 MB');
+      sizeElements.forEach(el => el.textContent = androidSize);
 
-      // Update Download Links
-      if (data.apkUrl) {
-        const downloadButtons = document.querySelectorAll('.dynamic-download-btn');
-        downloadButtons.forEach(btn => {
-          btn.setAttribute('href', data.apkUrl);
-          btn.setAttribute('download', `LofiQ-v${data.versionName}.apk`);
-        });
-      }
+      // Update Android Download Links
+      const downloadButtons = document.querySelectorAll('.dynamic-download-btn');
+      downloadButtons.forEach(btn => {
+        btn.setAttribute('href', androidApkUrl);
+        btn.setAttribute('download', `LofiQ-v${androidVersion}.apk`);
+      });
 
-      // Dynamic Checksum
-      if (data.checksum) {
+      // Android Dynamic Checksum
+      if (androidChecksum) {
         const csEl = document.getElementById('dynamic-checksum');
-        if (csEl) csEl.textContent = data.checksum;
+        if (csEl) csEl.textContent = androidChecksum;
       }
 
-      // Update Changelog Items
-      if (Array.isArray(data.releaseNotes) && data.releaseNotes.length > 0) {
-        const list = document.getElementById('changelog-items');
-        if (list) {
-          list.innerHTML = '';
-          data.releaseNotes.slice(0, 7).forEach(note => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span class="bullet">✦</span> ${note}`;
-            list.appendChild(li);
-          });
+      // Update Windows Metadata
+      if (data.windows) {
+        const win = data.windows;
+        const winVerElements = document.querySelectorAll('.dynamic-windows-version');
+        winVerElements.forEach(el => el.textContent = `v${win.versionName || '1.0.2'}`);
+
+        const winInstallerSizeEl = document.querySelector('.dynamic-win-installer-size');
+        if (winInstallerSizeEl) winInstallerSizeEl.textContent = win.installerSize || '~25 MB';
+
+        const winPortableSizeEl = document.querySelector('.dynamic-win-portable-size');
+        if (winPortableSizeEl) winPortableSizeEl.textContent = win.portableSize || '~28 MB';
+
+        const winInstallerBtn = document.getElementById('win-installer-btn');
+        if (winInstallerBtn && win.installerUrl) {
+          winInstallerBtn.setAttribute('href', win.installerUrl);
+        }
+
+        const winPortableBtn = document.getElementById('win-portable-btn');
+        if (winPortableBtn && win.portableUrl) {
+          winPortableBtn.setAttribute('href', win.portableUrl);
+        }
+
+        const winChecksumLink = document.getElementById('win-checksum-link');
+        if (winChecksumLink && win.checksumUrl) {
+          winChecksumLink.setAttribute('href', win.checksumUrl);
         }
       }
+
+      // Render Changelog for initial platform
+      renderChangelog('android');
     }
   } catch (err) {
     console.warn('Could not load dynamic version.json:', err);
+  }
+
+  function renderChangelog(platform) {
+    if (!versionManifest) return;
+    const list = document.getElementById('changelog-items');
+    if (!list) return;
+
+    let notes = [];
+    if (platform === 'windows' && versionManifest.windows?.releaseNotes) {
+      notes = versionManifest.windows.releaseNotes;
+    } else {
+      notes = versionManifest.android?.releaseNotes || versionManifest.releaseNotes || [];
+    }
+
+    list.innerHTML = '';
+    notes.slice(0, 7).forEach(note => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="bullet">✦</span> ${note}`;
+      list.appendChild(li);
+    });
+  }
+
+  /* =========================================================================
+     1.1 Platform Switcher (Android / Windows Tabs)
+     ========================================================================= */
+  const tabAndroid = document.getElementById('tab-btn-android');
+  const tabWindows = document.getElementById('tab-btn-windows');
+  const deckAndroid = document.getElementById('platform-deck-android');
+  const deckWindows = document.getElementById('platform-deck-windows');
+  const clTabAndroid = document.getElementById('cl-tab-android');
+  const clTabWindows = document.getElementById('cl-tab-windows');
+  const heroWinBtn = document.getElementById('hero-windows-download');
+  const footerWinLink = document.getElementById('footer-win-link');
+
+  function switchPlatform(platform) {
+    if (platform === 'windows') {
+      tabWindows?.classList.add('active');
+      tabWindows?.setAttribute('aria-selected', 'true');
+      tabAndroid?.classList.remove('active');
+      tabAndroid?.setAttribute('aria-selected', 'false');
+
+      deckWindows?.classList.add('is-active');
+      deckAndroid?.classList.remove('is-active');
+
+      clTabWindows?.classList.add('active');
+      clTabAndroid?.classList.remove('active');
+      renderChangelog('windows');
+    } else {
+      tabAndroid?.classList.add('active');
+      tabAndroid?.setAttribute('aria-selected', 'true');
+      tabWindows?.classList.remove('active');
+      tabWindows?.setAttribute('aria-selected', 'false');
+
+      deckAndroid?.classList.add('is-active');
+      deckWindows?.classList.remove('is-active');
+
+      clTabAndroid?.classList.add('active');
+      clTabWindows?.classList.remove('active');
+      renderChangelog('android');
+    }
+  }
+
+  tabAndroid?.addEventListener('click', () => switchPlatform('android'));
+  tabWindows?.addEventListener('click', () => switchPlatform('windows'));
+
+  clTabAndroid?.addEventListener('click', () => {
+    switchPlatform('android');
+  });
+  clTabWindows?.addEventListener('click', () => {
+    switchPlatform('windows');
+  });
+
+  heroWinBtn?.addEventListener('click', () => {
+    switchPlatform('windows');
+  });
+
+  footerWinLink?.addEventListener('click', () => {
+    switchPlatform('windows');
+  });
+
+  // Automatic Platform Detection on Page Load
+  const isWindowsHost = navigator.userAgent.includes('Windows') || (navigator.platform && navigator.platform.includes('Win'));
+  if (isWindowsHost) {
+    switchPlatform('windows');
+  } else {
+    switchPlatform('android');
   }
 
   /* =========================================================================

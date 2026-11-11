@@ -43,13 +43,13 @@
         <a href="#experience" class="nav-link">Experience</a>
         <a href="#download" class="nav-link">Download</a>
         <a href="#changelog" class="nav-link">Changelog</a>
-        <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="nav-cta dynamic-download-btn" id="header-download-btn">
+        <a href="#download" class="nav-cta" id="header-download-btn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>Download APK</span>
+          <span>Get LofiQ</span>
         </a>
       </nav>
     </div>
@@ -82,25 +82,23 @@
         <div class="hero-actions">
           <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-btn-primary dynamic-download-btn" id="hero-primary-download">
             <span class="btn-shine"></span>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" class="btn-icon">
+              <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.59-2.94-.92-4.47-.92s-3.07.33-4.47.92L5.65 5.67c-.19-.28-.55-.37-.84-.22-.3.16-.42.54-.26.85l1.85 3.18C3.81 10.97 2 13.58 2 16.5h20c0-2.92-1.81-5.53-4.4-7.02zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
             </svg>
             <span class="btn-content">
               <span class="btn-title">Download APK</span>
-              <span class="btn-meta"><span class="dynamic-size">21.7 MB</span> • Free & Clean</span>
+              <span class="btn-meta">Android • <span class="dynamic-size">21.7 MB</span></span>
             </span>
           </a>
 
-          <a href="#download" class="liquid-btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
+          <a href="#download" class="hero-windows-btn" id="hero-windows-download">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/>
             </svg>
-            <span>Scan QR / Info</span>
+            <span class="btn-content">
+              <span class="btn-title">Download for Windows</span>
+              <span class="btn-meta">64-bit x64 • <strong class="dynamic-windows-version">v1.0.2</strong></span>
+            </span>
           </a>
         </div>
 
@@ -319,132 +317,255 @@
       <div class="download-container liquid-glass-card">
         <div class="download-glass-glow"></div>
         
-        <div class="download-grid">
-          <!-- Left: Download Pitch & CTA -->
-          <div class="download-info">
-            <div class="download-badge">
-              <span class="download-shield">✓</span>
-              <span>Official Release • Verified APK</span>
+        <!-- Platform Switcher Pill (Android & Windows) -->
+        <div class="platform-switch-container">
+          <div class="platform-switch" role="tablist" aria-label="Select Download Platform">
+            <button class="platform-btn active" id="tab-btn-android" role="tab" aria-selected="true" aria-controls="platform-deck-android">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.59-2.94-.92-4.47-.92s-3.07.33-4.47.92L5.65 5.67c-.19-.28-.55-.37-.84-.22-.3.16-.42.54-.26.85l1.85 3.18C3.81 10.97 2 13.58 2 16.5h20c0-2.92-1.81-5.53-4.4-7.02zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+              <span>Android</span>
+              <span class="platform-pill-badge dynamic-version">v1.0.2</span>
+            </button>
+            <button class="platform-btn" id="tab-btn-windows" role="tab" aria-selected="false" aria-controls="platform-deck-windows">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/></svg>
+              <span>Windows</span>
+              <span class="platform-pill-badge dynamic-windows-version">v1.0.2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- DECK 1: ANDROID DOWNLOAD STATION (Verified Reference Architecture) -->
+        <div class="platform-deck is-active" id="platform-deck-android" role="tabpanel" aria-labelledby="tab-btn-android">
+          <div class="download-grid">
+            <!-- Left: Download Pitch & CTA -->
+            <div class="download-info">
+              <div class="download-badge">
+                <span class="download-shield">✓</span>
+                <span>Official Release • Verified APK</span>
+              </div>
+
+              <h2 class="download-title">
+                Get LofiQ for Android. <br />
+                <span class="metallic-text">Free. Clean. Unlimited.</span>
+              </h2>
+
+              <p class="download-subtitle">
+                Enjoy unbounded music streaming with 320kbps fidelity, offline caching, and group listening. No subscriptions, no ads, no trackers.
+              </p>
+
+              <!-- Prominent Primary Download Action -->
+              <div class="download-button-wrapper">
+                <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mega dynamic-download-btn" id="mega-download-btn">
+                  <div class="mega-btn-shine"></div>
+                  <div class="mega-btn-icon-wrap">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </div>
+                  <div class="mega-btn-text">
+                    <span class="mega-btn-label">Download APK Directly</span>
+                    <span class="mega-btn-sub">Version <strong class="dynamic-version">v1.0.2</strong> • <span class="dynamic-size">21.7 MB</span></span>
+                  </div>
+                </a>
+              </div>
+
+              <div class="checksum-card">
+                <span>SHA-256 Checksum: </span><strong id="dynamic-checksum">5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222</strong>
+              </div>
+
+              <!-- Verification Metadata Pills -->
+              <div class="download-meta-tags">
+                <span class="meta-tag">⚡ ARM64 / Universal</span>
+                <span class="meta-tag">🛡️ SHA-256 Verified</span>
+                <span class="meta-tag">🔋 Low Battery Footprint</span>
+                <span class="meta-tag">📶 Offline Ready</span>
+              </div>
             </div>
 
-            <h2 class="download-title">
-              Get LofiQ for Android. <br />
-              <span class="metallic-text">Free. Clean. Unlimited.</span>
-            </h2>
-
-            <p class="download-subtitle">
-              Enjoy unbounded music streaming with 320kbps fidelity, offline caching, and group listening. No subscriptions, no ads, no trackers.
-            </p>
-
-            <!-- Prominent Primary Download Action -->
-            <div class="download-button-wrapper">
-              <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mega dynamic-download-btn" id="mega-download-btn">
-                <div class="mega-btn-shine"></div>
-                <div class="mega-btn-icon-wrap">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
+            <!-- Right: Desktop QR Code & Mobile Scan Deck -->
+            <div class="download-qr-deck">
+              <div class="qr-glass-card">
+                <div class="qr-code-wrapper">
+                  <!-- High-contrast monochrome SVG QR code representation that directs to the APK -->
+                  <svg class="qr-svg" viewBox="0 0 200 200" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="200" height="200" fill="#000000" rx="12" />
+                    <rect x="20" y="20" width="50" height="50" fill="#ffffff" rx="8" />
+                    <rect x="26" y="26" width="38" height="38" fill="#000000" rx="4" />
+                    <rect x="34" y="34" width="22" height="22" fill="#ffffff" rx="3" />
+                    <rect x="130" y="20" width="50" height="50" fill="#ffffff" rx="8" />
+                    <rect x="136" y="26" width="38" height="38" fill="#000000" rx="4" />
+                    <rect x="144" y="34" width="22" height="22" fill="#ffffff" rx="3" />
+                    <rect x="20" y="130" width="50" height="50" fill="#ffffff" rx="8" />
+                    <rect x="26" y="136" width="38" height="38" fill="#000000" rx="4" />
+                    <rect x="34" y="144" width="22" height="22" fill="#ffffff" rx="3" />
+                    <rect x="80" y="25" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="100" y="25" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="80" y="45" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="105" y="45" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="25" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="45" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="25" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="80" y="80" width="40" height="40" fill="#ffffff" rx="8" />
+                    <circle cx="100" cy="100" r="12" fill="#000000" />
+                    <polygon points="97,94 107,100 97,106" fill="#ffffff" />
+                    <rect x="135" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="155" y="85" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="145" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="165" y="105" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="85" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="105" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="85" y="155" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="105" y="155" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="135" y="135" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="155" y="145" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="135" y="165" width="10" height="10" fill="#ffffff" rx="2" />
+                    <rect x="165" y="165" width="10" height="10" fill="#ffffff" rx="2" />
                   </svg>
                 </div>
-                <div class="mega-btn-text">
-                  <span class="mega-btn-label">Download APK Directly</span>
-                  <span class="mega-btn-sub">Version <strong class="dynamic-version">v1.0.2</strong> • <span class="dynamic-size">21.7 MB</span></span>
+                <div class="qr-caption">
+                  <span class="qr-title">Scan from your Phone</span>
+                  <span class="qr-sub">Instantly download on Android</span>
                 </div>
-              </a>
-            </div>
-
-            <div class="checksum-card">
-              <span>SHA-256 Checksum: </span><strong id="dynamic-checksum">7222e194e3ae39c703afa0e70e388649538fd708e63607c3087eabeff0b88a27</strong>
-            </div>
-
-            <!-- Verification Metadata Pills -->
-            <div class="download-meta-tags">
-              <span class="meta-tag">⚡ ARM64 / Universal</span>
-              <span class="meta-tag">🛡️ SHA-256 Verified</span>
-              <span class="meta-tag">🔋 Low Battery Footprint</span>
-              <span class="meta-tag">📶 Offline Ready</span>
+              </div>
             </div>
           </div>
 
-          <!-- Right: Desktop QR Code & Mobile Scan Deck -->
-          <div class="download-qr-deck">
-            <div class="qr-glass-card">
-              <div class="qr-code-wrapper">
-                <!-- High-contrast monochrome SVG QR code representation that directs to the APK -->
-                <svg class="qr-svg" viewBox="0 0 200 200" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
-                  <!-- Background -->
-                  <rect width="200" height="200" fill="#000000" rx="12" />
-                  
-                  <!-- Corner Finder 1 (Top Left) -->
-                  <rect x="20" y="20" width="50" height="50" fill="#ffffff" rx="8" />
-                  <rect x="26" y="26" width="38" height="38" fill="#000000" rx="4" />
-                  <rect x="34" y="34" width="22" height="22" fill="#ffffff" rx="3" />
-
-                  <!-- Corner Finder 2 (Top Right) -->
-                  <rect x="130" y="20" width="50" height="50" fill="#ffffff" rx="8" />
-                  <rect x="136" y="26" width="38" height="38" fill="#000000" rx="4" />
-                  <rect x="144" y="34" width="22" height="22" fill="#ffffff" rx="3" />
-
-                  <!-- Corner Finder 3 (Bottom Left) -->
-                  <rect x="20" y="130" width="50" height="50" fill="#ffffff" rx="8" />
-                  <rect x="26" y="136" width="38" height="38" fill="#000000" rx="4" />
-                  <rect x="34" y="144" width="22" height="22" fill="#ffffff" rx="3" />
-
-                  <!-- QR Data Modules / Rhythm -->
-                  <rect x="80" y="25" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="100" y="25" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="80" y="45" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="105" y="45" width="10" height="10" fill="#ffffff" rx="2" />
-                  
-                  <rect x="25" y="85" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="45" y="85" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="25" y="105" width="10" height="10" fill="#ffffff" rx="2" />
-
-                  <rect x="80" y="80" width="40" height="40" fill="#ffffff" rx="8" />
-                  <circle cx="100" cy="100" r="12" fill="#000000" />
-                  <polygon points="97,94 107,100 97,106" fill="#ffffff" />
-
-                  <rect x="135" y="85" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="155" y="85" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="145" y="105" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="165" y="105" width="10" height="10" fill="#ffffff" rx="2" />
-
-                  <rect x="85" y="135" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="105" y="135" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="85" y="155" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="105" y="155" width="10" height="10" fill="#ffffff" rx="2" />
-
-                  <rect x="135" y="135" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="155" y="145" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="135" y="165" width="10" height="10" fill="#ffffff" rx="2" />
-                  <rect x="165" y="165" width="10" height="10" fill="#ffffff" rx="2" />
-                </svg>
-              </div>
-              <div class="qr-caption">
-                <span class="qr-title">Scan from your Phone</span>
-                <span class="qr-sub">Instantly download on Android</span>
-              </div>
+          <!-- 3-Step Liquid Glass Installation Steps for Android -->
+          <div class="install-steps">
+            <div class="step-card">
+              <span class="step-num">01</span>
+              <h4 class="step-heading">Download APK</h4>
+              <p class="step-desc">Tap the button above or scan the QR code to download the standalone APK file.</p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">02</span>
+              <h4 class="step-heading">Allow Unknown Apps</h4>
+              <p class="step-desc">When prompted by Chrome or Files, tap "Allow from this source" to permit installation.</p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">03</span>
+              <h4 class="step-heading">Enjoy Studio Fidelity</h4>
+              <p class="step-desc">Open LofiQ, create or join a listening room, and stream 320kbps lossless music.</p>
             </div>
           </div>
         </div>
 
-        <!-- 3-Step Liquid Glass Installation Steps -->
-        <div class="install-steps">
-          <div class="step-card">
-            <span class="step-num">01</span>
-            <h4 class="step-heading">Download APK</h4>
-            <p class="step-desc">Tap the button above or scan the QR code to download the standalone APK file.</p>
+        <!-- DECK 2: WINDOWS DOWNLOAD STATION (New Desktop Platform) -->
+        <div class="platform-deck" id="platform-deck-windows" role="tabpanel" aria-labelledby="tab-btn-windows">
+          <div class="download-grid">
+            <!-- Left: Windows Pitch & Dual Download CTAs -->
+            <div class="download-info">
+              <div class="download-badge">
+                <span class="download-shield">✓</span>
+                <span>Official Release • 64-bit (x64) Windows</span>
+              </div>
+
+              <h2 class="download-title">
+                Get LofiQ for Windows. <br />
+                <span class="metallic-text">Pure Audio. Zero Bloat.</span>
+              </h2>
+
+              <p class="download-subtitle">
+                Engineered for desktop audiophiles. Hardware WASAPI streaming via native libmpv, 10-band ISO graphic equalizer, spatial virtualizer, equal-power crossfade, and taskbar SMTC media keys.
+              </p>
+
+              <!-- Dual Download Buttons (Setup EXE + Portable ZIP) -->
+              <div class="download-actions-row">
+                <a href="https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Setup.exe" class="liquid-download-mega" id="win-installer-btn">
+                  <div class="mega-btn-shine"></div>
+                  <div class="mega-btn-icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/>
+                    </svg>
+                  </div>
+                  <div class="mega-btn-text">
+                    <span class="mega-btn-label">Download Setup (.exe)</span>
+                    <span class="mega-btn-sub">Installer • <strong class="dynamic-windows-version">v1.0.2</strong> • <span class="dynamic-win-installer-size">~25 MB</span></span>
+                  </div>
+                </a>
+
+                <a href="https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Portable.zip" class="liquid-download-secondary" id="win-portable-btn">
+                  <div class="secondary-btn-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div class="secondary-btn-text">
+                    <span class="secondary-btn-label">Portable (.zip)</span>
+                    <span class="secondary-btn-sub"><span class="dynamic-win-portable-size">~28 MB</span> • No Install</span>
+                  </div>
+                </a>
+              </div>
+
+              <div class="checksum-card">
+                <span>Verification & Checksums: </span><a href="https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/SHA256SUMS.txt" target="_blank" rel="noopener noreferrer" style="color: #ffffff; text-decoration: underline;" id="win-checksum-link">View SHA256SUMS.txt</a>
+              </div>
+
+              <!-- Verification Metadata Pills -->
+              <div class="download-meta-tags">
+                <span class="meta-tag">⚡ 64-bit Native x64</span>
+                <span class="meta-tag">🎛️ 10-Band EQ & DSP</span>
+                <span class="meta-tag">🌊 Equal-Power Crossfade</span>
+                <span class="meta-tag">⌨️ SMTC Media Keys</span>
+                <span class="meta-tag">📦 Portable Ready</span>
+              </div>
+            </div>
+
+            <!-- Right: System Specifications Card -->
+            <div class="download-qr-deck">
+              <div class="specs-glass-card">
+                <div class="specs-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/>
+                  </svg>
+                  <span>System Requirements</span>
+                </div>
+                <ul class="specs-list">
+                  <li class="specs-item">
+                    <span class="specs-icon">🪟</span>
+                    <span><strong>OS:</strong> Windows 10 & 11 (64-bit x64)</span>
+                  </li>
+                  <li class="specs-item">
+                    <span class="specs-icon">⚡</span>
+                    <span><strong>CPU:</strong> 1.0 GHz+ x64 processor</span>
+                  </li>
+                  <li class="specs-item">
+                    <span class="specs-icon">🧠</span>
+                    <span><strong>RAM:</strong> 2 GB minimum (4 GB rec.)</span>
+                  </li>
+                  <li class="specs-item">
+                    <span class="specs-icon">💾</span>
+                    <span><strong>Disk:</strong> 150 MB free space</span>
+                  </li>
+                  <li class="specs-item">
+                    <span class="specs-icon">🔊</span>
+                    <span><strong>Audio:</strong> Core Audio / WASAPI endpoint</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div class="step-card">
-            <span class="step-num">02</span>
-            <h4 class="step-heading">Allow Unknown Apps</h4>
-            <p class="step-desc">When prompted by Chrome or Files, tap "Allow from this source" to permit installation.</p>
-          </div>
-          <div class="step-card">
-            <span class="step-num">03</span>
-            <h4 class="step-heading">Enjoy Studio Fidelity</h4>
-            <p class="step-desc">Open LofiQ, create or join a listening room, and stream 320kbps lossless music.</p>
+
+          <!-- 3-Step Liquid Glass Installation Steps for Windows -->
+          <div class="install-steps">
+            <div class="step-card">
+              <span class="step-num">01</span>
+              <h4 class="step-heading">Download Package</h4>
+              <p class="step-desc">Select the Setup Installer (.exe) for a guided installation or Portable (.zip) for zero-install portability.</p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">02</span>
+              <h4 class="step-heading">Run Setup or Extract</h4>
+              <p class="step-desc">Launch the installer wizard to create Start Menu shortcuts, or extract the ZIP folder to your preferred disk location.</p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">03</span>
+              <h4 class="step-heading">Enjoy Studio Fidelity</h4>
+              <p class="step-desc">Experience 320kbps streaming, 10-band equalizer, crossfade transitions, and full Windows keyboard media controls.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -458,6 +579,10 @@
             <div class="changelog-tag">Release Notes</div>
             <h3 class="changelog-title">What's New in LofiQ</h3>
             <p class="changelog-date dynamic-date">November 2026</p>
+            <div class="changelog-tabs">
+              <button class="changelog-tab-btn active" id="cl-tab-android" data-cl="android">Android (v1.0.2)</button>
+              <button class="changelog-tab-btn" id="cl-tab-windows" data-cl="windows">Windows (v1.0.2)</button>
+            </div>
           </div>
           <div class="changelog-version-wrap">
             <span class="version-chip dynamic-version">v1.0.2</span>
@@ -514,6 +639,7 @@
           <a href="#hero">Back to Top &uarr;</a>
           <a href="#features">Features</a>
           <a href="#download">Download APK</a>
+          <a href="#download" id="footer-win-link">Download Windows</a>
           <a href="https://github.com/itsafxal/LofiQ-Music" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
         </div>
       </div>

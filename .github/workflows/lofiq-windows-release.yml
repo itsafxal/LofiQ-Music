@@ -1,0 +1,169 @@
+name: LofiQ Windows Desktop Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/lofiq-windows-release.yml'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish official GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      draft:
+        description: 'Mark release as draft'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: lofiq-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build-and-release:
+    name: Build, Package & Certify Windows Release
+    runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: 1. Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 2. Set up Flutter SDK 3.44.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.5'
+          channel: 'stable'
+          cache: true
+
+      - name: 3. Install Inno Setup 6 Compiler
+        run: |
+          Write-Host "Installing Inno Setup via Chocolatey..." -ForegroundColor Cyan
+          choco install innosetup -y --no-progress
+          $innoPath = "C:\Program Files (x86)\Inno Setup 6"
+          if (Test-Path $innoPath) {
+            echo "$innoPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Added Inno Setup to PATH: $innoPath" -ForegroundColor Green
+          } else {
+            Write-Host "::error::Inno Setup installation path not found!" -ForegroundColor Red
+            exit 1
+          }
+
+      - name: 4. Verify Toolchains & Environment Diagnostics
+        run: |
+          Write-Host "=== FLUTTER DOCTOR DIAGNOSTICS ===" -ForegroundColor Cyan
+          flutter doctor -v
+
+          Write-Host "`n=== COMPILER & TOOL VERSIONS ===" -ForegroundColor Cyan
+          cmake --version
+          ninja --version
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /? | Select-Object -First 2
+
+      - name: 5. Install Desktop Dependencies
+        run: |
+          cd desktop
+          flutter pub get
+
+      - name: 6. Static Analysis Quality Gate
+        run: |
+          cd desktop
+          Write-Host "Running Flutter Static Analysis..." -ForegroundColor Cyan
+          flutter analyze --no-fatal-infos
+
+      - name: 7. Execute Complete Desktop Test Suite (51 Tests)
+        run: |
+          cd desktop
+          Write-Host "Executing Complete Windows Desktop Test Suite..." -ForegroundColor Cyan
+          flutter test --reporter expanded
+
+      - name: 8. Compile Native Windows Release Executable
+        run: |
+          cd desktop
+          Write-Host "Compiling Windows Release Executable via Flutter..." -ForegroundColor Cyan
+          flutter build windows --release
+
+      - name: 9. Execute Release Packaging & Verification Script
+        run: |
+          cd desktop
+          powershell -ExecutionPolicy Bypass -File installer/package_release.ps1
+
+      - name: 10. Audit & Validate Generated Release Artifacts
+        id: validate_artifacts
+        run: |
+          $installerPath = "desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe"
+          $portablePath = "desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip"
+          $checksumsPath = "desktop/build/dist/SHA256SUMS.txt"
+
+          if (-not (Test-Path $installerPath)) {
+            Write-Host "::error::Expected installer not found at $installerPath" -ForegroundColor Red
+            exit 1
+          }
+          if (-not (Test-Path $portablePath)) {
+            Write-Host "::error::Expected portable archive not found at $portablePath" -ForegroundColor Red
+            exit 1
+          }
+          if (-not (Test-Path $checksumsPath)) {
+            Write-Host "::error::Checksum file not found at $checksumsPath" -ForegroundColor Red
+            exit 1
+          }
+
+          $installerSize = (Get-Item $installerPath).Length
+          $portableSize = (Get-Item $portablePath).Length
+
+          Write-Host "=== RELEASE ARTIFACTS VERIFIED ===" -ForegroundColor Green
+          Write-Host "  Installer: $installerPath ($([math]::Round($installerSize / 1MB, 2)) MB)"
+          Write-Host "  Portable:  $portablePath ($([math]::Round($portableSize / 1MB, 2)) MB)"
+          Write-Host "`n=== SHA-256 CHECKSUMS ===" -ForegroundColor Cyan
+          Get-Content $checksumsPath
+
+          # Output summary to GitHub step summary
+          "## 🚀 LofiQ Desktop v1.0.2 Release Build Succeeded" >> $env:GITHUB_STEP_SUMMARY
+          "| Artifact | Size | SHA-256 Checksum |" >> $env:GITHUB_STEP_SUMMARY
+          "| :--- | :--- | :--- |" >> $env:GITHUB_STEP_SUMMARY
+          $installerHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
+          $portableHash = (Get-FileHash -Path $portablePath -Algorithm SHA256).Hash.ToLower()
+          "| `LofiQ-v1.0.2-Windows-Setup.exe` | $([math]::Round($installerSize / 1MB, 2)) MB | `$installerHash` |" >> $env:GITHUB_STEP_SUMMARY
+          "| `LofiQ-v1.0.2-Windows-Portable.zip` | $([math]::Round($portableSize / 1MB, 2)) MB | `$portableHash` |" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: 11. Upload GitHub Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LofiQ-v1.0.2-Windows-Release
+          path: |
+            desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe
+            desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip
+            desktop/build/dist/SHA256SUMS.txt
+          retention-days: 30
+
+      - name: 12. Create GitHub Release & Publish Assets
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.2' }}
+          name: "LofiQ Desktop v1.0.2 — Windows Release"
+          draft: ${{ github.event.inputs.draft == 'true' }}
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe
+            desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip
+            desktop/build/dist/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
