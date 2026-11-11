@@ -38,8 +38,10 @@
     "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Setup.exe",
     "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Portable.zip",
     "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/SHA256SUMS.txt",
-    "installerSize": "~25 MB",
-    "portableSize": "~28 MB",
+    "installerSize": "16.1 MB",
+    "portableSize": "19.4 MB",
+    "installerChecksum": "2355ebba2191acee637db3c62540944ccfa05399aaedc3060374e6e06a426144",
+    "portableChecksum": "6bcadde933088ef028c58a355f94cc64b24b40a5ddde472865d483e0c79fbde2",
     "systemRequirements": {
       "os": "Windows 10 / Windows 11 (64-bit x64)",
       "processor": "1 GHz or faster 64-bit processor",

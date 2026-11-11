@@ -46,10 +46,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         winVerElements.forEach(el => el.textContent = `v${win.versionName || '1.0.2'}`);
 
         const winInstallerSizeEl = document.querySelector('.dynamic-win-installer-size');
-        if (winInstallerSizeEl) winInstallerSizeEl.textContent = win.installerSize || '~25 MB';
+        if (winInstallerSizeEl) winInstallerSizeEl.textContent = win.installerSize || '16.1 MB';
 
         const winPortableSizeEl = document.querySelector('.dynamic-win-portable-size');
-        if (winPortableSizeEl) winPortableSizeEl.textContent = win.portableSize || '~28 MB';
+        if (winPortableSizeEl) winPortableSizeEl.textContent = win.portableSize || '19.4 MB';
+
+        const winInstallerCsEl = document.getElementById('win-installer-checksum');
+        if (winInstallerCsEl && win.installerChecksum) {
+          winInstallerCsEl.textContent = win.installerChecksum;
+        }
 
         const winInstallerBtn = document.getElementById('win-installer-btn');
         if (winInstallerBtn && win.installerUrl) {
@@ -105,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clTabWindows = document.getElementById('cl-tab-windows');
   const heroWinBtn = document.getElementById('hero-windows-download');
   const footerWinLink = document.getElementById('footer-win-link');
+  const footerAndroidLink = document.getElementById('footer-android-link');
 
   function switchPlatform(platform) {
     if (platform === 'windows') {
@@ -150,6 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   footerWinLink?.addEventListener('click', () => {
     switchPlatform('windows');
+  });
+
+  footerAndroidLink?.addEventListener('click', () => {
+    switchPlatform('android');
   });
 
   // Automatic Platform Detection on Page Load
