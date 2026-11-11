@@ -1,6 +1,6 @@
 ﻿{
     "suite":  "LofiQ Windows Desktop Test Suite",
-    "generatedAt":  "2026-11-11T20:28:19.7766293+05:30",
+    "generatedAt":  "2026-11-11T20:58:24.3119687+05:30",
     "totalTests":  51,
     "passed":  51,
     "failed":  0,
@@ -11,307 +11,307 @@
                       "id":  88,
                       "name":  "PlaybackController State Machine \u0026 Queue Management setQueue populates queue and selects initial track",
                       "result":  "success",
-                      "time":  9145
+                      "time":  9146
                   },
                   {
                       "id":  87,
                       "name":  "PlaybackController State Machine \u0026 Queue Management Initial state is empty and stopped",
                       "result":  "success",
-                      "time":  9115
+                      "time":  9126
                   },
                   {
                       "id":  82,
                       "name":  "LrcParser Unit Tests Returns empty list for empty or non-LRC input",
                       "result":  "success",
-                      "time":  8368
+                      "time":  8547
                   },
                   {
                       "id":  81,
                       "name":  "LrcParser Unit Tests Ignores metadata headers and empty lines",
                       "result":  "success",
-                      "time":  8359
+                      "time":  8539
                   },
                   {
                       "id":  80,
                       "name":  "LrcParser Unit Tests Sorts lines chronologically regardless of source line order",
                       "result":  "success",
-                      "time":  8345
+                      "time":  8532
                   },
                   {
                       "id":  79,
                       "name":  "LrcParser Unit Tests Parses 3-digit millisecond timestamps",
                       "result":  "success",
-                      "time":  8340
+                      "time":  8522
                   },
                   {
                       "id":  78,
                       "name":  "LrcParser Unit Tests Parses standard centisecond LRC timestamps",
                       "result":  "success",
-                      "time":  8333
+                      "time":  8514
                   },
                   {
                       "id":  71,
                       "name":  "LocalStorage Forensic Persistence Tests Queue snapshot persists and can be restored",
                       "result":  "success",
-                      "time":  8025
+                      "time":  8038
                   },
                   {
                       "id":  70,
                       "name":  "LocalStorage Forensic Persistence Tests Playback history records timestamps and durations",
                       "result":  "success",
-                      "time":  8017
+                      "time":  8033
                   },
                   {
                       "id":  69,
                       "name":  "LocalStorage Forensic Persistence Tests Favorites toggling and retrieval",
                       "result":  "success",
-                      "time":  8010
+                      "time":  8028
                   },
                   {
                       "id":  68,
                       "name":  "LocalStorage Forensic Persistence Tests Playlist creation, track addition, and persistence",
                       "result":  "success",
-                      "time":  7991
+                      "time":  8010
                   },
                   {
                       "id":  63,
                       "name":  "JioSaavn Bitrate \u0026 DES Decryption Tests Invalid or corrupted cipher strings safely return null without throwing",
                       "result":  "success",
-                      "time":  7650
+                      "time":  7707
                   },
                   {
                       "id":  62,
                       "name":  "JioSaavn Bitrate \u0026 DES Decryption Tests DES Decryption round-trip decrypts media URL successfully",
                       "result":  "success",
-                      "time":  7646
+                      "time":  7701
                   },
                   {
                       "id":  61,
                       "name":  "JioSaavn Bitrate \u0026 DES Decryption Tests Bitrate adjuster converts suffix to target quality",
                       "result":  "success",
-                      "time":  7637
+                      "time":  7692
                   },
                   {
                       "id":  56,
                       "name":  "EqualizerController DSP Unit Tests buildMpvAudioFilter produces valid libmpv filter string for DSP pipeline",
                       "result":  "success",
-                      "time":  7365
+                      "time":  7219
                   },
                   {
                       "id":  55,
                       "name":  "EqualizerController DSP Unit Tests Master enable switch toggles DSP state",
                       "result":  "success",
-                      "time":  7361
+                      "time":  7214
                   },
                   {
                       "id":  54,
                       "name":  "EqualizerController DSP Unit Tests Bass Boost and Virtualizer accept both 0-1.0 and 0-1000 scales",
                       "result":  "success",
-                      "time":  7356
+                      "time":  7210
                   },
                   {
                       "id":  53,
                       "name":  "EqualizerController DSP Unit Tests applyPreset loads configured preset gains correctly",
                       "result":  "success",
-                      "time":  7351
+                      "time":  7206
                   },
                   {
                       "id":  52,
                       "name":  "EqualizerController DSP Unit Tests setBandLevel updates individual band and switches to Custom preset",
                       "result":  "success",
-                      "time":  7348
+                      "time":  7202
                   },
                   {
                       "id":  51,
                       "name":  "EqualizerController DSP Unit Tests Initial reset state is Flat with 0 millibels across all bands",
                       "result":  "success",
-                      "time":  7344
+                      "time":  7198
                   },
                   {
                       "id":  50,
                       "name":  "EqualizerController DSP Unit Tests Has exactly 10 standard audio frequency bands",
                       "result":  "success",
-                      "time":  7340
+                      "time":  7194
                   },
                   {
                       "id":  45,
                       "name":  "Audio Crossfade Unit Tests Queue alterations invalidate preloaded crossfade track",
                       "result":  "success",
-                      "time":  7045
+                      "time":  7092
                   },
                   {
                       "id":  44,
                       "name":  "Audio Crossfade Unit Tests Manual Seek during Crossfade cancels crossfade and restores primary volume",
                       "result":  "success",
-                      "time":  7030
+                      "time":  7080
                   },
                   {
                       "id":  43,
                       "name":  "Audio Crossfade Unit Tests Short Track Protection restricts crossfade window to at most half duration",
                       "result":  "success",
-                      "time":  7006
+                      "time":  7059
                   },
                   {
                       "id":  42,
                       "name":  "Audio Crossfade Unit Tests Equal-Power Crossfade Curve maintains constant acoustic power",
                       "result":  "success",
-                      "time":  7000
+                      "time":  7054
                   },
                   {
                       "id":  37,
                       "name":  "Crossfade Production Stress Test Suite DSP Equalizer and Bass Boost filter generation sync across players",
                       "result":  "success",
-                      "time":  6647
+                      "time":  6517
                   },
                   {
                       "id":  36,
                       "name":  "Crossfade Production Stress Test Suite Master volume change during transition scales acoustic power proportionally",
                       "result":  "success",
-                      "time":  6624
+                      "time":  6502
                   },
                   {
                       "id":  35,
                       "name":  "Crossfade Production Stress Test Suite Manual Next/Previous cancels active ramp and maintains master volume",
                       "result":  "success",
-                      "time":  6615
+                      "time":  6498
                   },
                   {
                       "id":  34,
                       "name":  "Crossfade Production Stress Test Suite SkipToIndex updates active queue pointer",
                       "result":  "success",
-                      "time":  6603
+                      "time":  6487
                   },
                   {
                       "id":  33,
                       "name":  "Crossfade Production Stress Test Suite Repeat Mode cycle transitions correctly (off -\u003e all -\u003e one -\u003e off)",
                       "result":  "success",
-                      "time":  6593
+                      "time":  6481
                   },
                   {
                       "id":  32,
                       "name":  "Crossfade Production Stress Test Suite Long tracks (10+ minutes) calculate preload and ramp boundaries with precision",
                       "result":  "success",
-                      "time":  6583
+                      "time":  6474
                   },
                   {
                       "id":  31,
                       "name":  "Crossfade Production Stress Test Suite Short tracks (\u003c 2 * crossfadeDuration) clamping and safety bypass",
                       "result":  "success",
-                      "time":  6555
+                      "time":  6451
                   },
                   {
                       "id":  30,
                       "name":  "Crossfade Production Stress Test Suite 3-second, 8-second, and 12-second crossfade window math and step calculations",
                       "result":  "success",
-                      "time":  6549
+                      "time":  6447
                   },
                   {
                       "id":  29,
                       "name":  "Crossfade Production Stress Test Suite 1-second crossfade window is under 1.5s threshold and is safely bypassed",
                       "result":  "success",
-                      "time":  6540
+                      "time":  6437
                   },
                   {
-                      "id":  28,
+                      "id":  26,
                       "name":  "Crossfade Production Stress Test Suite 0-second crossfade completely bypasses preloading and overlapping",
                       "result":  "success",
-                      "time":  6531
+                      "time":  6431
                   },
                   {
                       "id":  21,
                       "name":  "Physical Audio Output \u0026 Lifecycle Verification on Windows",
                       "result":  "success",
-                      "time":  25247
+                      "time":  25274
                   },
                   {
                       "id":  102,
                       "name":  "LofiQ desktop app boots into desktop shell",
                       "result":  "success",
-                      "time":  10456
+                      "time":  10543
                   },
                   {
                       "id":  19,
                       "name":  "Physical MediaKit Audio Playback \u0026 DSP Test",
                       "result":  "success",
-                      "time":  6198
+                      "time":  6370
                   },
                   {
                       "id":  17,
                       "name":  "Dual media_kit Player Instances Concurrency \u0026 Independent Volume Test",
                       "result":  "success",
-                      "time":  8083
+                      "time":  8023
                   },
                   {
                       "id":  15,
                       "name":  "Forensic DSP Filter Graph Audit \u0026 Runtime Verification in libmpv",
                       "result":  "success",
-                      "time":  5789
+                      "time":  5807
                   },
                   {
                       "id":  13,
                       "name":  "Production-Grade Real Audio Crossfade Runtime Verification",
                       "result":  "success",
-                      "time":  12715
+                      "time":  12768
                   },
                   {
                       "id":  100,
                       "name":  "TrackIdentityMatcher Verification Matches tracks within tolerance duration window",
                       "result":  "success",
-                      "time":  9256
+                      "time":  9284
                   },
                   {
                       "id":  99,
                       "name":  "TrackIdentityMatcher Verification Normalizes strings by stripping punctuation, extra spaces, and common fluff",
                       "result":  "success",
-                      "time":  9250
+                      "time":  9280
                   },
                   {
                       "id":  98,
                       "name":  "TrackIdentityMatcher Verification Computes string similarity score between 0.0 and 1.0",
                       "result":  "success",
-                      "time":  9246
+                      "time":  9275
                   },
                   {
                       "id":  97,
                       "name":  "TrackIdentityMatcher Verification Calculates accurate Levenshtein distance",
                       "result":  "success",
-                      "time":  9241
+                      "time":  9268
                   },
                   {
                       "id":  94,
                       "name":  "PlaybackController State Machine \u0026 Queue Management clearQueue resets entire playback state",
                       "result":  "success",
-                      "time":  9198
+                      "time":  9214
                   },
                   {
                       "id":  93,
                       "name":  "PlaybackController State Machine \u0026 Queue Management setVolume clamps volume between 0.0 and 1.0",
                       "result":  "success",
-                      "time":  9194
+                      "time":  9203
                   },
                   {
                       "id":  92,
                       "name":  "PlaybackController State Machine \u0026 Queue Management cycleRepeatMode rotates correctly: off -\u003e all -\u003e one -\u003e off",
                       "result":  "success",
-                      "time":  9178
+                      "time":  9192
                   },
                   {
                       "id":  91,
                       "name":  "PlaybackController State Machine \u0026 Queue Management seekTo clamps position between 0 and durationMs",
                       "result":  "success",
-                      "time":  9174
+                      "time":  9182
                   },
                   {
                       "id":  90,
                       "name":  "PlaybackController State Machine \u0026 Queue Management removeFromQueue removes item and updates index safely",
                       "result":  "success",
-                      "time":  9164
+                      "time":  9170
                   },
                   {
                       "id":  89,
                       "name":  "PlaybackController State Machine \u0026 Queue Management reorderQueue moves track correctly within queue",
                       "result":  "success",
-                      "time":  9155
+                      "time":  9160
                   }
               ]
 }

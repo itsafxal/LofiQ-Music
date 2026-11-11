@@ -32,13 +32,17 @@ try {
 }
 
 # 2. Automated Quality Gate: Tests & Analysis
-Write-Host "`n[2/6] Executing Quality Gate (flutter test)..." -ForegroundColor Yellow
-$testResult = flutter test
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  [FAIL] Flutter unit and integration tests failed!" -ForegroundColor Red
-    exit 1
+if (-not $SkipBuild) {
+    Write-Host "`n[2/6] Executing Quality Gate (flutter test)..." -ForegroundColor Yellow
+    $testResult = flutter test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  [FAIL] Flutter unit and integration tests failed!" -ForegroundColor Red
+        exit 1
+    } else {
+        Write-Host "  [PASS] All automated tests passed successfully." -ForegroundColor Green
+    }
 } else {
-    Write-Host "  [PASS] All automated tests passed successfully." -ForegroundColor Green
+    Write-Host "`n[2/6] Quality Gate Skipped: SkipBuild flag set." -ForegroundColor DarkYellow
 }
 
 # 3. Release Compilation

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/models/song.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/liquid_glass.dart';
 import '../../data/local_audio/local_audio_scanner.dart';
 import '../../playback/playback_controller.dart';
 import '../components/glass_card.dart';
@@ -51,7 +50,7 @@ class _LocalMusicScreenState extends State<LocalMusicScreen> {
     return _localSongs.where((s) =>
       s.title.toLowerCase().contains(q) ||
       s.artist.toLowerCase().contains(q) ||
-      (s.album?.toLowerCase().contains(q) ?? false)
+      s.album.toLowerCase().contains(q)
     ).toList();
   }
 

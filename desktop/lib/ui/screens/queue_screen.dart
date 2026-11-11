@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/models/song.dart';
-import '../../core/models/player_state.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/liquid_glass.dart';
 import '../../core/utils/time_format.dart';
 import '../../core/database/local_storage.dart';
 import '../../playback/playback_controller.dart';
@@ -196,9 +193,9 @@ class _QueueScreenState extends State<QueueScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: currentSong.artworkUrl != null
+                        child: currentSong.artworkUrl.isNotEmpty
                             ? Image.network(
-                                currentSong.artworkUrl!,
+                                currentSong.artworkUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const Icon(Icons.music_note_rounded, color: LofiQColors.neonPurple),
                               )
@@ -322,9 +319,9 @@ class _QueueScreenState extends State<QueueScreen> {
                                 const SizedBox(width: 12),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: song.artworkUrl != null
+                                  child: song.artworkUrl.isNotEmpty
                                       ? Image.network(
-                                          song.artworkUrl!,
+                                          song.artworkUrl,
                                           width: 40,
                                           height: 40,
                                           fit: BoxFit.cover,

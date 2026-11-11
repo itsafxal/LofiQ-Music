@@ -4,7 +4,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:lofiq_desktop/data/resolvers/jiosaavn_client.dart';
 import 'package:lofiq_desktop/data/resolvers/resolver_manager.dart';
 import 'package:lofiq_desktop/playback/equalizer/equalizer_controller.dart';
-import 'package:lofiq_desktop/core/models/song.dart';
 
 void main() {
   test('Forensic DSP Filter Graph Audit & Runtime Verification in libmpv', () async {

@@ -3,8 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../lib/data/resolvers/jiosaavn_client.dart';
 import '../../lib/data/resolvers/resolver_manager.dart';
-import '../../lib/core/models/song.dart';
-import '../../lib/core/models/audio_quality.dart';
 
 void main() {
   test('Physical MediaKit Audio Playback & DSP Test', () async {

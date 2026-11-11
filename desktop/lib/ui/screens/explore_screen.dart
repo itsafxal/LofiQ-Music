@@ -4,7 +4,6 @@ import '../../core/models/audio_quality.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/liquid_glass.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
 
 class ExploreScreen extends StatefulWidget {
   final PlaybackController playbackController;

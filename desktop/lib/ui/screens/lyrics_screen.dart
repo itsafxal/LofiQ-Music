@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/models/song.dart';
-import '../../core/models/player_state.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/liquid_glass.dart';
 import '../../data/lyrics/lyrics_models.dart';
 import '../../data/lyrics/lyrics_repository.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
 
 class LyricsScreen extends StatefulWidget {
   final PlaybackController playbackController;
@@ -151,9 +147,9 @@ class _LyricsScreenState extends State<LyricsScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: song.artworkUrl != null
+                  child: song.artworkUrl.isNotEmpty
                       ? Image.network(
-                          song.artworkUrl!,
+                          song.artworkUrl,
                           width: 48,
                           height: 48,
                           fit: BoxFit.cover,

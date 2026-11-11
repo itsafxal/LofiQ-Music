@@ -6,8 +6,6 @@ import 'package:lofiq_desktop/data/resolvers/jiosaavn_client.dart';
 import 'package:lofiq_desktop/data/resolvers/resolver_manager.dart';
 import 'package:lofiq_desktop/playback/playback_controller.dart';
 import 'package:lofiq_desktop/playback/equalizer/equalizer_controller.dart';
-import 'package:lofiq_desktop/core/models/song.dart';
-import 'package:lofiq_desktop/core/preferences/preferences_manager.dart';
 
 void main() {
   test('Production-Grade Real Audio Crossfade Runtime Verification', () async {

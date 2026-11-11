@@ -4,7 +4,6 @@ import '../../core/models/seekbar_style.dart';
 import '../../core/models/user_settings.dart';
 import '../../core/preferences/preferences_manager.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/liquid_glass.dart';
 import '../../data/update/windows_update_manager.dart';
 import '../components/glass_card.dart';
 

@@ -2,10 +2,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:lofiq_desktop/data/resolvers/jiosaavn_client.dart';
-import 'package:lofiq_desktop/data/resolvers/resolver_manager.dart';
 import 'package:lofiq_desktop/playback/playback_controller.dart';
 import 'package:lofiq_desktop/core/models/song.dart';
-import 'package:lofiq_desktop/core/models/audio_quality.dart';
 
 void main() {
   test('Physical Audio Output & Lifecycle Verification on Windows', () async {
