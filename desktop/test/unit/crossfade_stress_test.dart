@@ -29,7 +29,7 @@ void main() {
       );
     }
 
-    test('0-second crossfade completely bypasses preloading and overlapping', () {
+    test('0-second crossfade disables overlap while enabling ~10s gapless preloading', () {
       PreferencesManager.instance.updateSettings(
         (s) => s.copyWith(crossfadeDurationSec: 0),
       );
@@ -37,79 +37,77 @@ void main() {
       final s2 = makeSong('s2', 180);
       pbc.setQueue([s1, s2]);
 
-      // Check crossfade duration
       expect(PreferencesManager.instance.settings.crossfadeDurationSec, 0);
+      expect(PlaybackController.computeEffectiveCrossfadeMs(0, s1.durationMs), 0);
+      expect(PlaybackController.computePreloadTriggerMs(s1.durationMs, 0), 10000);
 
-      // Trigger position check at end of track (179 seconds)
+      // Zero-overlap mode never sets overlapping crossfade active
       pbc.seekTo(179000);
       expect(pbc.state.isCrossfading, isFalse);
-      expect(pbc.isPreloaded, isFalse);
     });
 
-    test('1-second crossfade window is under 1.5s threshold and is safely bypassed', () {
+    test('1-second crossfade window is under 1.5s guard and degrades cleanly to gapless', () {
       PreferencesManager.instance.updateSettings(
         (s) => s.copyWith(crossfadeDurationSec: 1),
       );
-      const crossfadeSec = 1;
       const durationMs = 180000;
-      final effectiveWindowMs = math.min(crossfadeSec * 1000, durationMs ~/ 2);
-      expect(effectiveWindowMs, 1000);
-      expect(effectiveWindowMs < 1500, isTrue); // Must be skipped to prevent clipping
+      final effectiveWindowMs = PlaybackController.computeEffectiveCrossfadeMs(1, durationMs);
+      expect(effectiveWindowMs, 0);
+      expect(PlaybackController.computePreloadTriggerMs(durationMs, effectiveWindowMs), 10000);
     });
 
-    test('3-second, 8-second, and 12-second crossfade window math and step calculations', () {
+    test('3-second, 8-second, and 12-second crossfade use ~10s early preload and equal-power gains', () {
       for (final sec in [3, 8, 12]) {
         PreferencesManager.instance.updateSettings(
           (s) => s.copyWith(crossfadeDurationSec: sec),
         );
         const durationMs = 240000; // 4 min
-        final effectiveWindowMs = math.min(sec * 1000, durationMs ~/ 2);
+        final effectiveWindowMs = PlaybackController.computeEffectiveCrossfadeMs(sec, durationMs);
         expect(effectiveWindowMs, sec * 1000);
 
-        final preloadThresholdMs = math.max(0, durationMs - effectiveWindowMs - 4000);
+        final preloadTriggerMs = PlaybackController.computePreloadTriggerMs(
+          durationMs,
+          effectiveWindowMs,
+        );
         final crossfadeStartMs = math.max(0, durationMs - effectiveWindowMs);
 
-        // Preload threshold must strictly precede crossfade start by exactly 4s
-        expect(crossfadeStartMs - preloadThresholdMs, 4000);
-
-        // Total steps must be bounded between 10 and 200
-        final totalSteps = (effectiveWindowMs / 50).round().clamp(10, 200);
-        expect(totalSteps >= 10 && totalSteps <= 200, isTrue);
+        // Early preload fires around 10 seconds into playback, well before crossfade window
+        expect(preloadTriggerMs, 10000);
+        expect(preloadTriggerMs < crossfadeStartMs, isTrue);
 
         // Verify equal-power at every step
+        final totalSteps = (effectiveWindowMs / 40).round().clamp(10, 300);
         for (int step = 0; step <= totalSteps; step++) {
           final t = (step / totalSteps).clamp(0.0, 1.0);
-          final factorA = math.cos(t * math.pi / 2);
-          final factorB = math.sin(t * math.pi / 2);
+          final factorA = PlaybackController.equalPowerOutGain(t);
+          final factorB = PlaybackController.equalPowerInGain(t);
           final power = (factorA * factorA) + (factorB * factorB);
           expect((power - 1.0).abs(), lessThan(1e-9));
         }
       }
     });
 
-    test('Short tracks (< 2 * crossfadeDuration) clamping and safety bypass', () {
+    test('Short tracks (< 2 * crossfadeDuration) clamping, proportional preload, and safety bypass', () {
       // Case A: 6s track with 8s crossfade -> clamped to 3s (50% duration)
       final sShort = makeSong('short', 6);
-      const crossfadeSec = 8;
-      final effectiveWindowA = math.min(crossfadeSec * 1000, sShort.durationMs ~/ 2);
+      final effectiveWindowA = PlaybackController.computeEffectiveCrossfadeMs(8, sShort.durationMs);
       expect(effectiveWindowA, 3000);
-      expect(effectiveWindowA >= 1500, isTrue); // Allowed at 3s
+      final triggerA = PlaybackController.computePreloadTriggerMs(sShort.durationMs, effectiveWindowA);
+      expect(triggerA, lessThan(sShort.durationMs - effectiveWindowA));
 
-      // Case B: 2s track with 8s crossfade -> clamped to 1s (< 1.5s threshold)
+      // Case B: 2s track with 8s crossfade -> clamped to 1s (< 1.5s threshold) -> degrades cleanly to 0 overlap
       final sUltraShort = makeSong('ultraShort', 2);
-      final effectiveWindowB = math.min(crossfadeSec * 1000, sUltraShort.durationMs ~/ 2);
-      expect(effectiveWindowB, 1000);
-      expect(effectiveWindowB < 1500, isTrue); // Bypassed
+      final effectiveWindowB = PlaybackController.computeEffectiveCrossfadeMs(8, sUltraShort.durationMs);
+      expect(effectiveWindowB, 0);
     });
 
-    test('Long tracks (10+ minutes) calculate preload and ramp boundaries with precision', () {
+    test('Long tracks (10+ minutes) preload at 10s early window and start crossfade precisely at tail', () {
       final sLong = makeSong('long', 600); // 10 minutes = 600,000ms
-      const crossfadeSec = 12;
-      final effectiveWindow = math.min(crossfadeSec * 1000, sLong.durationMs ~/ 2);
+      final effectiveWindow = PlaybackController.computeEffectiveCrossfadeMs(12, sLong.durationMs);
       expect(effectiveWindow, 12000);
 
-      final preloadThreshold = sLong.durationMs - effectiveWindow - 4000;
-      expect(preloadThreshold, 584000); // 9 min 44 sec
+      final preloadTrigger = PlaybackController.computePreloadTriggerMs(sLong.durationMs, effectiveWindow);
+      expect(preloadTrigger, 10000);
 
       final crossfadeStart = sLong.durationMs - effectiveWindow;
       expect(crossfadeStart, 588000); // 9 min 48 sec

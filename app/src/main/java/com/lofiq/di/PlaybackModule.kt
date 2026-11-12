@@ -92,9 +92,9 @@ object PlaybackModule {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 15_000, // minBufferMs
-                50_000, // maxBufferMs
-                2_000,  // bufferForPlaybackMs
-                4_000   // bufferForPlaybackAfterRebufferMs
+                45_000, // maxBufferMs
+                1_500,  // bufferForPlaybackMs
+                3_000   // bufferForPlaybackAfterRebufferMs
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
@@ -123,12 +123,14 @@ object PlaybackModule {
 
         val mediaSourceFactory = createMediaSourceFactory(context, httpClient, authRepository)
 
+        // Symmetric full-track playback load control so Slot B performs identically after handover
+        // while keeping memory footprint controlled during early background preloading.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                4_000,  // minBufferMs
-                15_000, // maxBufferMs
-                500,    // bufferForPlaybackMs: low threshold allows pre-buffered tail to reach STATE_READY quickly
-                1_000   // bufferForPlaybackAfterRebufferMs
+                12_000, // minBufferMs
+                35_000, // maxBufferMs
+                1_500,  // bufferForPlaybackMs
+                2_500   // bufferForPlaybackAfterRebufferMs
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
@@ -136,7 +138,8 @@ object PlaybackModule {
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl)
-            .setAudioAttributes(audioAttributes, false) // false: does NOT steal audio focus from primary ExoPlayer
+            .setAudioAttributes(audioAttributes, false) // Promoted to true atomically at handover
+            .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
     }

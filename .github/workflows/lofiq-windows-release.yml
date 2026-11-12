@@ -113,8 +113,8 @@ jobs:
       - name: 10. Audit & Validate Generated Release Artifacts
         id: validate_artifacts
         run: |
-          $installerPath = "desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe"
-          $portablePath = "desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip"
+          $installerPath = "desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe"
+          $portablePath = "desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip"
           $checksumsPath = "desktop/build/dist/SHA256SUMS.txt"
 
           if (-not (Test-Path $installerPath)) {
@@ -140,22 +140,22 @@ jobs:
           Get-Content $checksumsPath
 
           # Output summary to GitHub step summary
-          "## 🚀 LofiQ Desktop v1.0.2 Release Build Succeeded" >> $env:GITHUB_STEP_SUMMARY
+          "## 🚀 LofiQ Desktop v1.0.3 Release Build Succeeded" >> $env:GITHUB_STEP_SUMMARY
           "| Artifact | Size | SHA-256 Checksum |" >> $env:GITHUB_STEP_SUMMARY
           "| :--- | :--- | :--- |" >> $env:GITHUB_STEP_SUMMARY
           $bt = [char]96
           $installerHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
           $portableHash = (Get-FileHash -Path $portablePath -Algorithm SHA256).Hash.ToLower()
-          "| ${bt}LofiQ-v1.0.2-Windows-Setup.exe${bt} | $([math]::Round($installerSize / 1MB, 2)) MB | ${bt}$installerHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
-          "| ${bt}LofiQ-v1.0.2-Windows-Portable.zip${bt} | $([math]::Round($portableSize / 1MB, 2)) MB | ${bt}$portableHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
+          "| ${bt}LofiQ-v1.0.3-Windows-Setup.exe${bt} | $([math]::Round($installerSize / 1MB, 2)) MB | ${bt}$installerHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
+          "| ${bt}LofiQ-v1.0.3-Windows-Portable.zip${bt} | $([math]::Round($portableSize / 1MB, 2)) MB | ${bt}$portableHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
 
       - name: 11. Upload GitHub Actions Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LofiQ-v1.0.2-Windows-Release
+          name: LofiQ-v1.0.3-Windows-Release
           path: |
-            desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe
-            desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip
+            desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe
+            desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip
             desktop/build/dist/SHA256SUMS.txt
           retention-days: 30
 
@@ -163,39 +163,33 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.2' }}
-          name: "LofiQ V1.0.2 (Unified Windows & Android Release)"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.3' }}
+          name: "LofiQ V1.0.3 (Gapless Playback & Dual-Player Crossfade)"
           draft: ${{ github.event.inputs.draft == 'true' }}
           prerelease: false
           generate_release_notes: false
           body: |
-            ## LofiQ V1.0.2 Official Release (Windows & Android)
+            ## LofiQ V1.0.3 Official Release (Android & Windows)
 
             ### 📦 Release Assets & Verification
-            - **Android APK:** `LofiQ.apk` (21.7 MB, Version Code 65)
-            - **Windows Installer:** `LofiQ-v1.0.2-Windows-Setup.exe` (Inno Setup 6, x64)
-            - **Windows Portable:** `LofiQ-v1.0.2-Windows-Portable.zip` (Standalone x64)
+            - **Android APK:** `LofiQ.apk` (Version Code 66)
+            - **Windows Installer:** `LofiQ-v1.0.3-Windows-Setup.exe` (Inno Setup 6, x64)
+            - **Windows Portable:** `LofiQ-v1.0.3-Windows-Portable.zip` (Standalone x64)
             - **Cryptographic Verification:** `SHA256SUMS.txt`
 
-            ### 🪟 Windows Desktop Highlights (v1.0.2)
-            - **High-Fidelity Audio Engine:** Native WASAPI audio output via `media_kit` & `libmpv`.
-            - **Equal-Power Audio Crossfade:** Seamless dual-player transitions with predictive stream preloading.
-            - **10-Band Graphic Equalizer:** Bass Boost, Spatial Virtualizer, and customized presets.
-            - **Windows SMTC Integration:** Native system media transport controls & hardware media key handling.
-            - **Offline Music Library:** Automatic directory scanning and metadata extraction for local audio.
-            - **Synced Karaoke Lyrics:** Real-time synchronized lyrics via LRCLIB.
-
-            ### 🤖 Android Highlights (v1.0.2)
-            - **Synchronized Firebase Authentication:** Mutex-deduplicated persistent session reuse.
-            - **Listen Together Hardening:** Strictly verified Firebase UID ownership with inactive room cleanup.
-            - **Dual-Hosting Portals:** Primary distribution on Vercel with automatic failover to Netlify.
+            ### 🎵 Core Audio Engine Upgrade (v1.0.3)
+            - **True Dual-Player Architecture:** Symmetric Active & Secondary audio slots on both Android (Media3 ExoPlayer) and Windows (`media_kit` / `libmpv`).
+            - **Early ~10s Silent Preloading:** Resolves and buffers incoming tracks on the secondary player while active playback continues uninterrupted at full volume.
+            - **Zero-Overlap Gapless Playback (`0s`):** Preloads upcoming tracks silently and executes instantaneous track-end handovers.
+            - **Seamless Equal-Power Crossfade:** Smooth `cos`/`sin` overlap transitions with atomic slot promotion and full EQ preservation.
+            - **Isolated Recovery & Controls:** Isolated preload error handling, pause/resume sync mid-transition, and MediaSession/SMTC metadata handovers.
 
             ### 🌐 Official Distribution Portals
             - Primary Portal: https://lofiq-web.vercel.app/
             - Backup Mirror: https://mybackuplofiq.netlify.app/
           files: |
-            desktop/build/installer/LofiQ-v1.0.2-Windows-Setup.exe
-            desktop/build/dist/LofiQ-v1.0.2-Windows-Portable.zip
+            desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe
+            desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip
             desktop/build/dist/SHA256SUMS.txt
             web/downloads/LofiQ.apk
         env:

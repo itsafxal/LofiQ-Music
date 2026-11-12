@@ -14,7 +14,9 @@ data class LofiQPlayerState(
     val playbackSpeed: Float = 1.0f,
     val errorMessage: String? = null,
     val isReady: Boolean = false,
-    val activeProviderId: String? = null
+    val activeProviderId: String? = null,
+    val isCrossfading: Boolean = false,
+    val activeAudioSessionId: Int = 0
 ) {
     val progressFraction: Float
         get() = if (durationMs > 0) (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f

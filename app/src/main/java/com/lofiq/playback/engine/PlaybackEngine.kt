@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Environment
 import com.lofiq.playback.service.LofiQMediaSessionService
 import java.io.File
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -41,8 +43,8 @@ import javax.inject.Singleton
 @Singleton
 class PlaybackEngine @Inject constructor(
     @ApplicationContext private val context: Context,
-    val exoPlayer: ExoPlayer,
-    @com.lofiq.di.PlaybackModule.FadePlayer private val fadePlayer: ExoPlayer,
+    private val playerSlotA: ExoPlayer,
+    @com.lofiq.di.PlaybackModule.FadePlayer private val playerSlotB: ExoPlayer,
     val audioRoutingManager: AudioRoutingManager,
     private val resolverManager: ResolverManager,
     private val resolutionCache: ResolutionCache,
@@ -57,11 +59,78 @@ class PlaybackEngine @Inject constructor(
     private val lyricsRepository: com.lofiq.data.lyrics.LyricsRepository? = null,
     private val dispatchers: DispatcherProvider
 ) {
+    companion object {
+        const val PRELOAD_TARGET_MS = 10_000L
+        const val MIN_CROSSFADE_WINDOW_MS = 1_500L
+        const val GAPLESS_CUT_THRESHOLD_MS = 70L
+
+        /**
+         * Determines when early background preloading should begin on the secondary player.
+         * Standard tracks preload at ~10 seconds; shorter tracks scale proportionally so
+         * preparation still completes ahead of the transition window.
+         */
+        fun computePreloadTriggerMs(durationMs: Long, effectiveCrossfadeMs: Long): Long {
+            if (durationMs <= 0L || durationMs >= 28_000L) return PRELOAD_TARGET_MS
+            val headroom = (durationMs - effectiveCrossfadeMs).coerceAtLeast(4_000L)
+            return minOf(PRELOAD_TARGET_MS, maxOf(2_000L, headroom / 2L))
+        }
+
+        /**
+         * Calculates the effective crossfade window in milliseconds, enforcing short-track
+         * protection and clean 0ms return when crossfade is disabled (gapless-only mode).
+         */
+        fun computeEffectiveCrossfadeMs(crossfadeSeconds: Int, durationMs: Long): Long {
+            if (crossfadeSeconds <= 0 || durationMs <= 0L || durationMs < 3_000L) return 0L
+            val candidate = minOf(crossfadeSeconds * 1000L, durationMs / 2L)
+            return if (candidate >= MIN_CROSSFADE_WINDOW_MS) candidate else 0L
+        }
+
+        /** Equal-power outgoing gain curve: cos(t * pi / 2). */
+        fun equalPowerOutGain(t: Float): Float {
+            val clamped = t.coerceIn(0f, 1f)
+            return kotlin.math.cos(clamped * kotlin.math.PI / 2.0).toFloat()
+        }
+
+        /** Equal-power incoming gain curve: sin(t * pi / 2). */
+        fun equalPowerInGain(t: Float): Float {
+            val clamped = t.coerceIn(0f, 1f)
+            return kotlin.math.sin(clamped * kotlin.math.PI / 2.0).toFloat()
+        }
+    }
+
+    private enum class SecondarySlotState {
+        IDLE,
+        RESOLVING,
+        PREPARING,
+        READY,
+        FAILED
+    }
+
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "Unhandled playback coroutine error: ${throwable.message}", throwable)
     }
     private val engineScope = CoroutineScope(SupervisorJob() + dispatchers.main + exceptionHandler)
     private val commandMutex = Mutex()
+
+    private val mediaAudioAttributes: AudioAttributes = AudioAttributes.Builder()
+        .setUsage(C.USAGE_MEDIA)
+        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+        .build()
+
+    // Dual-player slot state: active slot owns audible playback & audio focus;
+    // secondary slot prepares & buffers the next track silently at volume 0 and position 0.
+    private var isSlotAActive: Boolean = true
+    val activePlayer: ExoPlayer
+        get() = if (isSlotAActive) playerSlotA else playerSlotB
+    val secondaryPlayer: ExoPlayer
+        get() = if (isSlotAActive) playerSlotB else playerSlotA
+
+    // Backward-compatible accessor always pointing to whichever slot is active.
+    val exoPlayer: ExoPlayer
+        get() = activePlayer
+
+    private val _activePlayerFlow = MutableStateFlow(playerSlotA)
+    val activePlayerFlow: StateFlow<ExoPlayer> = _activePlayerFlow.asStateFlow()
 
     private val _playerState = MutableStateFlow(LofiQPlayerState())
     val playerState: StateFlow<LofiQPlayerState> = _playerState.asStateFlow()
@@ -89,46 +158,141 @@ class PlaybackEngine @Inject constructor(
     private var lyricsJob: Job? = null
     private var playbackJob: Job? = null
     private var preloadJob: Job? = null
-    private var preloadedSongId: String? = null
+    private var volumeFadeJob: Job? = null
+
     private var activePlaybackId: String = ""
     private var consecutiveFailures = 0
     private var currentSongRetryCount = 0
     private var crossfadeSeconds: Int = 8
-    private var volumeFadeJob: Job? = null
     private var userAudioQuality: AudioQuality = AudioQuality.AUTO
-    private var fadePlayerPreparedSongId: String? = null
-    private var crossfadeActiveForSongId: String? = null
+    private var masterVolumeScale: Float = 1.0f
 
-    private fun cancelFadeAndRestoreVolume() {
-        volumeFadeJob?.cancel()
-        volumeFadeJob = null
-        fadePlayerPreparedSongId = null
-        crossfadeActiveForSongId = null
+    // Early Preload & Transition Coordination State
+    private var preloadEpoch: Long = 0L
+    private var secondarySlotState: SecondarySlotState = SecondarySlotState.IDLE
+    private var secondarySong: Song? = null
+    private var secondarySongId: String? = null
+    private var secondaryPreparedMediaItem: MediaItem? = null
+    private var secondaryArtworkBytes: ByteArray? = null
+    private var inFlightPreloadSongId: String? = null
+    private val failedPreloadForTrackIds = mutableSetOf<String>()
+    private var lastBufferingWaitLogSongId: String? = null
+    private var isTransitioning: Boolean = false
+    private var isTransitionPaused: Boolean = false
+    private var transitionTargetSongId: String? = null
+    private var currentCrossfadeT: Float = 0f
+
+    fun getMasterVolumeScale(): Float = masterVolumeScale
+
+    fun setMasterVolumeScale(scale: Float) {
+        masterVolumeScale = scale.coerceIn(0f, 1f)
+        if (isTransitioning) {
+            activePlayer.volume = (equalPowerOutGain(currentCrossfadeT) * masterVolumeScale).coerceIn(0f, 1f)
+            secondaryPlayer.volume = (equalPowerInGain(currentCrossfadeT) * masterVolumeScale).coerceIn(0f, 1f)
+        } else {
+            activePlayer.volume = masterVolumeScale
+        }
+    }
+
+    private fun invalidateSecondaryPreload(reason: String) {
+        preloadEpoch++
+        preloadJob?.cancel()
+        preloadJob = null
+        inFlightPreloadSongId = null
+        if (secondarySongId != null || secondarySlotState != SecondarySlotState.IDLE) {
+            LofiQLogger.i(LofiQLogger.Category.PREFETCH, "[PRELOAD] Invalidating secondary preload ($reason)")
+        }
+        secondarySlotState = SecondarySlotState.IDLE
+        secondarySong = null
+        secondarySongId = null
+        secondaryPreparedMediaItem = null
+        secondaryArtworkBytes = null
+        lastBufferingWaitLogSongId = null
         runCatching {
-            if (fadePlayer.isPlaying || fadePlayer.playbackState != Player.STATE_IDLE) {
-                fadePlayer.stop()
-                fadePlayer.clearMediaItems()
+            val sec = secondaryPlayer
+            sec.volume = 0f
+            sec.playWhenReady = false
+            if (sec.playbackState != Player.STATE_IDLE || sec.mediaItemCount > 0) {
+                sec.stop()
+                sec.clearMediaItems()
             }
         }
-        if (exoPlayer.volume != 1f) {
-            exoPlayer.volume = 1f
+    }
+
+    private fun cancelFadeAndRestoreVolume(clearPreload: Boolean = false) {
+        val hadActiveFade = volumeFadeJob?.isActive == true || isTransitioning
+        volumeFadeJob?.cancel()
+        volumeFadeJob = null
+        isTransitioning = false
+        isTransitionPaused = false
+        transitionTargetSongId = null
+        currentCrossfadeT = 0f
+
+        if (hadActiveFade || clearPreload) {
+            invalidateSecondaryPreload(if (clearPreload) "clearPreload" else "cancelledTransition")
         }
-        if (exoPlayer.mediaItemCount > 1 && exoPlayer.currentMediaItemIndex == 1) {
-            exoPlayer.removeMediaItem(0)
+
+        if (activePlayer.volume != masterVolumeScale) {
+            activePlayer.volume = masterVolumeScale
+        }
+        _playerState.update { it.copy(isCrossfading = false) }
+    }
+
+    private fun validateSecondaryPreloadTarget() {
+        val nextSong = getNextSong()
+        val stalePreloaded = secondarySongId != null && secondarySongId != nextSong?.id
+        val staleInFlight = inFlightPreloadSongId != null && inFlightPreloadSongId != nextSong?.id
+        if (stalePreloaded || staleInFlight) {
+            if (isTransitioning && transitionTargetSongId != nextSong?.id) {
+                cancelFadeAndRestoreVolume(clearPreload = true)
+            } else {
+                invalidateSecondaryPreload("queueTargetChanged")
+            }
+        }
+    }
+
+    private fun maybePreloadAfterQueueChange() {
+        validateSecondaryPreloadTarget()
+        val active = activePlayer
+        val nextSong = getNextSong() ?: return
+        if (!active.isPlaying || isTransitioning) return
+        val rawDur = active.duration.coerceAtLeast(0L)
+        val effectiveDur = if (rawDur > 0L) rawDur else (currentSong?.durationMs ?: 0L)
+        val effFade = computeEffectiveCrossfadeMs(crossfadeSeconds, effectiveDur)
+        val triggerMs = computePreloadTriggerMs(effectiveDur, effFade)
+        if (active.currentPosition >= triggerMs &&
+            secondarySongId != nextSong.id &&
+            inFlightPreloadSongId != nextSong.id &&
+            !failedPreloadForTrackIds.contains(nextSong.id)
+        ) {
+            preloadNextTrack()
         }
     }
 
     init {
-        setupPlayerListener()
+        attachSlotListener(playerSlotA, isSlotA = true)
+        attachSlotListener(playerSlotB, isSlotA = false)
         observePreferences()
         startPositionTracker()
     }
 
-    private fun setupPlayerListener() {
-        exoPlayer.addListener(object : Player.Listener {
+    private fun attachSlotListener(slotPlayer: ExoPlayer, isSlotA: Boolean) {
+        slotPlayer.addListener(object : Player.Listener {
+            private fun isFromActiveSlot(): Boolean = isSlotA == isSlotAActive
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId] IS_PLAYING=$isPlaying")
-                updateState()
+                if (isFromActiveSlot()) {
+                    LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId][slot=${if (isSlotA) "A" else "B"}] IS_PLAYING=$isPlaying")
+                    updateState()
+                } else if (isPlaying && !isTransitioning) {
+                    // Safety invariant: secondary player must never output audio before transition begins
+                    LofiQLogger.w(LofiQLogger.Category.PREFETCH, "[SECONDARY_PLAYER] Guard triggered: pausing premature secondary playback")
+                    runCatching {
+                        slotPlayer.volume = 0f
+                        slotPlayer.playWhenReady = false
+                        slotPlayer.pause()
+                    }
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -139,8 +303,47 @@ class PlaybackEngine @Inject constructor(
                     Player.STATE_ENDED -> "ENDED"
                     else -> "UNKNOWN"
                 }
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId] STATE=$stateName")
 
+                if (!isFromActiveSlot()) {
+                    // Secondary slot readiness tracking
+                    if (secondarySongId != null) {
+                        when (playbackState) {
+                            Player.STATE_BUFFERING -> {
+                                if (secondarySlotState != SecondarySlotState.READY) {
+                                    secondarySlotState = SecondarySlotState.PREPARING
+                                }
+                                LofiQLogger.d(
+                                    LofiQLogger.Category.PREFETCH,
+                                    "[SECONDARY_PLAYER] Buffering incoming '${secondarySong?.title}' buffered=${slotPlayer.bufferedPosition}ms"
+                                )
+                            }
+                            Player.STATE_READY -> {
+                                secondarySlotState = SecondarySlotState.READY
+                                // Ensure incoming stays silent and paused at 0 until transition starts
+                                if (!isTransitioning) {
+                                    slotPlayer.volume = 0f
+                                    slotPlayer.playWhenReady = false
+                                    if (slotPlayer.isPlaying) slotPlayer.pause()
+                                    if (slotPlayer.currentPosition > 50L) slotPlayer.seekTo(0L)
+                                }
+                                LofiQLogger.i(
+                                    LofiQLogger.Category.PREFETCH,
+                                    "[SECONDARY_PLAYER] READY: '${secondarySong?.title}' buffered=${slotPlayer.bufferedPosition}ms pos=${slotPlayer.currentPosition}ms vol=0%"
+                                )
+                            }
+                            Player.STATE_ENDED -> {
+                                if (!isTransitioning) {
+                                    LofiQLogger.w(LofiQLogger.Category.PREFETCH, "[SECONDARY_PLAYER] Ended unexpectedly during preload for '${secondarySong?.title}'")
+                                }
+                            }
+                            Player.STATE_IDLE -> Unit
+                        }
+                    }
+                    return
+                }
+
+                // Active primary slot state handling
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId][slot=${if (isSlotA) "A" else "B"}] STATE=$stateName")
                 when (playbackState) {
                     Player.STATE_BUFFERING -> {
                         _playerState.update { it.copy(isBuffering = true) }
@@ -148,7 +351,14 @@ class PlaybackEngine @Inject constructor(
                     Player.STATE_READY -> {
                         consecutiveFailures = 0
                         currentSongRetryCount = 0
-                        _playerState.update { it.copy(isBuffering = false, isReady = true, errorMessage = null) }
+                        _playerState.update {
+                            it.copy(
+                                isBuffering = false,
+                                isReady = true,
+                                errorMessage = null,
+                                activeAudioSessionId = slotPlayer.audioSessionId
+                            )
+                        }
                     }
                     Player.STATE_ENDED -> {
                         _playerState.update { it.copy(isBuffering = true, isPlaying = true) }
@@ -167,44 +377,43 @@ class PlaybackEngine @Inject constructor(
                 val causeMsg = error.cause?.message ?: "Unknown cause"
                 val errorDetails = error.message ?: "Unknown error"
 
-                LofiQLogger.e(
-                    LofiQLogger.Category.PLAYBACK,
-                    "[MEDIA3][id=$activePlaybackId] ERROR: code=$errorCode ($errorCodeName), msg=$errorDetails, cause=$causeMsg",
-                    error
-                )
-
-                // 1. AudioTrack sink failure (common during Bluetooth connection or codec renegotiation)
-                if (errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
-                    errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED) {
-                    val curPos = exoPlayer.currentPosition.coerceAtLeast(0L)
+                if (!isFromActiveSlot()) {
+                    val failedTitle = secondarySong?.title ?: "unknown"
+                    val failedId = secondarySongId
                     LofiQLogger.w(
                         LofiQLogger.Category.PLAYBACK,
-                        "[MEDIA3] AudioTrack output error (Bluetooth/routing). Re-preparing player at position ${curPos}ms."
+                        "[PLAYBACK_RECOVERY] [SECONDARY_PLAYER] Incoming preload decode/network error for '$failedTitle' (code=$errorCode $errorCodeName). Active track remains uninterrupted."
                     )
-                    exoPlayer.prepare()
-                    if (curPos > 0) {
-                        exoPlayer.seekTo(curPos)
+                    if (failedId != null) {
+                        failedPreloadForTrackIds.add(failedId)
                     }
-                    exoPlayer.play()
+                    if (isTransitioning) {
+                        cancelFadeAndRestoreVolume(clearPreload = true)
+                    } else {
+                        invalidateSecondaryPreload("secondaryPlayerError:$errorCodeName")
+                    }
                     return
                 }
 
-                // 2. Protect active playback: if a preloaded background item at index 1 failed while track at index 0 is playing
-                if (exoPlayer.mediaItemCount > 1 && exoPlayer.currentMediaItemIndex == 0 && exoPlayer.currentPosition > 2_000L) {
+                LofiQLogger.e(
+                    LofiQLogger.Category.PLAYBACK,
+                    "[PLAYBACK_RECOVERY] [MEDIA3][id=$activePlaybackId] ERROR: code=$errorCode ($errorCodeName), msg=$errorDetails, cause=$causeMsg",
+                    error
+                )
+
+                // 1. AudioTrack sink failure (Bluetooth connection / routing / codec renegotiation)
+                if (errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
+                    errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED) {
+                    val curPos = slotPlayer.currentPosition.coerceAtLeast(0L)
                     LofiQLogger.w(
                         LofiQLogger.Category.PLAYBACK,
-                        "[PRELOAD] Error during background track preloading. Removing preloaded item to prevent skipping active track '${currentSong?.title}'."
+                        "[PLAYBACK_RECOVERY] AudioTrack output error (Bluetooth/routing). Re-preparing active player at ${curPos}ms."
                     )
-                    runCatching {
-                        exoPlayer.removeMediaItem(1)
-                        preloadedSongId = null
-                    }
-                    val curPos = exoPlayer.currentPosition.coerceAtLeast(0L)
-                    exoPlayer.prepare()
+                    slotPlayer.prepare()
                     if (curPos > 0) {
-                        exoPlayer.seekTo(curPos)
+                        slotPlayer.seekTo(curPos)
                     }
-                    exoPlayer.play()
+                    slotPlayer.play()
                     return
                 }
 
@@ -220,8 +429,8 @@ class PlaybackEngine @Inject constructor(
                         commandMutex.withLock {
                             if (currentIndex < currentQueue.size - 1) {
                                 currentIndex++
-                                LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[LOCAL-PLAYER] Advancing to next track after error on '${current.title}'")
-                                startPlayback(currentQueue[currentIndex], retryCount = 0)
+                                LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Advancing to next local track after error on '${current.title}'")
+                                startPlaybackInternal(currentQueue[currentIndex], retryCount = 0)
                             } else {
                                 _playerState.update {
                                     it.copy(
@@ -237,27 +446,27 @@ class PlaybackEngine @Inject constructor(
                     return
                 }
 
-                // 3. First attempt recovery by resolving alternative stream for the SAME track
+                // 2. First attempt recovery by resolving alternative stream for the SAME track
                 if (currentSongRetryCount < 2 && current != null) {
                     currentSongRetryCount++
                     LofiQLogger.w(
                         LofiQLogger.Category.PLAYBACK,
-                        "[AUTO-RECOVERY] Retrying same track '${current.title}' with fallback stream (attempt=${currentSongRetryCount + 1})"
+                        "[PLAYBACK_RECOVERY] Retrying same track '${current.title}' with fallback stream (attempt=${currentSongRetryCount + 1})"
                     )
                     startPlayback(current, retryCount = currentSongRetryCount)
                     return
                 }
 
-                // 4. If current track retries are exhausted, advance to next track
+                // 3. If current track retries are exhausted, advance to next track
                 engineScope.launch {
                     commandMutex.withLock {
                         if (currentIndex < currentQueue.size - 1 && consecutiveFailures < 3) {
                             currentIndex++
-                            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[AUTO-RECOVERY] Advancing to next track after player error on '${current?.title}'")
-                            startPlayback(currentQueue[currentIndex], retryCount = 0)
+                            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Advancing to next track after player error on '${current?.title}'")
+                            startPlaybackInternal(currentQueue[currentIndex], retryCount = 0)
                             checkAndReplenishQueue()
                         } else if (_isSmartAutoplay.value && consecutiveFailures < 3) {
-                            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[AUTO-RECOVERY] Fetching infinite track after player error")
+                            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Fetching infinite track after player error")
                             fetchAndPlayNextInfiniteTrack(retryCount = 0)
                         } else {
                             _playerState.update {
@@ -274,6 +483,7 @@ class PlaybackEngine @Inject constructor(
             }
 
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                if (!isFromActiveSlot()) return
                 val audioTracks = tracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO }
                 for (group in audioTracks) {
                     for (i in 0 until group.length) {
@@ -287,37 +497,6 @@ class PlaybackEngine @Inject constructor(
                     }
                 }
             }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                val reasonName = when (reason) {
-                    Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
-                    Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
-                    Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
-                    Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> "PLAYLIST_CHANGED"
-                    else -> "UNKNOWN"
-                }
-                LofiQLogger.i(
-                    LofiQLogger.Category.PLAYBACK,
-                    "[MEDIA3][id=$activePlaybackId] MEDIA_ITEM_TRANSITION: mediaId=${mediaItem?.mediaId}, reason=$reasonName"
-                )
-                if (mediaItem != null) {
-                    handleMediaItemTransition(mediaItem, reason)
-                }
-            }
-        })
-
-        fadePlayer.addListener(object : Player.Listener {
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                LofiQLogger.w(
-                    LofiQLogger.Category.PLAYBACK,
-                    "[CROSSFADE] FadePlayer encountered error: ${error.message}"
-                )
-                runCatching {
-                    fadePlayer.stop()
-                    fadePlayer.clearMediaItems()
-                }
-                fadePlayerPreparedSongId = null
-            }
         })
     }
 
@@ -325,22 +504,23 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             preferences.repeatMode.collect { mode ->
                 _playerState.update { it.copy(repeatMode = mode) }
+                // Both dual-player slots operate with single-item REPEAT_MODE_OFF internally;
+                // PlaybackEngine controls queue wrapping & Repeat ONE deterministically across handovers.
+                playerSlotA.repeatMode = Player.REPEAT_MODE_OFF
+                playerSlotB.repeatMode = Player.REPEAT_MODE_OFF
                 when (mode) {
-                    PlaybackRepeatMode.OFF -> {
-                        exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
-                        preloadNextTrack()
-                    }
-                    PlaybackRepeatMode.ALL -> {
-                        exoPlayer.repeatMode = Player.REPEAT_MODE_ALL
-                        preloadNextTrack()
+                    PlaybackRepeatMode.OFF, PlaybackRepeatMode.ALL -> {
+                        validateSecondaryPreloadTarget()
+                        if (activePlayer.isPlaying && activePlayer.currentPosition >= PRELOAD_TARGET_MS) {
+                            preloadNextTrack()
+                        }
                     }
                     PlaybackRepeatMode.ONE -> {
-                        exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
-                        val currentPlayingIndex = exoPlayer.currentMediaItemIndex
-                        while (exoPlayer.mediaItemCount > currentPlayingIndex + 1) {
-                            exoPlayer.removeMediaItem(exoPlayer.mediaItemCount - 1)
+                        if (isTransitioning) {
+                            cancelFadeAndRestoreVolume(clearPreload = true)
+                        } else {
+                            invalidateSecondaryPreload("repeatOneEnabled")
                         }
-                        preloadedSongId = null
                     }
                 }
             }
@@ -348,20 +528,27 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             preferences.shuffleEnabled.collect { isShuffle ->
                 _playerState.update { it.copy(isShuffleEnabled = isShuffle) }
-                exoPlayer.shuffleModeEnabled = isShuffle
             }
         }
         engineScope.launch {
             preferences.crossfadeDurationSec.collect { sec ->
-                crossfadeSeconds = sec.coerceIn(0, 12)
+                val clamped = sec.coerceIn(0, 12)
+                if (crossfadeSeconds != clamped) {
+                    crossfadeSeconds = clamped
+                    LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[CROSSFADE] Updated crossfade duration to ${clamped}s")
+                }
             }
         }
         engineScope.launch {
             preferences.audioQuality.collect { quality ->
                 val previous = userAudioQuality
                 userAudioQuality = quality
-                if (previous != quality && currentSong != null && (exoPlayer.isPlaying || exoPlayer.playWhenReady)) {
-                    handleDynamicQualityChange(quality)
+                if (previous != quality) {
+                    failedPreloadForTrackIds.clear()
+                    invalidateSecondaryPreload("audioQualityChanged:$quality")
+                    if (currentSong != null && (activePlayer.isPlaying || activePlayer.playWhenReady)) {
+                        handleDynamicQualityChange(quality)
+                    }
                 }
             }
         }
@@ -376,8 +563,8 @@ class PlaybackEngine @Inject constructor(
                 song.sourceUrl.startsWith("file://")
         if (isLocalDeviceTrack) return
 
-        val currentPos = exoPlayer.currentPosition.coerceAtLeast(0L)
-        val wasPlaying = exoPlayer.isPlaying
+        val currentPos = activePlayer.currentPosition.coerceAtLeast(0L)
+        val wasPlaying = activePlayer.isPlaying
         val effectiveQuality = networkQualityMonitor.getEffectiveQuality(newQuality)
 
         LofiQLogger.i(
@@ -385,15 +572,9 @@ class PlaybackEngine @Inject constructor(
             "[QUALITY_SWITCH] Switching active playback stream to $newQuality (effective=$effectiveQuality) at ${currentPos}ms"
         )
 
-        engineScope.launch {
-            withContext(dispatchers.main) {
-                val currentPlayingIndex = exoPlayer.currentMediaItemIndex
-                while (exoPlayer.mediaItemCount > currentPlayingIndex + 1) {
-                    exoPlayer.removeMediaItem(exoPlayer.mediaItemCount - 1)
-                }
-                preloadedSongId = null
-            }
+        cancelFadeAndRestoreVolume(clearPreload = true)
 
+        engineScope.launch {
             try {
                 val (mediaItem, provider) = resolveMediaItemForSong(
                     song = song,
@@ -401,20 +582,25 @@ class PlaybackEngine @Inject constructor(
                 )
                 withContext(dispatchers.main) {
                     if (currentSong?.id == song.id) {
-                        exoPlayer.setMediaItem(mediaItem, currentPos)
-                        exoPlayer.prepare()
+                        val active = activePlayer
+                        active.setMediaItem(mediaItem, currentPos)
+                        active.prepare()
+                        active.volume = masterVolumeScale
                         if (wasPlaying) {
-                            exoPlayer.play()
+                            active.play()
                         }
                         _playerState.update {
                             it.copy(
                                 currentPositionMs = currentPos,
-                                activeProviderId = provider
+                                activeProviderId = provider,
+                                activeAudioSessionId = active.audioSessionId
                             )
                         }
                     }
                 }
-                preloadNextTrack()
+                if (currentPos >= PRELOAD_TARGET_MS) {
+                    preloadNextTrack()
+                }
             } catch (e: Exception) {
                 LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[QUALITY_SWITCH] Failed to reload stream in new quality: ${e.message}")
             }
@@ -428,100 +614,99 @@ class PlaybackEngine @Inject constructor(
             while (isActive) {
                 var trackerDelay = 200L
                 runCatching {
-                    if (exoPlayer.isPlaying) {
-                        val pos = exoPlayer.currentPosition.coerceAtLeast(0L)
-                        val rawExoDur = exoPlayer.duration.coerceAtLeast(0L)
+                    val active = activePlayer
+                    if (active.isPlaying) {
+                        val pos = active.currentPosition.coerceAtLeast(0L)
+                        val rawExoDur = active.duration.coerceAtLeast(0L)
                         val songDur = currentSong?.durationMs ?: 0L
                         val effectiveDur = when {
-                            rawExoDur > 30_000L -> rawExoDur
-                            songDur > 30_000L -> songDur
+                            rawExoDur > 0L -> rawExoDur
+                            songDur > 0L -> songDur
                             else -> 0L
                         }
-                        val buffered = exoPlayer.bufferedPosition.coerceAtLeast(0L)
+                        val buffered = active.bufferedPosition.coerceAtLeast(0L)
                         _playerState.update {
                             it.copy(
                                 currentPositionMs = pos,
-                                durationMs = if (effectiveDur > 0) effectiveDur else (if (rawExoDur > 0) rawExoDur else songDur),
-                                bufferedPositionMs = buffered
+                                durationMs = if (effectiveDur > 0) effectiveDur else it.durationMs,
+                                bufferedPositionMs = buffered,
+                                activeAudioSessionId = active.audioSessionId
                             )
                         }
 
-                        // Proactive Seamless Play (Simultaneous Crossfade)
-                        // STRICT GUARDS to prevent premature song skipping:
-                        // 1. crossfadeSeconds must be > 0
-                        // 2. effectiveDur must be > 45s (crossfadeMs * 3)
-                        // 3. pos MUST be at least 20 seconds into the song
-                        // 4. pos MUST be at least 70% into the song
-                        // 5. remainingMs must be within 0..crossfadeMs
-                        val crossfadeMs = crossfadeSeconds * 1000L
-                        val remainingMs = effectiveDur - pos
-                        val canCrossfade = crossfadeSeconds > 0 &&
-                                effectiveDur > (crossfadeMs * 3L).coerceAtLeast(45_000L) &&
-                                pos >= 20_000L &&
-                                pos >= (effectiveDur * 0.70f).toLong()
+                        val effectiveCrossfadeMs = computeEffectiveCrossfadeMs(crossfadeSeconds, effectiveDur)
+                        val preloadTriggerMs = computePreloadTriggerMs(effectiveDur, effectiveCrossfadeMs)
 
-                        if (canCrossfade) {
-                            // Sub-frame polling near transition boundary (within 2s) to hit handover with millisecond accuracy
-                            if (remainingMs in (crossfadeMs - 500L)..(crossfadeMs + 2500L)) {
-                                trackerDelay = 40L
-                            }
-
-                            // Stage 1: Pre-buffer the tail of the current song on fadePlayer (~3-10s before crossfade starts)
-                            if (remainingMs in (crossfadeMs + 1000L)..(crossfadeMs + 10_000L)) {
-                                val curId = currentSong?.id
-                                if (curId != null && fadePlayerPreparedSongId != curId) {
-                                    val currentItem = exoPlayer.currentMediaItem
-                                    if (currentItem != null) {
-                                        fadePlayerPreparedSongId = curId
-                                        fadePlayer.stop()
-                                        fadePlayer.clearMediaItems()
-                                        fadePlayer.setMediaItem(currentItem)
-                                        fadePlayer.seekTo((effectiveDur - crossfadeMs).coerceAtLeast(0L))
-                                        fadePlayer.prepare()
-                                        fadePlayer.playWhenReady = false
-                                        LofiQLogger.i(
-                                            LofiQLogger.Category.PLAYBACK,
-                                            "[CROSSFADE] Pre-buffering fade-out tail for '${currentSong?.title}' at ${effectiveDur - crossfadeMs}ms"
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Stage 2: Trigger simultaneous crossfade right when remainingMs <= crossfadeMs
-                            if (remainingMs in 0L..crossfadeMs && exoPlayer.mediaItemCount > 1 && exoPlayer.currentMediaItemIndex == 0) {
-                                val curId = currentSong?.id
-                                if (curId != null && crossfadeActiveForSongId != curId) {
-                                    val isFadePlayerReady = fadePlayer.playbackState == Player.STATE_READY
-                                    val isFadePlayerPrepared = fadePlayerPreparedSongId == curId && fadePlayer.mediaItemCount > 0
-
-                                    // If fade player is still buffering, give it a moment to finish buffering before triggering
-                                    if (isFadePlayerPrepared && !isFadePlayerReady && remainingMs > 1200L) {
-                                        // Wait for next position tracker tick to let fadePlayer reach STATE_READY
-                                    } else {
-                                        crossfadeActiveForSongId = curId
-                                        triggerSimultaneousCrossfade(
-                                            crossfadeMs = crossfadeMs,
-                                            useFadeTail = isFadePlayerReady && isFadePlayerPrepared
-                                        )
-                                    }
-                                }
-                            } else if (volumeFadeJob == null || !volumeFadeJob!!.isActive) {
-                                if (exoPlayer.volume < 1f) {
-                                    exoPlayer.volume = 1f
-                                }
-                            }
-                        } else if (volumeFadeJob == null || !volumeFadeJob!!.isActive) {
-                            if (exoPlayer.volume < 1f) {
-                                exoPlayer.volume = 1f
+                        // Stage 1: Early Preloading at ~10 seconds into active playback (both Crossfade & Gapless-Only)
+                        if (!isTransitioning && pos >= preloadTriggerMs) {
+                            val nextSong = getNextSong()
+                            if (nextSong != null &&
+                                secondarySongId != nextSong.id &&
+                                inFlightPreloadSongId != nextSong.id &&
+                                !failedPreloadForTrackIds.contains(nextSong.id)
+                            ) {
+                                LofiQLogger.i(
+                                    LofiQLogger.Category.PREFETCH,
+                                    "[PRELOAD] Reached ${pos}ms (trigger=${preloadTriggerMs}ms) -> preparing next track '${nextSong.title}' asynchronously on secondary slot"
+                                )
+                                preloadNextTrack()
                             }
                         }
 
-                        // Proactively ensure upcoming tracks are prefetched when reaching 10s or every 30s
-                        if (pos > 10_000L && (pos - lastPrefetchPos > 30_000L || (effectiveDur > 0 && effectiveDur - pos < 45_000L))) {
+                        // Replenish queue / warm upcoming cache asynchronously
+                        if (pos >= PRELOAD_TARGET_MS && (pos - lastPrefetchPos > 30_000L || (effectiveDur > 0L && effectiveDur - pos < 45_000L))) {
                             lastPrefetchPos = pos
                             triggerUpcomingPrefetch()
                             checkAndReplenishQueue()
-                            preloadNextTrack()
+                        }
+
+                        // Stage 2: Crossfade or Gapless Zero-Overlap Transition Window
+                        if (!isTransitioning && effectiveDur > 0L && pos >= 2_000L) {
+                            val remainingMs = (effectiveDur - pos).coerceAtLeast(0L)
+                            val nextSong = getNextSong()
+                            val isNextPrepared = nextSong != null &&
+                                secondarySongId == nextSong.id &&
+                                (secondaryPlayer.playbackState == Player.STATE_READY || secondarySlotState == SecondarySlotState.READY)
+
+                            if (effectiveCrossfadeMs > 0L) {
+                                // High-precision polling as we approach the crossfade start boundary
+                                if (remainingMs in (effectiveCrossfadeMs - 400L)..(effectiveCrossfadeMs + 2_500L)) {
+                                    trackerDelay = 40L
+                                }
+
+                                if (remainingMs <= effectiveCrossfadeMs && nextSong != null) {
+                                    if (isNextPrepared) {
+                                        startDualPlayerCrossfade(
+                                            fadeDurationMs = effectiveCrossfadeMs,
+                                            targetSong = nextSong
+                                        )
+                                    } else {
+                                        // Secondary player is still resolving or buffering; keep Song A uninterrupted
+                                        if (lastBufferingWaitLogSongId != nextSong.id) {
+                                            lastBufferingWaitLogSongId = nextSong.id
+                                            LofiQLogger.w(
+                                                LofiQLogger.Category.PLAYBACK,
+                                                "[CROSSFADE] Waiting for incoming '${nextSong.title}' buffer readiness (state=$secondarySlotState, rem=${remainingMs}ms) without interrupting '${currentSong?.title}'"
+                                            )
+                                        }
+                                        if (secondarySongId != nextSong.id && inFlightPreloadSongId != nextSong.id && !failedPreloadForTrackIds.contains(nextSong.id)) {
+                                            preloadNextTrack()
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Crossfade == 0: True Gapless Zero-Overlap Playback
+                                if (remainingMs <= 1_000L) {
+                                    trackerDelay = 35L
+                                }
+                                if (remainingMs <= GAPLESS_CUT_THRESHOLD_MS && isNextPrepared && nextSong != null) {
+                                    triggerGaplessZeroOverlapCut(nextSong)
+                                }
+                            }
+                        }
+
+                        if (!isTransitioning && active.volume != masterVolumeScale) {
+                            active.volume = masterVolumeScale
                         }
                     }
                 }
@@ -530,89 +715,290 @@ class PlaybackEngine @Inject constructor(
         }
     }
 
-    private fun triggerSimultaneousCrossfade(crossfadeMs: Long, useFadeTail: Boolean = true) {
+    private fun startDualPlayerCrossfade(fadeDurationMs: Long, targetSong: Song) {
+        if (isTransitioning) return
+        val outgoing = activePlayer
+        val incoming = secondaryPlayer
+        if (secondarySongId != targetSong.id || incoming.mediaItemCount == 0 || incoming.playbackState != Player.STATE_READY) {
+            return
+        }
+
+        isTransitioning = true
+        isTransitionPaused = false
+        transitionTargetSongId = targetSong.id
+        currentCrossfadeT = 0f
+        _playerState.update { it.copy(isCrossfading = true) }
+
+        val outgoingTitle = currentSong?.title ?: "Unknown"
+        LofiQLogger.i(
+            LofiQLogger.Category.PLAYBACK,
+            "[CROSSFADE] Starting equal-power dual-player overlap: out='$outgoingTitle' (slot=${if (isSlotAActive) "A" else "B"}, pos=${outgoing.currentPosition}ms) -> in='${targetSong.title}' (slot=${if (isSlotAActive) "B" else "A"}, buffered=${incoming.bufferedPosition}ms, fade=${fadeDurationMs}ms)"
+        )
+
         volumeFadeJob?.cancel()
         volumeFadeJob = engineScope.launch {
-            LofiQLogger.i(
-                LofiQLogger.Category.PLAYBACK,
-                "[CROSSFADE] Starting seamless simultaneous crossfade (${crossfadeMs / 1000}s overlap, useFadeTail=$useFadeTail)"
-            )
-
-            // 1. Hand over outgoing track tail to fadePlayer seamlessly
-            var hasActiveFadeTail = false
-            if (useFadeTail && fadePlayer.mediaItemCount > 0 && fadePlayer.playbackState == Player.STATE_READY) {
-                hasActiveFadeTail = true
-                val curPos = exoPlayer.currentPosition.coerceAtLeast(0L)
-                if (curPos > 0) {
-                    fadePlayer.seekTo(curPos)
+            try {
+                // Start incoming player silently from position 0 while leaving outgoing untouched
+                if (incoming.currentPosition > 50L) {
+                    incoming.seekTo(0L)
                 }
-                fadePlayer.volume = 1.0f
-                fadePlayer.playWhenReady = true
-                fadePlayer.play()
-            }
+                incoming.volume = 0.0f
+                incoming.playWhenReady = true
+                incoming.play()
 
-            // 2. Advance primary exoPlayer immediately to preloaded incoming track (index 1)
-            // If fadePlayer is active, start incoming track at volume 0 and fade up.
-            // If fadePlayer is not active, avoid abrupt silence by starting gently and ramping smoothly.
-            exoPlayer.volume = if (hasActiveFadeTail) 0.0f else 0.15f
-            withContext(dispatchers.main) {
-                exoPlayer.seekToNextMediaItem()
-                exoPlayer.playWhenReady = true
-                exoPlayer.play()
-            }
+                val tickMs = 40L
+                var elapsedMs = 0L
+                var acceleratedFade = false
 
-            // 3. Smooth dual-player simultaneous volume crossfade
-            // Outgoing track fades from 1.0 -> 0.0 on fadePlayer
-            // Incoming track fades from 0.0 -> 1.0 on exoPlayer
-            val steps = (crossfadeMs / 50L).coerceIn(20L, 80L).toInt()
-            val stepDelay = crossfadeMs / steps
-            for (i in 1..steps) {
-                delay(stepDelay)
-                val inRatio = (i.toFloat() / steps.toFloat()).coerceIn(0.0f, 1.0f)
-                val outRatio = (1.0f - inRatio).coerceIn(0.0f, 1.0f)
+                while (isActive && elapsedMs < fadeDurationMs) {
+                    delay(tickMs)
 
-                exoPlayer.volume = inRatio
-                if (hasActiveFadeTail) {
-                    runCatching { fadePlayer.volume = outRatio }
+                    // Respect pause/resume smoothly mid-crossfade
+                    if (isTransitionPaused || (!outgoing.isPlaying && !incoming.isPlaying && !outgoing.playWhenReady)) {
+                        continue
+                    }
+
+                    // If outgoing reached natural end slightly before fade finished, finish incoming ramp smoothly over ~120ms
+                    if (!acceleratedFade && (outgoing.playbackState == Player.STATE_ENDED || outgoing.playbackState == Player.STATE_IDLE)) {
+                        acceleratedFade = true
+                        elapsedMs = maxOf(elapsedMs, fadeDurationMs - 120L)
+                    } else {
+                        elapsedMs += tickMs
+                    }
+
+                    val t = (elapsedMs.toFloat() / fadeDurationMs.toFloat()).coerceIn(0.0f, 1.0f)
+                    currentCrossfadeT = t
+
+                    val outVol = (equalPowerOutGain(t) * masterVolumeScale).coerceIn(0f, 1f)
+                    val inVol = (equalPowerInGain(t) * masterVolumeScale).coerceIn(0f, 1f)
+
+                    if (outgoing.playbackState != Player.STATE_IDLE) {
+                        outgoing.volume = outVol
+                    }
+                    incoming.volume = inVol
                 }
-            }
 
-            // 4. Crossfade complete: clean up fade player and ensure full primary volume
-            exoPlayer.volume = 1.0f
-            runCatching {
-                fadePlayer.stop()
-                fadePlayer.clearMediaItems()
-            }
-            fadePlayerPreparedSongId = null
-            crossfadeActiveForSongId = null
-
-            withContext(dispatchers.main) {
-                while (exoPlayer.currentMediaItemIndex > 0) {
-                    exoPlayer.removeMediaItem(0)
+                // Ensure incoming is genuinely playing before handover
+                if (!incoming.isPlaying && incoming.playbackState == Player.STATE_READY) {
+                    incoming.playWhenReady = true
+                    incoming.play()
                 }
+                incoming.volume = masterVolumeScale
+                outgoing.volume = 0f
+
+                LofiQLogger.i(
+                    LofiQLogger.Category.PLAYBACK,
+                    "[CROSSFADE] Volume ramp reached 100% for '${targetSong.title}' -> performing atomic handover"
+                )
+                performPlayerHandover(expectedIncomingSong = targetSong, isGapless = false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] [CROSSFADE] Transition error: ${e.message}", e)
+                cancelFadeAndRestoreVolume(clearPreload = false)
             }
-            LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[CROSSFADE] Seamless crossfade completed successfully.")
         }
     }
 
+    private fun triggerGaplessZeroOverlapCut(targetSong: Song) {
+        if (isTransitioning) return
+        val incoming = secondaryPlayer
+        if (secondarySongId != targetSong.id || incoming.mediaItemCount == 0 || incoming.playbackState != Player.STATE_READY) {
+            return
+        }
+
+        isTransitioning = true
+        transitionTargetSongId = targetSong.id
+        LofiQLogger.i(
+            LofiQLogger.Category.PLAYBACK,
+            "[GAPLESS] Zero-overlap handover triggered: '${currentSong?.title}' -> '${targetSong.title}' (buffered=${incoming.bufferedPosition}ms)"
+        )
+
+        volumeFadeJob?.cancel()
+        volumeFadeJob = engineScope.launch {
+            if (incoming.currentPosition > 50L) {
+                incoming.seekTo(0L)
+            }
+            incoming.volume = masterVolumeScale
+            incoming.playWhenReady = true
+            incoming.play()
+            performPlayerHandover(expectedIncomingSong = targetSong, isGapless = true)
+        }
+    }
+
+    private suspend fun performPlayerHandover(expectedIncomingSong: Song, isGapless: Boolean) {
+        commandMutex.withLock {
+            performPlayerHandoverLocked(expectedIncomingSong, isGapless)
+        }
+    }
+
+    private suspend fun performPlayerHandoverLocked(expectedIncomingSong: Song, isGapless: Boolean) {
+        val oldPrimary = activePlayer
+        val newPrimary = secondaryPlayer
+
+        if (secondarySongId != expectedIncomingSong.id || newPrimary.mediaItemCount == 0) {
+            LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] [PLAYER_HANDOVER] Handover aborted: incoming mismatch for '${expectedIncomingSong.title}'")
+            cancelFadeAndRestoreVolume(clearPreload = true)
+            return
+        }
+
+        val incomingArtwork = secondaryArtworkBytes
+        val incomingMediaItem = secondaryPreparedMediaItem
+
+        // 1. Ensure incoming player owns audible output at full volume and starts/stays playing
+        newPrimary.volume = masterVolumeScale
+        newPrimary.playWhenReady = true
+        if (!newPrimary.isPlaying && newPrimary.playbackState == Player.STATE_READY) {
+            newPrimary.play()
+        }
+
+        // 2. Transfer audio focus ownership cleanly without creating a second MediaSession
+        oldPrimary.setAudioAttributes(mediaAudioAttributes, false)
+        newPrimary.setAudioAttributes(mediaAudioAttributes, true)
+
+        // 3. Atomic slot promotion
+        isSlotAActive = !isSlotAActive
+        _activePlayerFlow.value = newPrimary
+
+        // 4. Silence and release old primary media resources so it becomes clean secondary slot
+        runCatching {
+            oldPrimary.volume = 0f
+            oldPrimary.playWhenReady = false
+            oldPrimary.pause()
+            oldPrimary.stop()
+            oldPrimary.clearMediaItems()
+        }
+
+        // 5. Update queue pointer & track metadata
+        val targetIdx = findTargetIndexForSong(expectedIncomingSong.id)
+        val updatedSong: Song
+        if (targetIdx != -1) {
+            if (!isExplicitQueue && targetIdx > 0) {
+                val remaining = currentQueue.drop(targetIdx)
+                currentQueue.clear()
+                currentQueue.addAll(remaining)
+                currentIndex = 0
+            } else {
+                currentIndex = targetIdx
+            }
+            updatedSong = currentQueue[currentIndex]
+        } else {
+            updatedSong = expectedIncomingSong
+        }
+        if (priorityQueueOffset > 0) priorityQueueOffset--
+
+        activePlaybackId = java.util.UUID.randomUUID().toString().take(8)
+        currentSongRetryCount = 0
+        consecutiveFailures = 0
+
+        // 6. Reset secondary & transition state for the next cycle (Song C will preload at 10s!)
+        preloadEpoch++
+        preloadJob?.cancel()
+        preloadJob = null
+        inFlightPreloadSongId = null
+        secondarySlotState = SecondarySlotState.IDLE
+        secondarySong = null
+        secondarySongId = null
+        secondaryPreparedMediaItem = null
+        secondaryArtworkBytes = null
+        failedPreloadForTrackIds.clear()
+        lastBufferingWaitLogSongId = null
+        isTransitioning = false
+        isTransitionPaused = false
+        transitionTargetSongId = null
+        currentCrossfadeT = 0f
+
+        // 7. Apply cached artwork onto MediaSession playlistMetadata if ready
+        if (incomingArtwork != null && incomingMediaItem != null) {
+            runCatching {
+                val updatedMeta = incomingMediaItem.mediaMetadata.buildUpon()
+                    .setArtworkData(incomingArtwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    .build()
+                newPrimary.playlistMetadata = updatedMeta
+            }
+        }
+
+        val actualPosMs = newPrimary.currentPosition.coerceAtLeast(0L)
+        val actualDurMs = if (newPrimary.duration > 0L) newPrimary.duration else updatedSong.durationMs
+        val sessionId = newPrimary.audioSessionId
+
+        _playerState.update {
+            it.copy(
+                currentSong = updatedSong,
+                activeProviderId = updatedSong.providerId,
+                isPlaying = true,
+                isBuffering = newPrimary.playbackState == Player.STATE_BUFFERING,
+                isReady = newPrimary.playbackState == Player.STATE_READY,
+                isCrossfading = false,
+                errorMessage = null,
+                currentPositionMs = actualPosMs,
+                durationMs = actualDurMs,
+                queue = currentQueue.toList(),
+                currentQueueIndex = currentIndex,
+                activeAudioSessionId = sessionId
+            )
+        }
+        updateState()
+
+        LofiQLogger.i(
+            LofiQLogger.Category.PLAYBACK,
+            "[PLAYER_HANDOVER] ${if (isGapless) "GAPLESS" else "CROSSFADE"} handover complete -> activeSlot=${if (isSlotAActive) "A" else "B"}, track='${updatedSong.title}', pos=${actualPosMs}ms, sessionId=$sessionId"
+        )
+
+        fetchLyricsForSong(updatedSong)
+        if (updatedSong.providerId != "local" && updatedSong.providerId != "local_download") {
+            fetchSmartRecommendations(updatedSong, autoAppend = !isExplicitQueue, targetCount = 10)
+        }
+        engineScope.launch(dispatchers.io) {
+            runCatching {
+                songDao.incrementPlayCount(updatedSong.id)
+                historyDao.recordHistory(
+                    PlaybackHistoryEntity(
+                        songId = updatedSong.id,
+                        playedAt = System.currentTimeMillis(),
+                        durationPlayedSeconds = 0
+                    )
+                )
+                persistQueue()
+            }
+        }
+        checkAndReplenishQueue()
+    }
+
+    private fun findTargetIndexForSong(songId: String): Int {
+        if (currentIndex in 0 until currentQueue.size - 1 && currentQueue[currentIndex + 1].id == songId) {
+            return currentIndex + 1
+        }
+        if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty() && currentQueue[0].id == songId) {
+            return 0
+        }
+        return currentQueue.indexOfFirst { it.id == songId }
+    }
+
     fun playSong(song: Song) {
-        cancelFadeAndRestoreVolume()
         engineScope.launch {
             commandMutex.withLock {
                 consecutiveFailures = 0
                 priorityQueueOffset = 0
                 isExplicitQueue = false
-                if (currentSong?.id == song.id && exoPlayer.playbackState != Player.STATE_IDLE && exoPlayer.playbackState != Player.STATE_ENDED) {
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.play()
+                if (currentSong?.id == song.id &&
+                    !isTransitioning &&
+                    activePlayer.playbackState != Player.STATE_IDLE &&
+                    activePlayer.playbackState != Player.STATE_ENDED
+                ) {
+                    activePlayer.volume = masterVolumeScale
+                    activePlayer.playWhenReady = true
+                    activePlayer.play()
                     _playerState.update { it.copy(isPlaying = true, isBuffering = false) }
                     updateState()
                     return@withLock
                 }
+                cancelFadeAndRestoreVolume(clearPreload = true)
+                failedPreloadForTrackIds.clear()
                 currentQueue.clear()
                 currentQueue.add(song)
                 currentIndex = 0
-                startPlayback(song)
+                startPlaybackInternal(song)
                 fetchSmartRecommendations(song, autoAppend = true, targetCount = 10)
             }
         }
@@ -628,18 +1014,26 @@ class PlaybackEngine @Inject constructor(
                 val targetIndex = startIndex.coerceIn(0, songs.size - 1)
                 val targetSong = songs[targetIndex]
 
-                if (currentSong?.id == targetSong.id && currentQueue.size == songs.size && exoPlayer.playbackState != Player.STATE_IDLE && exoPlayer.playbackState != Player.STATE_ENDED) {
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.play()
+                if (currentSong?.id == targetSong.id &&
+                    !isTransitioning &&
+                    currentQueue.size == songs.size &&
+                    activePlayer.playbackState != Player.STATE_IDLE &&
+                    activePlayer.playbackState != Player.STATE_ENDED
+                ) {
+                    activePlayer.volume = masterVolumeScale
+                    activePlayer.playWhenReady = true
+                    activePlayer.play()
                     _playerState.update { it.copy(isPlaying = true, isBuffering = false) }
                     updateState()
                     return@withLock
                 }
 
+                cancelFadeAndRestoreVolume(clearPreload = true)
+                failedPreloadForTrackIds.clear()
                 currentQueue.clear()
                 currentQueue.addAll(songs)
                 currentIndex = targetIndex
-                startPlayback(currentQueue[currentIndex])
+                startPlaybackInternal(currentQueue[currentIndex])
                 triggerUpcomingPrefetch()
                 persistQueue()
             }
@@ -652,6 +1046,8 @@ class PlaybackEngine @Inject constructor(
                 if (targetIndex !in currentQueue.indices) return@withLock
                 consecutiveFailures = 0
                 priorityQueueOffset = 0
+                cancelFadeAndRestoreVolume(clearPreload = true)
+                failedPreloadForTrackIds.clear()
                 if (!isExplicitQueue) {
                     // In single-track auto mode, drop preceding tracks so chosen song is at 0,
                     // and top up to 10 smart recommendations based on the newly selected track!
@@ -660,11 +1056,11 @@ class PlaybackEngine @Inject constructor(
                     currentQueue.clear()
                     currentQueue.addAll(remaining)
                     currentIndex = 0
-                    startPlayback(targetSong)
+                    startPlaybackInternal(targetSong)
                     fetchSmartRecommendations(targetSong, autoAppend = true, targetCount = 10)
                 } else {
                     currentIndex = targetIndex
-                    startPlayback(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex])
                 }
                 updateState()
                 triggerUpcomingPrefetch()
@@ -705,7 +1101,7 @@ class PlaybackEngine @Inject constructor(
                 currentQueue.add(song)
                 updateState()
                 triggerUpcomingPrefetch()
-                preloadNextTrack()
+                maybePreloadAfterQueueChange()
                 persistQueue()
             }
         }
@@ -721,7 +1117,7 @@ class PlaybackEngine @Inject constructor(
                 priorityQueueOffset++
                 updateState()
                 triggerUpcomingPrefetch()
-                preloadNextTrack()
+                maybePreloadAfterQueueChange()
                 persistQueue()
             }
         }
@@ -735,7 +1131,7 @@ class PlaybackEngine @Inject constructor(
                 priorityQueueOffset++
                 updateState()
                 triggerUpcomingPrefetch()
-                preloadNextTrack()
+                maybePreloadAfterQueueChange()
                 persistQueue()
             }
         }
@@ -744,20 +1140,29 @@ class PlaybackEngine @Inject constructor(
     fun togglePlayPause() {
         engineScope.launch {
             commandMutex.withLock {
-                if (exoPlayer.isPlaying) {
+                val active = activePlayer
+                val secondary = secondaryPlayer
+                if (active.isPlaying) {
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PAUSE_REQUESTED")
-                    exoPlayer.pause()
-                    runCatching { if (fadePlayer.isPlaying) fadePlayer.pause() }
+                    if (isTransitioning) {
+                        isTransitionPaused = true
+                        runCatching { if (secondary.isPlaying) secondary.pause() }
+                    }
+                    active.pause()
                 } else {
-                    if ((exoPlayer.playbackState == Player.STATE_IDLE || exoPlayer.playbackState == Player.STATE_ENDED) && currentSong != null) {
-                        startPlayback(currentSong!!)
+                    if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
+                        startPlaybackInternal(currentSong!!)
                     } else {
                         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PLAY_REQUESTED")
-                        exoPlayer.playWhenReady = true
-                        exoPlayer.play()
-                        runCatching {
-                            if (volumeFadeJob?.isActive == true && (fadePlayer.playbackState == Player.STATE_READY || fadePlayer.playbackState == Player.STATE_BUFFERING)) {
-                                fadePlayer.play()
+                        isTransitionPaused = false
+                        active.playWhenReady = true
+                        active.play()
+                        if (isTransitioning && secondary.mediaItemCount > 0 &&
+                            (secondary.playbackState == Player.STATE_READY || secondary.playbackState == Player.STATE_BUFFERING)
+                        ) {
+                            runCatching {
+                                secondary.playWhenReady = true
+                                secondary.play()
                             }
                         }
                     }
@@ -770,15 +1175,21 @@ class PlaybackEngine @Inject constructor(
     fun play() {
         engineScope.launch {
             commandMutex.withLock {
-                if ((exoPlayer.playbackState == Player.STATE_IDLE || exoPlayer.playbackState == Player.STATE_ENDED) && currentSong != null) {
-                    startPlayback(currentSong!!)
+                val active = activePlayer
+                val secondary = secondaryPlayer
+                if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
+                    startPlaybackInternal(currentSong!!)
                 } else {
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PLAY_REQUESTED")
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.play()
-                    runCatching {
-                        if (volumeFadeJob?.isActive == true && (fadePlayer.playbackState == Player.STATE_READY || fadePlayer.playbackState == Player.STATE_BUFFERING)) {
-                            fadePlayer.play()
+                    isTransitionPaused = false
+                    active.playWhenReady = true
+                    active.play()
+                    if (isTransitioning && secondary.mediaItemCount > 0 &&
+                        (secondary.playbackState == Player.STATE_READY || secondary.playbackState == Player.STATE_BUFFERING)
+                    ) {
+                        runCatching {
+                            secondary.playWhenReady = true
+                            secondary.play()
                         }
                     }
                 }
@@ -791,28 +1202,33 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PAUSE_REQUESTED")
-                exoPlayer.pause()
-                runCatching { if (fadePlayer.isPlaying) fadePlayer.pause() }
+                if (isTransitioning) {
+                    isTransitionPaused = true
+                    runCatching { if (secondaryPlayer.isPlaying) secondaryPlayer.pause() }
+                }
+                activePlayer.pause()
                 updateState()
             }
         }
     }
 
     fun stop() {
-        cancelFadeAndRestoreVolume()
         engineScope.launch {
             commandMutex.withLock {
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] STOP_REQUESTED")
+                cancelFadeAndRestoreVolume(clearPreload = true)
                 playbackJob?.cancel()
                 playbackJob = null
-                preloadJob?.cancel()
-                preloadJob = null
-                preloadedSongId = null
-                exoPlayer.stop()
-                exoPlayer.clearMediaItems()
+                failedPreloadForTrackIds.clear()
                 runCatching {
-                    fadePlayer.stop()
-                    fadePlayer.clearMediaItems()
+                    playerSlotA.playWhenReady = false
+                    playerSlotA.stop()
+                    playerSlotA.clearMediaItems()
+                }
+                runCatching {
+                    playerSlotB.playWhenReady = false
+                    playerSlotB.stop()
+                    playerSlotB.clearMediaItems()
                 }
                 currentQueue.clear()
                 currentIndex = -1
@@ -822,7 +1238,6 @@ class PlaybackEngine @Inject constructor(
     }
 
     fun next() {
-        cancelFadeAndRestoreVolume()
         engineScope.launch {
             commandMutex.withLock {
                 if (currentQueue.isEmpty()) return@withLock
@@ -830,21 +1245,38 @@ class PlaybackEngine @Inject constructor(
                 if (priorityQueueOffset > 0) priorityQueueOffset--
 
                 val nextSong = getNextSong()
-                if (nextSong != null && exoPlayer.mediaItemCount > 1 && exoPlayer.getMediaItemAt(1).mediaId == nextSong.id) {
-                    LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[NEXT] Fast-seeking to already preloaded track: '${nextSong.title}'")
-                    exoPlayer.seekToNextMediaItem()
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.play()
+                val sec = secondaryPlayer
+                if (nextSong != null &&
+                    secondarySongId == nextSong.id &&
+                    sec.mediaItemCount > 0 &&
+                    sec.playbackState == Player.STATE_READY
+                ) {
+                    LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[GAPLESS] Manual skip promoting prepared secondary track: '${nextSong.title}'")
+                    val wasAlreadyFadingSame = isTransitioning && transitionTargetSongId == nextSong.id
+                    volumeFadeJob?.cancel()
+                    volumeFadeJob = null
+                    isTransitioning = false
+                    isTransitionPaused = false
+                    if (!wasAlreadyFadingSame && sec.currentPosition > 50L) {
+                        sec.seekTo(0L)
+                    }
+                    sec.volume = masterVolumeScale
+                    sec.playWhenReady = true
+                    sec.play()
+                    performPlayerHandoverLocked(expectedIncomingSong = nextSong, isGapless = true)
                     return@withLock
                 }
 
+                cancelFadeAndRestoreVolume(clearPreload = true)
+                failedPreloadForTrackIds.clear()
+
                 if (currentIndex < currentQueue.size - 1) {
                     currentIndex++
-                    startPlayback(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex])
                     checkAndReplenishQueue()
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL) {
                     currentIndex = 0
-                    startPlayback(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex])
                 } else {
                     val currentSongIsLocal = currentSong?.providerId == "local" || (currentSong?.id?.startsWith("content://") == true)
                     if (currentSongIsLocal) {
@@ -858,22 +1290,25 @@ class PlaybackEngine @Inject constructor(
     }
 
     fun previous() {
-        cancelFadeAndRestoreVolume()
         engineScope.launch {
             commandMutex.withLock {
                 if (currentQueue.isEmpty()) return@withLock
                 consecutiveFailures = 0
-                if (exoPlayer.currentPosition > 3000L) {
-                    exoPlayer.seekTo(0L)
-                    exoPlayer.play()
+                val active = activePlayer
+                cancelFadeAndRestoreVolume(clearPreload = true)
+                failedPreloadForTrackIds.clear()
+                if (active.currentPosition > 3000L) {
+                    active.seekTo(0L)
+                    active.playWhenReady = true
+                    active.play()
                 } else if (currentIndex > 0) {
                     currentIndex--
-                    startPlayback(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex])
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL) {
                     currentIndex = currentQueue.size - 1
-                    startPlayback(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex])
                 } else {
-                    exoPlayer.seekTo(0L)
+                    active.seekTo(0L)
                 }
                 updateState()
             }
@@ -881,11 +1316,13 @@ class PlaybackEngine @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        cancelFadeAndRestoreVolume()
         engineScope.launch {
             commandMutex.withLock {
+                if (isTransitioning) {
+                    cancelFadeAndRestoreVolume(clearPreload = true)
+                }
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] SEEK_REQUESTED to ${positionMs}ms")
-                exoPlayer.seekTo(positionMs)
+                activePlayer.seekTo(positionMs)
                 _playerState.update { it.copy(currentPositionMs = positionMs) }
             }
         }
@@ -904,8 +1341,21 @@ class PlaybackEngine @Inject constructor(
 
     fun toggleShuffle() {
         engineScope.launch {
-            val nextShuffle = !_playerState.value.isShuffleEnabled
-            preferences.setShuffleEnabled(nextShuffle)
+            commandMutex.withLock {
+                val nextShuffle = !_playerState.value.isShuffleEnabled
+                if (nextShuffle && currentQueue.size > 2 && currentIndex in 0 until currentQueue.size - 1) {
+                    val keepPrefix = currentQueue.subList(0, currentIndex + 1).toList()
+                    val upcoming = currentQueue.subList(currentIndex + 1, currentQueue.size).toMutableList()
+                    upcoming.shuffle()
+                    currentQueue.clear()
+                    currentQueue.addAll(keepPrefix)
+                    currentQueue.addAll(upcoming)
+                    maybePreloadAfterQueueChange()
+                    persistQueue()
+                    updateState()
+                }
+                preferences.setShuffleEnabled(nextShuffle)
+            }
         }
     }
 
@@ -937,7 +1387,7 @@ class PlaybackEngine @Inject constructor(
                     }
                     updateState()
                     triggerUpcomingPrefetch()
-                    preloadNextTrack()
+                    maybePreloadAfterQueueChange()
                     persistQueue()
                 }
             }
@@ -948,24 +1398,23 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 if (currentIndex in currentQueue.indices) {
-                    val currentSong = currentQueue[currentIndex]
+                    val current = currentQueue[currentIndex]
                     val history = if (currentIndex > 0) currentQueue.subList(0, currentIndex) else emptyList()
                     val newFullQueue = ArrayList<Song>(history.size + 1 + newUpcomingList.size).apply {
                         addAll(history)
-                        add(currentSong)
+                        add(current)
                         addAll(newUpcomingList)
                     }
                     currentQueue.clear()
                     currentQueue.addAll(newFullQueue)
                     updateState()
                     triggerUpcomingPrefetch()
-                    preloadNextTrack()
+                    maybePreloadAfterQueueChange()
                     persistQueue()
                 } else if (currentQueue.isEmpty()) {
                     currentQueue.addAll(newUpcomingList)
                     currentIndex = 0
                     updateState()
-                    preloadNextTrack()
                     persistQueue()
                 }
             }
@@ -980,12 +1429,12 @@ class PlaybackEngine @Inject constructor(
                     currentQueue.clear()
                     currentQueue.add(current)
                     currentIndex = 0
-                    updateState()
-                    val currentPlayingIndex = exoPlayer.currentMediaItemIndex
-                    while (exoPlayer.mediaItemCount > currentPlayingIndex + 1) {
-                        exoPlayer.removeMediaItem(exoPlayer.mediaItemCount - 1)
+                    if (isTransitioning) {
+                        cancelFadeAndRestoreVolume(clearPreload = true)
+                    } else {
+                        invalidateSecondaryPreload("clearUpcomingQueue")
                     }
-                    preloadedSongId = null
+                    updateState()
                     persistQueue()
                 }
             }
@@ -999,16 +1448,22 @@ class PlaybackEngine @Inject constructor(
                     currentQueue.removeAt(index)
                     if (index < currentIndex) {
                         currentIndex--
+                        validateSecondaryPreloadTarget()
                     } else if (index == currentIndex) {
+                        cancelFadeAndRestoreVolume(clearPreload = true)
+                        failedPreloadForTrackIds.clear()
                         if (currentIndex < currentQueue.size) {
-                            startPlayback(currentQueue[currentIndex])
+                            startPlaybackInternal(currentQueue[currentIndex])
                         } else if (currentQueue.isNotEmpty()) {
                             currentIndex = 0
-                            startPlayback(currentQueue[0])
+                            startPlaybackInternal(currentQueue[0])
                         } else {
                             currentIndex = -1
-                            exoPlayer.stop()
+                            activePlayer.stop()
+                            activePlayer.clearMediaItems()
                         }
+                    } else {
+                        maybePreloadAfterQueueChange()
                     }
                     updateState()
                     triggerUpcomingPrefetch()
@@ -1473,151 +1928,113 @@ class PlaybackEngine @Inject constructor(
 
     private fun preloadNextTrack() {
         val nextSong = getNextSong() ?: return
-        if (nextSong.id == preloadedSongId && exoPlayer.mediaItemCount > 1) {
+        if (isTransitioning || failedPreloadForTrackIds.contains(nextSong.id)) {
             return
         }
+        if (secondarySongId == nextSong.id &&
+            (secondarySlotState == SecondarySlotState.READY || secondarySlotState == SecondarySlotState.PREPARING)
+        ) {
+            return
+        }
+        if (inFlightPreloadSongId == nextSong.id) {
+            return
+        }
+
         preloadJob?.cancel()
+        val targetEpoch = ++preloadEpoch
+        inFlightPreloadSongId = nextSong.id
+        secondarySlotState = SecondarySlotState.RESOLVING
+        secondarySong = nextSong
+        secondarySongId = nextSong.id
+        secondaryPreparedMediaItem = null
+        secondaryArtworkBytes = null
+
         preloadJob = engineScope.launch(dispatchers.io) {
             try {
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PRELOAD] Starting preload for next track: '${nextSong.title}' [id: ${nextSong.id}]")
-                val (mediaItem, resolvedProvider) = resolveMediaItemForSong(nextSong)
-                withContext(dispatchers.main) {
-                    val nextSongIndex = if (currentIndex in 0 until currentQueue.size - 1) currentIndex + 1 else -1
-                    if (nextSongIndex in currentQueue.indices && currentQueue[nextSongIndex].id == nextSong.id) {
-                        currentQueue[nextSongIndex] = currentQueue[nextSongIndex].copy(providerId = resolvedProvider)
-                    }
-                    if (getNextSong()?.id == nextSong.id) {
-                        val currentPlayingIndex = exoPlayer.currentMediaItemIndex
-                        while (exoPlayer.mediaItemCount > currentPlayingIndex + 1) {
-                            exoPlayer.removeMediaItem(exoPlayer.mediaItemCount - 1)
-                        }
-                        exoPlayer.addMediaItem(mediaItem)
-                        preloadedSongId = nextSong.id
-                        LofiQLogger.i(
-                            LofiQLogger.Category.PLAYBACK,
-                            "[PRELOAD] Enqueued next track into ExoPlayer: '${nextSong.title}' [mediaItemCount=${exoPlayer.mediaItemCount}]"
-                        )
-                    }
-                }
+                LofiQLogger.i(
+                    LofiQLogger.Category.PREFETCH,
+                    "[PRELOAD] Resolving next track '${nextSong.title}' [id=${nextSong.id}] for secondary slot (epoch=$targetEpoch)"
+                )
+                val (mediaItem, resolvedProvider) = resolveMediaItemForSong(
+                    song = nextSong,
+                    reqId = "pre-${nextSong.id.take(6)}"
+                )
 
+                var cachedBytes: ByteArray? = null
                 val artworkUrl = com.lofiq.core.common.ArtworkUtils.getOptimalArtwork(nextSong)
                 if (artworkUrl.isNotBlank()) {
                     runCatching {
+                        val loader = coil.Coil.imageLoader(context)
                         val req = coil.request.ImageRequest.Builder(context)
                             .data(artworkUrl)
                             .size(500, 500)
+                            .allowHardware(false)
                             .build()
-                        coil.Coil.imageLoader(context).enqueue(req)
+                        val result = loader.execute(req)
+                        val bitmap = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                        if (bitmap != null) {
+                            val stream = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, stream)
+                            cachedBytes = stream.toByteArray()
+                        }
                     }
+                }
+
+                withContext(dispatchers.main) {
+                    if (!isActive || targetEpoch != preloadEpoch || isTransitioning || getNextSong()?.id != nextSong.id) {
+                        return@withContext
+                    }
+                    val nextSongIndex = findTargetIndexForSong(nextSong.id)
+                    if (nextSongIndex in currentQueue.indices && currentQueue[nextSongIndex].id == nextSong.id) {
+                        currentQueue[nextSongIndex] = currentQueue[nextSongIndex].copy(providerId = resolvedProvider)
+                    }
+
+                    val sec = secondaryPlayer
+                    secondaryArtworkBytes = cachedBytes
+                    secondaryPreparedMediaItem = mediaItem
+                    secondarySlotState = SecondarySlotState.PREPARING
+                    inFlightPreloadSongId = null
+
+                    // Strict silent secondary preparation: volume=0%, paused at pos 0, never request audio focus
+                    sec.volume = 0f
+                    sec.playWhenReady = false
+                    sec.setAudioAttributes(mediaAudioAttributes, false)
+                    sec.repeatMode = Player.REPEAT_MODE_OFF
+                    sec.setMediaItem(mediaItem, /* startPositionMs = */ 0L)
+                    sec.prepare()
+                    if (sec.playbackState == Player.STATE_READY) {
+                        secondarySlotState = SecondarySlotState.READY
+                    }
+                    LofiQLogger.i(
+                        LofiQLogger.Category.PREFETCH,
+                        "[SECONDARY_PLAYER] Loaded '${nextSong.title}' into slot ${if (isSlotAActive) "B" else "A"} (state=$secondarySlotState, vol=0%, playWhenReady=false)"
+                    )
                 }
             } catch (e: CancellationException) {
-                // Cancelled normally
+                throw e
             } catch (e: Exception) {
-                LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PRELOAD] Failed to preload next track '${nextSong.title}': ${e.message}")
-            }
-        }
-    }
-
-    private fun handleMediaItemTransition(mediaItem: MediaItem, reason: Int) {
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
-            return
-        }
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
-            _playerState.update { it.copy(currentPositionMs = 0L) }
-            return
-        }
-        val mediaId = mediaItem.mediaId
-        val targetIndex = when {
-            currentIndex in 0 until currentQueue.size - 1 && currentQueue[currentIndex + 1].id == mediaId -> currentIndex + 1
-            _playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty() && currentQueue[0].id == mediaId -> 0
-            else -> currentQueue.indexOfFirst { it.id == mediaId }
-        }
-
-        if (targetIndex != -1 && targetIndex != currentIndex) {
-            LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[TRANSITION] Transitioned to track '$mediaId' at queue index $targetIndex (reason=$reason)")
-            val newSong: Song
-            if (!isExplicitQueue && targetIndex > 0) {
-                val remaining = currentQueue.drop(targetIndex)
-                currentQueue.clear()
-                currentQueue.addAll(remaining)
-                currentIndex = 0
-                newSong = currentQueue[0]
-            } else {
-                currentIndex = targetIndex
-                newSong = currentQueue[currentIndex]
-            }
-            activePlaybackId = java.util.UUID.randomUUID().toString().take(8)
-            preloadedSongId = null
-            if (volumeFadeJob?.isActive != true) {
-                fadePlayerPreparedSongId = null
-                crossfadeActiveForSongId = null
-            }
-            currentSongRetryCount = 0
-
-            // Clean up completed items in ExoPlayer so currently playing track sits cleanly at index 0,
-            // but ONLY if simultaneous crossfade isn't actively running
-            if (volumeFadeJob?.isActive != true && exoPlayer.mediaItemCount > 1 && exoPlayer.currentMediaItemIndex == 1) {
-                exoPlayer.removeMediaItem(0)
-            }
-
-            _playerState.update {
-                it.copy(
-                    currentSong = newSong,
-                    activeProviderId = newSong.providerId,
-                    isPlaying = true,
-                    isBuffering = false,
-                    isReady = true,
-                    errorMessage = null,
-                    currentPositionMs = 0L,
-                    durationMs = newSong.durationMs,
-                    currentQueueIndex = currentIndex
-                )
-            }
-            updateState()
-
-            fetchLyricsForSong(newSong)
-            fetchSmartRecommendations(newSong, autoAppend = !isExplicitQueue, targetCount = 10)
-            engineScope.launch(dispatchers.io) {
-                songDao.incrementPlayCount(newSong.id)
-                historyDao.recordHistory(
-                    PlaybackHistoryEntity(
-                        songId = newSong.id,
-                        playedAt = System.currentTimeMillis(),
-                        durationPlayedSeconds = 0
-                    )
-                )
-            }
-
-            if (volumeFadeJob?.isActive != true) {
-                if (crossfadeSeconds > 0) {
-                    volumeFadeJob = engineScope.launch {
-                        exoPlayer.volume = 0.05f
-                        val fadeInDurationMs = (crossfadeSeconds * 400L).coerceIn(1000L, 3500L)
-                        val steps = 20
-                        val stepDelay = fadeInDurationMs / steps
-                        for (i in 1..steps) {
-                            delay(stepDelay)
-                            val v = 0.05f + (0.95f * (i.toFloat() / steps))
-                            exoPlayer.volume = v.coerceIn(0.05f, 1f)
-                        }
-                        exoPlayer.volume = 1f
+                withContext(dispatchers.main) {
+                    if (targetEpoch == preloadEpoch) {
+                        failedPreloadForTrackIds.add(nextSong.id)
+                        invalidateSecondaryPreload("preloadFailed:${e.message}")
                     }
-                } else {
-                    cancelFadeAndRestoreVolume()
                 }
+                LofiQLogger.w(
+                    LofiQLogger.Category.PLAYBACK,
+                    "[PLAYBACK_RECOVERY] [PRELOAD] Isolated failure preloading '${nextSong.title}': ${e.message}. Active track undisturbed."
+                )
             }
-
-            checkAndReplenishQueue()
-            preloadNextTrack()
         }
     }
 
     private fun startPlayback(song: Song, retryCount: Int = 0) {
-        cancelFadeAndRestoreVolume()
+        startPlaybackInternal(song, retryCount)
+    }
+
+    private fun startPlaybackInternal(song: Song, retryCount: Int = 0) {
+        cancelFadeAndRestoreVolume(clearPreload = true)
         playbackJob?.cancel()
-        preloadJob?.cancel()
-        preloadJob = null
-        preloadedSongId = null
+        failedPreloadForTrackIds.clear()
         playbackJob = engineScope.launch {
             loadAndPlaySong(song, retryCount)
         }
@@ -1648,6 +2065,7 @@ class PlaybackEngine @Inject constructor(
                 activeProviderId = song.providerId,
                 isBuffering = true,
                 isPlaying = true,
+                isCrossfading = false,
                 errorMessage = null,
                 currentPositionMs = 0L,
                 durationMs = song.durationMs
@@ -1678,14 +2096,16 @@ class PlaybackEngine @Inject constructor(
                         context.startService(serviceIntent)
                     }
                 }
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$reqId] PREPARE & PLAY")
-                exoPlayer.playWhenReady = true
-                exoPlayer.setMediaItem(mediaItem, /* resetPosition = */ true)
-                exoPlayer.prepare()
-                exoPlayer.play()
+                val active = activePlayer
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$reqId][slot=${if (isSlotAActive) "A" else "B"}] PREPARE & PLAY")
+                active.volume = masterVolumeScale
+                active.setAudioAttributes(mediaAudioAttributes, true)
+                active.repeatMode = Player.REPEAT_MODE_OFF
+                active.playWhenReady = true
+                active.setMediaItem(mediaItem, /* resetPosition = */ true)
+                active.prepare()
+                active.play()
             }
-
-            preloadNextTrack()
 
             val artworkUrl = song.highResArtworkUrl.ifEmpty { song.artworkUrl }
             if (artworkUrl.isNotEmpty()) {
@@ -1704,11 +2124,12 @@ class PlaybackEngine @Inject constructor(
                             val bytes = stream.toByteArray()
                             withContext(dispatchers.main) {
                                 runCatching {
-                                    if (activePlaybackId == reqId && exoPlayer.mediaItemCount > 0 && exoPlayer.currentMediaItem?.mediaId == song.id) {
+                                    val active = activePlayer
+                                    if (activePlaybackId == reqId && active.mediaItemCount > 0 && active.currentMediaItem?.mediaId == song.id) {
                                         val updatedMetadata = mediaItem.mediaMetadata.buildUpon()
                                             .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
                                             .build()
-                                        exoPlayer.playlistMetadata = updatedMetadata
+                                        active.playlistMetadata = updatedMetadata
                                     }
                                 }
                             }
@@ -1808,7 +2229,12 @@ class PlaybackEngine @Inject constructor(
     private fun handleTrackEnded() {
         engineScope.launch {
             commandMutex.withLock {
-                val pos = exoPlayer.currentPosition.coerceAtLeast(0L)
+                if (isTransitioning) {
+                    // Crossfade coroutine finishes and hands over smoothly; avoid double advance
+                    return@withLock
+                }
+                val active = activePlayer
+                val pos = active.currentPosition.coerceAtLeast(0L)
                 val curSong = currentSong
                 val expectedDur = curSong?.durationMs ?: 0L
                 val isPrematureEnd = expectedDur > 30_000L && (pos < 20_000L || (pos < expectedDur - 15_000L && pos < (expectedDur * 0.85f).toLong()))
@@ -1817,40 +2243,62 @@ class PlaybackEngine @Inject constructor(
                     currentSongRetryCount++
                     LofiQLogger.w(
                         LofiQLogger.Category.PLAYBACK,
-                        "[TRACK_ENDED] Premature EOF detected at ${pos}ms for '${curSong.title}' (expected ${expectedDur}ms). Auto-recovering current track from position (attempt $currentSongRetryCount/2)."
+                        "[PLAYBACK_RECOVERY] Premature EOF detected at ${pos}ms for '${curSong.title}' (expected ${expectedDur}ms). Recovering active player at current pos (attempt $currentSongRetryCount/2)."
                     )
-                    exoPlayer.prepare()
+                    active.prepare()
                     if (pos > 0) {
-                        exoPlayer.seekTo(pos)
+                        active.seekTo(pos)
                     }
-                    exoPlayer.play()
+                    active.play()
                     return@withLock
                 }
 
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[TRACK_ENDED] Finished current track [index=$currentIndex / size=${currentQueue.size}] at ${pos}ms")
-                if (priorityQueueOffset > 0) priorityQueueOffset--
                 if (_playerState.value.repeatMode == PlaybackRepeatMode.ONE) {
-                    exoPlayer.seekTo(0L)
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.prepare()
-                    exoPlayer.play()
-                } else if (currentIndex < currentQueue.size - 1) {
+                    active.seekTo(0L)
+                    active.volume = masterVolumeScale
+                    active.playWhenReady = true
+                    active.prepare()
+                    active.play()
+                    return@withLock
+                }
+
+                val nextSong = getNextSong()
+                val sec = secondaryPlayer
+                if (nextSong != null &&
+                    secondarySongId == nextSong.id &&
+                    sec.mediaItemCount > 0 &&
+                    sec.playbackState == Player.STATE_READY
+                ) {
+                    LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[GAPLESS] Track ended -> immediate gapless handover to preloaded '${nextSong.title}'")
+                    if (sec.currentPosition > 50L) {
+                        sec.seekTo(0L)
+                    }
+                    sec.volume = masterVolumeScale
+                    sec.playWhenReady = true
+                    sec.play()
+                    performPlayerHandoverLocked(expectedIncomingSong = nextSong, isGapless = true)
+                    return@withLock
+                }
+
+                if (priorityQueueOffset > 0) priorityQueueOffset--
+                if (currentIndex < currentQueue.size - 1) {
                     if (!isExplicitQueue) {
-                        val nextSong = currentQueue[currentIndex + 1]
+                        val upcoming = currentQueue[currentIndex + 1]
                         val remaining = currentQueue.drop(currentIndex + 1)
                         currentQueue.clear()
                         currentQueue.addAll(remaining)
                         currentIndex = 0
-                        startPlayback(nextSong)
+                        startPlaybackInternal(upcoming)
                         checkAndReplenishQueue()
                     } else {
                         currentIndex++
-                        startPlayback(currentQueue[currentIndex])
+                        startPlaybackInternal(currentQueue[currentIndex])
                         checkAndReplenishQueue()
                     }
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty()) {
                     currentIndex = 0
-                    startPlayback(currentQueue[0])
+                    startPlaybackInternal(currentQueue[0])
                 } else {
                     val currentSongIsLocal = currentSong?.providerId == "local" || (currentSong?.id?.startsWith("content://") == true)
                     if (currentSongIsLocal) {
@@ -1874,13 +2322,15 @@ class PlaybackEngine @Inject constructor(
     }
 
     private fun updateStateDirect() {
-        val isExoPlaying = exoPlayer.isPlaying
-        val isBuffering = exoPlayer.playbackState == Player.STATE_BUFFERING || playbackJob?.isActive == true
-        val isReady = exoPlayer.playbackState == Player.STATE_READY
+        val active = activePlayer
+        val isExoPlaying = active.isPlaying
+        val isBuffering = active.playbackState == Player.STATE_BUFFERING || playbackJob?.isActive == true
+        val isReady = active.playbackState == Player.STATE_READY
         val current = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else null
-        val isCurrentInPlayer = exoPlayer.currentMediaItem?.mediaId == current?.id
-        val pos = if (isCurrentInPlayer) exoPlayer.currentPosition.coerceAtLeast(0L) else 0L
-        val dur = if (isCurrentInPlayer && exoPlayer.duration > 0) exoPlayer.duration else current?.durationMs ?: 0L
+        val isCurrentInPlayer = active.currentMediaItem?.mediaId == current?.id
+        val pos = if (isCurrentInPlayer) active.currentPosition.coerceAtLeast(0L) else 0L
+        val dur = if (isCurrentInPlayer && active.duration > 0) active.duration else current?.durationMs ?: 0L
+        val sessionId = active.audioSessionId
 
         _playerState.update {
             val effectivePlaying = if (playbackJob?.isActive == true) true else isExoPlaying
@@ -1889,10 +2339,12 @@ class PlaybackEngine @Inject constructor(
                 isPlaying = effectivePlaying,
                 isBuffering = isBuffering,
                 isReady = isReady,
+                isCrossfading = isTransitioning,
                 currentPositionMs = pos,
                 durationMs = if (dur > 0) dur else current?.durationMs ?: it.durationMs,
                 queue = currentQueue.toList(),
-                currentQueueIndex = currentIndex
+                currentQueueIndex = currentIndex,
+                activeAudioSessionId = if (sessionId != 0) sessionId else it.activeAudioSessionId
             )
         }
         runCatching {
@@ -1913,4 +2365,13 @@ class PlaybackEngine @Inject constructor(
 
     val currentSong: Song?
         get() = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else null
+
+    fun release() {
+        positionJob?.cancel()
+        playbackJob?.cancel()
+        preloadJob?.cancel()
+        volumeFadeJob?.cancel()
+        lyricsJob?.cancel()
+        engineScope.cancel()
+    }
 }

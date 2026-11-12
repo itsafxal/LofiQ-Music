@@ -63,6 +63,8 @@ class AudioEffectsController @Inject constructor(
 
     fun attachSession(sessionId: Int) {
         if (sessionId == 0 || sessionId == currentSessionId) return
+        val savedBandLevels = bandLevels.toList()
+        val hasCustomOrPresetEq = selectedPresetIndex != 0 || savedBandLevels.any { it != 0 }
         release()
         currentSessionId = sessionId
 
@@ -70,18 +72,22 @@ class AudioEffectsController @Inject constructor(
             equalizer = Equalizer(0, sessionId).apply {
                 enabled = isEnabled
             }
-            bassBoost = BassBoost(0, sessionId).apply {
-                enabled = isEnabled
-                if (strengthSupported) {
-                    setStrength((bassBoostStrength * 1000).toInt().toShort())
+            bassBoost = runCatching {
+                BassBoost(0, sessionId).apply {
+                    enabled = isEnabled
+                    if (strengthSupported) {
+                        setStrength((bassBoostStrength * 1000).toInt().toShort())
+                    }
                 }
-            }
-            virtualizer = Virtualizer(0, sessionId).apply {
-                enabled = isEnabled
-                if (strengthSupported) {
-                    setStrength((virtualizerStrength * 1000).toInt().toShort())
+            }.getOrNull()
+            virtualizer = runCatching {
+                Virtualizer(0, sessionId).apply {
+                    enabled = isEnabled
+                    if (strengthSupported) {
+                        setStrength((virtualizerStrength * 1000).toInt().toShort())
+                    }
                 }
-            }
+            }.getOrNull()
 
             equalizer?.let { eq ->
                 minLevel = eq.bandLevelRange[0].toInt()
@@ -93,10 +99,17 @@ class AudioEffectsController @Inject constructor(
 
                 for (i in 0 until numBands) {
                     bandFrequencies.add(eq.getCenterFreq(i.toShort()) / 1000) // Convert mHz to Hz
-                    bandLevels.add(eq.getBandLevel(i.toShort()).toInt())
+                    val targetLevel = if (hasCustomOrPresetEq && i < savedBandLevels.size) {
+                        savedBandLevels[i].coerceIn(minLevel, maxLevel).also { lvl ->
+                            runCatching { eq.setBandLevel(i.toShort(), lvl.toShort()) }
+                        }
+                    } else {
+                        eq.getBandLevel(i.toShort()).toInt()
+                    }
+                    bandLevels.add(targetLevel)
                 }
             }
-            LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[DSP] Attached Equalizer & FX to session=$sessionId")
+            LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[DSP] Attached Equalizer & FX to session=$sessionId (preservedEQ=$hasCustomOrPresetEq)")
         } catch (e: Exception) {
             LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[DSP] Failed to attach Equalizer: ${e.message}")
         }

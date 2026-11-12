@@ -53,7 +53,7 @@ class WindowsTitlebar extends StatelessWidget {
               borderRadius: BorderRadius.circular(4.0),
             ),
             child: const Text(
-              'V1.0.2 Desktop',
+              'V1.0.3 Desktop',
               style: TextStyle(fontSize: 10, color: LofiQColors.textTertiary),
             ),
           ),

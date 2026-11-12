@@ -1,11 +1,11 @@
 ; =====================================================================
 ; LofiQ Desktop Music Player - Production Inno Setup Script
-; Official Version: 1.0.2 (Build 65)
+; Official Version: 1.0.3 (Build 66)
 ; Target Platform: Windows 10 / Windows 11 (64-bit)
 ; =====================================================================
 
 #define MyAppName "LofiQ"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "LofiQ Team"
 #define MyAppURL "https://lofiq-web.vercel.app/"
 #define MyAppExeName "LofiQ.exe"
@@ -24,7 +24,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\build\installer
-OutputBaseFilename=LofiQ-v1.0.2-Windows-Setup
+OutputBaseFilename=LofiQ-v1.0.3-Windows-Setup
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
@@ -34,12 +34,12 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
-VersionInfoVersion=1.0.2.65
+VersionInfoVersion=1.0.3.66
 VersionInfoCompany=LofiQ
 VersionInfoDescription=LofiQ Desktop Music Player Installer
 VersionInfoCopyright=Copyright (C) 2026 LofiQ. All rights reserved.
 VersionInfoProductName=LofiQ
-VersionInfoProductVersion=1.0.2.65
+VersionInfoProductVersion=1.0.3.66
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

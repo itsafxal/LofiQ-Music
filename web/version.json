@@ -1,34 +1,34 @@
 {
-  "versionCode": 65,
-  "versionName": "1.0.2",
+  "versionCode": 66,
+  "versionName": "1.0.3",
   "minSupportedVersion": 1,
-  "releaseDate": "2026-11-03",
+  "releaseDate": "2026-11-12",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.7 MB",
-  "checksum": "5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222",
+  "checksum": "76b1b426c2bc3cf255b5b83972cf75ba17e114188ca97c469147180f316e2de0",
   "releaseNotes": [
-    "🚀 Official Production Release (V1.0.2 - Build 65)",
-    "🔒 Synchronized Firebase Anonymous Authentication: Resolved startup race condition with coroutine Mutex deduplication and persistent session reuse across launches.",
-    "👥 Listen Together Lifecycle Hardening: Strictly verified Firebase UID ownership for hosts and participants with elimination of random UUID fallbacks.",
-    "🧹 Spark Plan Inactive Room Cleanup: Automated host-driven inactive room garbage collection operating within free Spark plan quotas with zero Cloud Functions.",
-    "🛡️ Truthful Error Classification: Granular diagnostic reporting separating network timeouts, App Check rejections, and Firestore security rule boundaries.",
-    "⚡ Official Firestore Emulator Verification: Formally verified against Google Local Emulator Suite with 60/60 passing security rule assertions."
+    "🚀 Official Production Release (V1.0.3 - Build 66)",
+    "🎵 True Dual-Player Seamless Playback: Symmetric Active & Secondary audio slots eliminate tail replays, audio gaps, and stalls during track transitions.",
+    "⚡ Early ~10s Silent Preloading: Next track stream & decoder prepare silently at 0% volume around 10 seconds into playback without interrupting the current song.",
+    "♾️ Zero-Overlap Gapless Playback (0s): Preloads incoming tracks ahead of track end for instantaneous gapless transitions even when crossfade is set to 0s.",
+    "🌊 True Equal-Power Crossfade: Smooth cos/sin overlap curves keep perceived loudness constant while preserving full 10-band EQ & Bass Boost across handovers.",
+    "🛡️ Resilient Controls & Recovery: Pause/resume mid-crossfade pauses both players cleanly, isolated preload errors never stop active music, and shuffle reorders upcoming queue items."
   ],
   "android": {
-    "versionCode": 65,
-    "versionName": "1.0.2",
+    "versionCode": 66,
+    "versionName": "1.0.3",
     "minSupportedVersion": 1,
-    "releaseDate": "2026-11-03",
+    "releaseDate": "2026-11-12",
     "apkUrl": "/downloads/LofiQ.apk",
     "apkSize": "21.7 MB",
-    "checksum": "5d9db3e6649d0874e39982d10049132c2a827d0838af164759273ffaa1bc3222",
+    "checksum": "76b1b426c2bc3cf255b5b83972cf75ba17e114188ca97c469147180f316e2de0",
     "releaseNotes": [
-      "🚀 Official Production Release (V1.0.2 - Build 65)",
-      "🔒 Synchronized Firebase Anonymous Authentication with persistent session reuse.",
-      "👥 Listen Together Lifecycle Hardening with strict UID ownership.",
-      "🧹 Automated host-driven inactive room garbage collection.",
-      "🛡️ Granular diagnostic reporting for network and App Check status.",
-      "⚡ Verified against Google Local Emulator Suite."
+      "🚀 Official Production Release (V1.0.3 - Build 66)",
+      "🎵 True Dual-Player Architecture: Independent Active & Secondary ExoPlayer slots with atomic MediaSession handovers.",
+      "⚡ Early ~10s Silent Preloading: Decodes and buffers incoming tracks silently without interrupting current playback.",
+      "♾️ Gapless Playback (0s) & Equal-Power Crossfade: Instantaneous zero-overlap cuts or constant-power cos/sin crossfades.",
+      "🎛️ Equalizer Continuity: User 10-band EQ, Bass Boost, and Virtualizer settings persist seamlessly across every track handover.",
+      "🔀 Shuffle & Isolated Recovery: Real upcoming queue shuffle and isolated secondary preload error handling."
     ]
   },
   "windows": {

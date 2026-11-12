@@ -17,6 +17,12 @@ import com.lofiq.R
 import com.lofiq.core.common.LofiQLogger
 import com.lofiq.playback.engine.PlaybackEngine
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @UnstableApi
@@ -33,6 +39,69 @@ class LofiQMediaSessionService : MediaSessionService() {
     lateinit var listenTogetherManager: com.lofiq.feature.sync.ListenTogetherManager
 
     private var mediaSession: MediaSession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private fun createForwardingPlayer(targetPlayer: ExoPlayer): ForwardingPlayer {
+        return object : ForwardingPlayer(targetPlayer) {
+            override fun getAvailableCommands(): Player.Commands {
+                return super.getAvailableCommands().buildUpon()
+                    .add(Player.COMMAND_SEEK_TO_NEXT)
+                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .add(Player.COMMAND_PLAY_PAUSE)
+                    .add(Player.COMMAND_STOP)
+                    .build()
+            }
+
+            override fun isCommandAvailable(command: Int): Boolean {
+                return when (command) {
+                    Player.COMMAND_SEEK_TO_NEXT,
+                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                    Player.COMMAND_SEEK_TO_PREVIOUS,
+                    Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                    Player.COMMAND_PLAY_PAUSE,
+                    Player.COMMAND_STOP -> true
+                    else -> super.isCommandAvailable(command)
+                }
+            }
+
+            override fun hasNextMediaItem(): Boolean = true
+            override fun hasPreviousMediaItem(): Boolean = true
+
+            override fun play() {
+                playbackEngine.play()
+            }
+
+            override fun pause() {
+                playbackEngine.pause()
+            }
+
+            override fun stop() {
+                playbackEngine.stop()
+            }
+
+            override fun seekTo(positionMs: Long) {
+                playbackEngine.seekTo(positionMs)
+            }
+
+            override fun seekToNext() {
+                playbackEngine.next()
+            }
+
+            override fun seekToNextMediaItem() {
+                playbackEngine.next()
+            }
+
+            override fun seekToPrevious() {
+                playbackEngine.previous()
+            }
+
+            override fun seekToPreviousMediaItem() {
+                playbackEngine.previous()
+            }
+        }
+    }
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -62,49 +131,7 @@ class LofiQMediaSessionService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val forwardingPlayer = object : ForwardingPlayer(exoPlayer) {
-            override fun getAvailableCommands(): Player.Commands {
-                return super.getAvailableCommands().buildUpon()
-                    .add(Player.COMMAND_SEEK_TO_NEXT)
-                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                    .add(Player.COMMAND_PLAY_PAUSE)
-                    .add(Player.COMMAND_STOP)
-                    .build()
-            }
-
-            override fun isCommandAvailable(command: Int): Boolean {
-                return when (command) {
-                    Player.COMMAND_SEEK_TO_NEXT,
-                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
-                    Player.COMMAND_SEEK_TO_PREVIOUS,
-                    Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
-                    Player.COMMAND_PLAY_PAUSE,
-                    Player.COMMAND_STOP -> true
-                    else -> super.isCommandAvailable(command)
-                }
-            }
-
-            override fun hasNextMediaItem(): Boolean = true
-            override fun hasPreviousMediaItem(): Boolean = true
-
-            override fun seekToNext() {
-                playbackEngine.next()
-            }
-
-            override fun seekToNextMediaItem() {
-                playbackEngine.next()
-            }
-
-            override fun seekToPrevious() {
-                playbackEngine.previous()
-            }
-
-            override fun seekToPreviousMediaItem() {
-                playbackEngine.previous()
-            }
-        }
+        val forwardingPlayer = createForwardingPlayer(playbackEngine.activePlayer)
 
         val callback = object : MediaSession.Callback {
             override fun onConnect(
@@ -157,6 +184,15 @@ class LofiQMediaSessionService : MediaSessionService() {
             .setCallback(callback)
             .build()
         addSession(mediaSession!!)
+        serviceScope.launch {
+            playbackEngine.activePlayerFlow.drop(1).collect { nextActive ->
+                mediaSession?.player = createForwardingPlayer(nextActive)
+                LofiQLogger.i(
+                    LofiQLogger.Category.PLAYBACK,
+                    "[PLAYER_HANDOVER] Updated MediaSession active ForwardingPlayer (sessionId=${nextActive.audioSessionId})"
+                )
+            }
+        }
         runCatching {
             com.lofiq.widget.MusicWidgetManager.updateAllWidgets(this)
         }
@@ -207,6 +243,7 @@ class LofiQMediaSessionService : MediaSessionService() {
 
     override fun onDestroy() {
         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "LofiQMediaSessionService onDestroy")
+        serviceScope.cancel()
         val syncState = listenTogetherManager.syncState.value
         if (syncState is com.lofiq.feature.sync.ListenTogetherState.Connected && !syncState.isHost) {
             listenTogetherManager.leaveRoom()

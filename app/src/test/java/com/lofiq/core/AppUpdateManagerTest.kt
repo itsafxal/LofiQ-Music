@@ -200,7 +200,7 @@ class AppUpdateManagerTest {
         }
 
         val manager = AppUpdateManager(client)
-        val result = manager.checkForUpdate()
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
 
         assertTrue(result.isSuccess)
         val info = result.getOrThrow()
@@ -231,7 +231,7 @@ class AppUpdateManagerTest {
         }
 
         val manager = AppUpdateManager(client)
-        val result = manager.checkForUpdate()
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
 
         assertTrue(result.isSuccess)
         val info = result.getOrThrow()
@@ -261,7 +261,7 @@ class AppUpdateManagerTest {
         }
 
         val manager = AppUpdateManager(client)
-        val result = manager.checkForUpdate()
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
 
         assertTrue(result.isSuccess)
         val info = result.getOrThrow()
@@ -290,7 +290,7 @@ class AppUpdateManagerTest {
         }
 
         val manager = AppUpdateManager(client)
-        val result = manager.checkForUpdate()
+        val result = manager.checkForUpdate(currentVersionCode = 65, currentVersionName = "1.0.2")
 
         assertTrue(result.isSuccess)
         val info = result.getOrThrow()

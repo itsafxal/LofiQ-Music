@@ -181,8 +181,12 @@ fun MainScreen(
         isFullPlayerVisible = false
     }
 
-    LaunchedEffect(playerState.isReady) {
-        val sessionId = playbackEngine.exoPlayer.audioSessionId
+    LaunchedEffect(playerState.isReady, playerState.activeAudioSessionId) {
+        val sessionId = if (playerState.activeAudioSessionId != 0) {
+            playerState.activeAudioSessionId
+        } else {
+            playbackEngine.activePlayer.audioSessionId
+        }
         if (sessionId != 0) {
             effectsController.attachSession(sessionId)
         }

@@ -108,17 +108,17 @@ class SleepTimerManager @Inject constructor(
     private fun triggerSleepStop() {
         scope.launch {
             // Smooth volume fade-out over 2.5 seconds
-            val initialVolume = playbackEngine.exoPlayer.volume
+            val initialVolume = playbackEngine.getMasterVolumeScale()
             val steps = 15
             for (i in 1..steps) {
                 delay(150L)
                 val newVol = initialVolume * (1f - (i.toFloat() / steps))
-                playbackEngine.exoPlayer.volume = newVol.coerceAtLeast(0f)
+                playbackEngine.setMasterVolumeScale(newVol.coerceAtLeast(0f))
             }
 
             playbackEngine.pause()
             // Reset volume back to standard
-            playbackEngine.exoPlayer.volume = initialVolume
+            playbackEngine.setMasterVolumeScale(initialVolume)
             _timerState.value = SleepTimerState(isActive = false)
             LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[SleepTimer] Playback stopped and timer ended")
         }

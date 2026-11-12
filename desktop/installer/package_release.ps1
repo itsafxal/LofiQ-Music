@@ -1,6 +1,6 @@
 # =====================================================================
 # LofiQ Windows Desktop Release Packaging & Verification Script
-# Version: 1.0.2
+# Version: 1.0.3
 # =====================================================================
 
 param (
@@ -60,7 +60,7 @@ if (-not $SkipBuild -and $vsInstalled) {
 # 4. Dependency & Binary Audit
 Write-Host "`n[4/6] Verifying Runtime Dependencies..." -ForegroundColor Yellow
 $ReleaseDir = Join-Path $DesktopDir "build\windows\x64\runner\Release"
-$DistDir = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.2-Windows"
+$DistDir = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.3-Windows"
 
 if (Test-Path $ReleaseDir) {
     Write-Host "  Release directory found: $ReleaseDir" -ForegroundColor Green
@@ -100,7 +100,7 @@ if (Test-Path $ReleaseDir) {
     }
 
     # Create portable ZIP archive
-    $zipPath = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.2-Windows-Portable.zip"
+    $zipPath = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.3-Windows-Portable.zip"
     Compress-Archive -Path "$DistDir\*" -DestinationPath $zipPath -Force
     Write-Host "  Created portable distribution: $zipPath" -ForegroundColor Green
 } else {
@@ -129,7 +129,7 @@ if ($iscc -and (Test-Path $ReleaseDir)) {
     Write-Host "  Compiling installer..." -ForegroundColor Yellow
     & $iscc $issFile
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  [SUCCESS] Installer compiled at build\installer\LofiQ-v1.0.2-Windows-Setup.exe" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Installer compiled at build\installer\LofiQ-v1.0.3-Windows-Setup.exe" -ForegroundColor Green
     } else {
         Write-Host "  [WARN] Inno Setup compilation returned exit code $LASTEXITCODE" -ForegroundColor DarkYellow
     }
@@ -141,18 +141,18 @@ if ($iscc -and (Test-Path $ReleaseDir)) {
 # 6. Checksum Generation (SHA-256)
 Write-Host "`n[6/6] Generating Cryptographic Checksums (SHA-256)..." -ForegroundColor Yellow
 $checksums = @()
-$installerExe = Join-Path $DesktopDir "build\installer\LofiQ-v1.0.2-Windows-Setup.exe"
-$portableZip = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.2-Windows-Portable.zip"
+$installerExe = Join-Path $DesktopDir "build\installer\LofiQ-v1.0.3-Windows-Setup.exe"
+$portableZip = Join-Path $DesktopDir "build\dist\LofiQ-v1.0.3-Windows-Portable.zip"
 
 if (Test-Path $installerExe) {
     $hash = (Get-FileHash -Path $installerExe -Algorithm SHA256).Hash.ToLower()
-    $checksums += "$hash  LofiQ-v1.0.2-Windows-Setup.exe"
+    $checksums += "$hash  LofiQ-v1.0.3-Windows-Setup.exe"
     Write-Host "  Installer SHA-256: $hash" -ForegroundColor Green
 }
 
 if (Test-Path $portableZip) {
     $hash = (Get-FileHash -Path $portableZip -Algorithm SHA256).Hash.ToLower()
-    $checksums += "$hash  LofiQ-v1.0.2-Windows-Portable.zip"
+    $checksums += "$hash  LofiQ-v1.0.3-Windows-Portable.zip"
     Write-Host "  Portable ZIP SHA-256: $hash" -ForegroundColor Green
 }
 

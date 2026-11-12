@@ -36,8 +36,8 @@ class WindowsUpdateManager {
 
   static const String _primaryUrl = 'https://lofiq-web.vercel.app/version.json';
   static const String _secondaryUrl = 'https://mybackuplofiq.netlify.app/version.json';
-  static const int currentVersionCode = 65;
-  static const String currentVersionName = '1.0.2';
+  static const int currentVersionCode = 66;
+  static const String currentVersionName = '1.0.3';
 
   Future<WindowsUpdateInfo?> checkForUpdates() async {
     // 1. Try Primary (Vercel)
