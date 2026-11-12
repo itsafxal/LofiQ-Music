@@ -337,10 +337,19 @@ class ListenTogetherManager @Inject constructor(
 
                 val roomName = doc.getString("roomName") ?: "Music Room"
                 val hostName = doc.getString("hostName") ?: "Host"
-                val listenerCount = (doc.getLong("listenerCount")?.toInt() ?: 1) + 1
+                val existingParticipants = doc.get("participants") as? Map<*, *>
+                val alreadyParticipant = existingParticipants?.containsKey(joinerId) == true
+                val rawCount = doc.getLong("listenerCount")?.toInt() ?: 1
+                val listenerCount = if (alreadyParticipant) rawCount else rawCount + 1
 
-                // Register joiner in Firestore
-                try {
+                // Register joiner in Firestore (or refresh heartbeat if already listed) so rules stay strictly enforced
+                val roomRef = firestore.collection("listen_together_rooms").document(cleanCode)
+                if (alreadyParticipant) {
+                    roomRef.update(
+                        "participants.$joinerId.lastSeenMs",
+                        System.currentTimeMillis()
+                    ).await()
+                } else {
                     val joinUpdates = hashMapOf<String, Any>(
                         "listenerCount" to FieldValue.increment(1),
                         "participants.$joinerId" to mapOf(
@@ -349,10 +358,8 @@ class ListenTogetherManager @Inject constructor(
                             "lastSeenMs" to System.currentTimeMillis()
                         )
                     )
-                    firestore.collection("listen_together_rooms")
-                        .document(cleanCode)
-                        .update(joinUpdates)
-                } catch (_: Exception) {}
+                    roomRef.update(joinUpdates).await()
+                }
 
                 withContext(dispatchers.main) {
                     _syncState.value = ListenTogetherState.Connected(
@@ -610,15 +617,15 @@ class ListenTogetherManager @Inject constructor(
                     delay(500)
                     if (_syncState.value is ListenTogetherState.Connected) {
                         engine.seekTo(targetPosition)
-                        if (!hostIsPlaying) engine.exoPlayer.pause()
+                        if (!hostIsPlaying) engine.pause()
                     }
                 }
             } else {
                 // Track is already loaded, synchronize play/pause & drift
                 if (hostIsPlaying && !localIsPlaying) {
-                    engine.exoPlayer.play()
+                    engine.play()
                 } else if (!hostIsPlaying && localIsPlaying) {
-                    engine.exoPlayer.pause()
+                    engine.pause()
                 }
 
                 val drift = abs(localPos - targetPosition)

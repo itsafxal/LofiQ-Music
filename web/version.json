@@ -1,47 +1,47 @@
 {
-  "versionCode": 66,
-  "versionName": "1.0.3",
+  "versionCode": 67,
+  "versionName": "1.0.4",
   "minSupportedVersion": 1,
   "releaseDate": "2026-11-12",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.7 MB",
-  "checksum": "76b1b426c2bc3cf255b5b83972cf75ba17e114188ca97c469147180f316e2de0",
+  "checksum": "225bca49c4f2cc64952b8c919ae8df5aa567a3b050c81724019da3ad4166809a",
   "releaseNotes": [
-    "🚀 Official Production Release (V1.0.3 - Build 66)",
+    "🚀 Official Production Release (V1.0.4 - Build 67)",
+    "🔐 Listen Together Firebase Auth & Room Sync Fix: Restored production Firebase project config and hardened guest join/re-join handling under strict Firestore security rules.",
     "🎵 True Dual-Player Seamless Playback: Symmetric Active & Secondary audio slots eliminate tail replays, audio gaps, and stalls during track transitions.",
     "⚡ Early ~10s Silent Preloading: Next track stream & decoder prepare silently at 0% volume around 10 seconds into playback without interrupting the current song.",
-    "♾️ Zero-Overlap Gapless Playback (0s): Preloads incoming tracks ahead of track end for instantaneous gapless transitions even when crossfade is set to 0s.",
-    "🌊 True Equal-Power Crossfade: Smooth cos/sin overlap curves keep perceived loudness constant while preserving full 10-band EQ & Bass Boost across handovers.",
+    "♾️ Zero-Overlap Gapless Playback (0s) & Equal-Power Crossfade: Instantaneous gapless transitions or cos/sin overlap preserving full 10-band EQ & Bass Boost.",
     "🛡️ Resilient Controls & Recovery: Pause/resume mid-crossfade pauses both players cleanly, isolated preload errors never stop active music, and shuffle reorders upcoming queue items."
   ],
   "android": {
-    "versionCode": 66,
-    "versionName": "1.0.3",
+    "versionCode": 67,
+    "versionName": "1.0.4",
     "minSupportedVersion": 1,
     "releaseDate": "2026-11-12",
     "apkUrl": "/downloads/LofiQ.apk",
     "apkSize": "21.7 MB",
-    "checksum": "76b1b426c2bc3cf255b5b83972cf75ba17e114188ca97c469147180f316e2de0",
+    "checksum": "225bca49c4f2cc64952b8c919ae8df5aa567a3b050c81724019da3ad4166809a",
     "releaseNotes": [
-      "🚀 Official Production Release (V1.0.3 - Build 66)",
-      "🎵 True Dual-Player Architecture: Independent Active & Secondary ExoPlayer slots with atomic MediaSession handovers.",
-      "⚡ Early ~10s Silent Preloading: Decodes and buffers incoming tracks silently without interrupting current playback.",
-      "♾️ Gapless Playback (0s) & Equal-Power Crossfade: Instantaneous zero-overlap cuts or constant-power cos/sin crossfades.",
-      "🎛️ Equalizer Continuity: User 10-band EQ, Bass Boost, and Virtualizer settings persist seamlessly across every track handover.",
-      "🔀 Shuffle & Isolated Recovery: Real upcoming queue shuffle and isolated secondary preload error handling."
+      "🚀 Official Production Release (V1.0.4 - Build 67)",
+      "🔐 Fixed Listen Together Firebase API key configuration while preserving all strict Firestore security rules.",
+      "👥 Hardened Guest Room Join & Re-Join Synchronization with awaited Firestore participant registration.",
+      "🎵 True Dual-Player Architecture: Independent Active & Secondary ExoPlayer slots with atomic MediaSession handovers & ~10s silent preload.",
+      "♾️ Gapless Playback (0s) & Equal-Power Crossfade with full 10-band EQ, Bass Boost, and Virtualizer continuity.",
+      "🔀 Real upcoming queue Shuffle & isolated secondary preload error recovery."
     ]
   },
   "windows": {
-    "versionName": "1.0.2",
-    "versionCode": 65,
-    "releaseDate": "2026-11-11",
-    "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Setup.exe",
-    "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/LofiQ-v1.0.2-Windows-Portable.zip",
-    "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.2/SHA256SUMS.txt",
-    "installerSize": "16.5 MB",
+    "versionName": "1.0.3",
+    "versionCode": 66,
+    "releaseDate": "2026-11-12",
+    "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/LofiQ-v1.0.3-Windows-Setup.exe",
+    "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/LofiQ-v1.0.3-Windows-Portable.zip",
+    "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/SHA256SUMS.txt",
+    "installerSize": "16.6 MB",
     "portableSize": "19.7 MB",
-    "installerChecksum": "95910c5d74c086cb1c43321c84df9e26de6655f303d28260da51b582d2cd8945",
-    "portableChecksum": "c74de7cd48306092edb5cdef7187d94e2afbf5d98554c1d64f547125ff2a49d4",
+    "installerChecksum": "b5a13d5a88592b45a5c89dca3303afe690e09f3bbee3f564bef82b59ba9afbcb",
+    "portableChecksum": "8b3f6f9e7ffe91c28aeef790acdcb844469376c279197b938af40798606dcfc3",
     "systemRequirements": {
       "os": "Windows 10 / Windows 11 (64-bit x64)",
       "processor": "1 GHz or faster 64-bit processor",
@@ -50,13 +50,12 @@
       "audio": "Windows Core Audio / WASAPI compatible audio output"
     },
     "releaseNotes": [
-      "🚀 Official Windows Desktop Production Release (V1.0.2 - Build 65)",
-      "🎵 High-Fidelity Audio Engine: Real WASAPI audio playback via media_kit & libmpv",
-      "🎛️ 10-Band Graphic Equalizer, Bass Boost & Spatial Virtualizer",
-      "🌊 Equal-Power Dual-Player Crossfade with predictive preloading",
-      "⌨️ Windows System Media Transport Controls (SMTC) & Hardware Media Keys",
-      "📂 Local Music Library Scanning & Offline Playback (MP3, FLAC, M4A, WAV)",
-      "🎤 Synchronized Karaoke Lyrics (LRCLIB Integration)"
+      "🚀 Official Windows Desktop Production Release (V1.0.3 - Build 66)",
+      "🎵 True Dual-Player Gapless & Equal-Power Crossfade Architecture via media_kit & libmpv",
+      "⚡ Early ~10s Silent Preloading with readiness verification and bounded demuxer readahead",
+      "♾️ Zero-Overlap Gapless Playback (0s) with EOF race fix and smooth pause/resume mid-transition",
+      "🎛️ 10-Band Graphic Equalizer, Bass Boost & Spatial Virtualizer synchronized across both slots",
+      "⌨️ Windows System Media Transport Controls (SMTC), Hardware Media Keys & LRCLIB Lyrics"
     ]
   }
 }
