@@ -4,7 +4,7 @@ import '../../core/models/playlist.dart';
 import '../../core/models/song.dart';
 import '../../core/theme/colors.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
+import '../components/glass/glass_components.dart';
 import '../components/song_row.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -24,46 +24,51 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   void _createPlaylistDialog() {
     final textController = TextEditingController();
-    showDialog(
+    GlassDialog.show(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: LofiQColors.surfaceCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Create New Playlist', style: TextStyle(color: LofiQColors.textPrimary)),
-          content: TextField(
-            controller: textController,
-            style: const TextStyle(color: LofiQColors.textPrimary),
-            decoration: const InputDecoration(
-              hintText: 'Enter playlist title...',
-              hintStyle: TextStyle(color: LofiQColors.textTertiary),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: LofiQColors.brandPurpleLight)),
-            ),
+      builder: (ctx) {
+        return GlassDialog(
+          title: 'Create New Playlist',
+          icon: Icons.playlist_add_rounded,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter a title for your custom lofi compilation or collection.',
+                style: TextStyle(color: LofiQColors.textSecondary, fontSize: 13.0),
+              ),
+              const SizedBox(height: 16.0),
+              GlassInput(
+                controller: textController,
+                hintText: 'Enter playlist title...',
+                autofocus: true,
+                prefixIcon: Icons.edit_rounded,
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: LofiQColors.textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: LofiQColors.brandPurple),
-              onPressed: () {
-                final name = textController.text.trim();
-                if (name.isNotEmpty) {
-                  final newPl = Playlist(
-                    id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
-                    name: name,
-                    createdAt: DateTime.now().millisecondsSinceEpoch,
-                  );
-                  LocalStorage.instance.savePlaylist(newPl);
-                  setState(() {});
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Create', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+          confirmButton: GlassButton(
+            isPrimary: true,
+            accentColor: LofiQColors.brandTangerine,
+            onPressed: () {
+              final name = textController.text.trim();
+              if (name.isNotEmpty) {
+                final newPl = Playlist(
+                  id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+                  name: name,
+                  createdAt: DateTime.now().millisecondsSinceEpoch,
+                );
+                LocalStorage.instance.savePlaylist(newPl);
+                setState(() {});
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Create Playlist', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          dismissButton: GlassButton(
+            isPrimary: false,
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: LofiQColors.textSecondary)),
+          ),
         );
       },
     );
@@ -87,25 +92,54 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Your Library',
-                style: TextStyle(
-                  fontSize: 26.0,
-                  fontWeight: FontWeight.w700,
-                  color: LofiQColors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: LofiQColors.brandTangerine.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: LofiQColors.brandTangerine.withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: const Icon(Icons.library_music_rounded, color: LofiQColors.brandTangerine, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your Music Library',
+                        style: TextStyle(
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                          color: LofiQColors.textPrimary,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      SizedBox(height: 2.0),
+                      Text(
+                        'Playlists, favorites, and synchronized local audio collections',
+                        style: TextStyle(color: LofiQColors.textSecondary, fontSize: 12.0),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('New Playlist'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: LofiQColors.surfaceElevated,
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+              GlassButton(
                 onPressed: _createPlaylistDialog,
+                isPrimary: true,
+                accentColor: LofiQColors.brandTangerine,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                    SizedBox(width: 6),
+                    Text('New Playlist', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -122,16 +156,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       PlaybackController.instance.setQueue(favorites, 0);
                     }
                   },
-                  backgroundColor: const Color(0xFF2B0938).withValues(alpha: 0.7),
+                  hasGlow: favorites.isNotEmpty,
+                  glowColor: LofiQColors.brandTangerine,
                   child: Row(
                     children: [
                       Container(
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           gradient: const LinearGradient(
-                            colors: [LofiQColors.brandPurple, Color(0xFFE11D48)],
+                            colors: [LofiQColors.brandTangerine, Color(0xFFE11D48)],
                           ),
                         ),
                         child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
@@ -154,7 +189,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                       ),
                       if (favorites.isNotEmpty)
-                        const Icon(Icons.play_circle_filled_rounded, color: Colors.white70, size: 32),
+                        const Icon(Icons.play_circle_filled_rounded, color: LofiQColors.brandTangerine, size: 34),
                     ],
                   ),
                 ),
@@ -165,25 +200,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Expanded(
                 child: GlassCard(
                   onTap: widget.onOpenLocalMusic,
-                  backgroundColor: const Color(0xFF0F1E36).withValues(alpha: 0.7),
+                  hasGlow: true,
+                  glowColor: LofiQColors.brandBrunswickGreen,
                   child: Row(
                     children: [
                       Container(
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF0284C7), Color(0xFF0D9488)],
+                            colors: [LofiQColors.brandBrunswickGreen, Color(0xFF0D9488)],
                           ),
                         ),
                         child: const Icon(Icons.folder_special_rounded, color: Colors.white, size: 28),
                       ),
                       const SizedBox(width: 16.0),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
                               'On-Device Audio',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
@@ -255,10 +291,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: LofiQColors.brandPurple.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
+                          color: LofiQColors.brandTangerine.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: LofiQColors.brandTangerine.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
                         ),
-                        child: const Icon(Icons.music_note_rounded, color: LofiQColors.brandPurpleLight, size: 24),
+                        child: const Icon(Icons.music_note_rounded, color: LofiQColors.brandTangerine, size: 24),
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,11 +340,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: LofiQColors.textPrimary),
+              GlassIconButton(
+                icon: Icons.arrow_back_rounded,
                 onPressed: () => setState(() => _selectedPlaylist = null),
               ),
-              const SizedBox(width: 8.0),
+              const SizedBox(width: 14.0),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,11 +361,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
               ),
               if (songs.isNotEmpty)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Play All'),
-                  style: ElevatedButton.styleFrom(backgroundColor: LofiQColors.brandPurple),
+                GlassButton(
+                  isPrimary: true,
+                  accentColor: LofiQColors.brandTangerine,
                   onPressed: () => PlaybackController.instance.setQueue(songs, 0),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text('Play All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -339,7 +386,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                     child: ListView.separated(
                       itemCount: songs.length,
-                      separatorBuilder: (_, __) => Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
+                      separatorBuilder: (_, _) => Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
                       itemBuilder: (context, index) {
                         final song = songs[index];
                         return SongRow(
@@ -356,4 +403,3 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 }
-

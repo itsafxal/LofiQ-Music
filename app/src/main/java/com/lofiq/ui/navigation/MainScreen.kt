@@ -56,6 +56,9 @@ import com.lofiq.ui.components.AmbientAppAtmosphere
 import com.lofiq.playback.engine.PlaybackEngine
 import com.lofiq.feature.sync.ListenTogetherBottomSheet
 import com.lofiq.feature.sync.ListenTogetherMode
+import com.lofiq.ui.components.glass.GlassButton
+import com.lofiq.ui.components.glass.GlassDialog
+import com.lofiq.ui.components.glass.GlassPreset
 import com.lofiq.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -527,114 +530,20 @@ fun MainScreen(
             )
         }
 
-        // Automated In-App Update Prompt Dialog on App Launch
+        // Automated In-App Update Prompt Dialog on App Launch (Liquid Glass Modal)
         if (updateInfo != null) {
             val update = updateInfo!!
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = {
                     if (!isDownloadingUpdate) {
                         updateInfo = null
                     }
                 },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.CloudDownload,
-                            contentDescription = null,
-                            tint = settingsState.activeBrandColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "New Update Available!",
-                            color = AccentWhite,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                    }
-                },
-                text = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LofiQ V${update.versionName} (${update.apkSize})",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            if (update.releaseDate.isNotBlank()) {
-                                Text(
-                                    text = update.releaseDate,
-                                    color = TextSecondary,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "What's New:",
-                            color = AccentWhite,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            update.releaseNotes.forEach { note ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "•",
-                                        color = settingsState.activeBrandColor,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = note,
-                                        color = TextSecondary,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        if (isDownloadingUpdate) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LinearProgressIndicator(
-                                progress = { updateDownloadProgress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                                color = settingsState.activeBrandColor,
-                                trackColor = SurfaceElevated
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Downloading update... ${(updateDownloadProgress * 100).toInt()}%",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                },
+                icon = Icons.Rounded.CloudDownload,
+                title = "New Update Available!",
                 confirmButton = {
                     val confirmContentColor = if (settingsState.activeBrandColor.luminance() > 0.5f) Color.Black else Color.White
-                    Button(
+                    GlassButton(
                         onClick = {
                             if (appUpdateManager != null) {
                                 isDownloadingUpdate = true
@@ -662,13 +571,8 @@ fun MainScreen(
                             }
                         },
                         enabled = !isDownloadingUpdate,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = settingsState.activeBrandColor,
-                            contentColor = confirmContentColor,
-                            disabledContainerColor = settingsState.activeBrandColor.copy(alpha = 0.5f),
-                            disabledContentColor = confirmContentColor.copy(alpha = 0.7f)
-                        ),
+                        isPrimary = true,
+                        accentColor = settingsState.activeBrandColor,
                         modifier = Modifier.height(42.dp)
                     ) {
                         if (isDownloadingUpdate) {
@@ -694,31 +598,104 @@ fun MainScreen(
                         )
                     }
                 },
-                dismissButton = {
-                    if (!isDownloadingUpdate) {
-                        OutlinedButton(
+                dismissButton = if (!isDownloadingUpdate) {
+                    {
+                        GlassButton(
                             onClick = {
                                 appUpdateManager?.markUpdateDismissed(context, update.versionName)
                                 updateInfo = null
                             },
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, SurfaceBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = TextSecondary
-                            ),
+                            preset = GlassPreset.SUBTLE,
                             modifier = Modifier.height(42.dp)
                         ) {
                             Text(
                                 text = "Later",
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.5.sp
+                                fontSize = 13.5.sp,
+                                color = TextSecondary
                             )
                         }
                     }
-                },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = Color(0xFF141416)
-            )
+                } else null
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "LofiQ V${update.versionName} (${update.apkSize})",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        if (update.releaseDate.isNotBlank()) {
+                            Text(
+                                text = update.releaseDate,
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "What's New:",
+                        color = AccentWhite,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        update.releaseNotes.forEach { note ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "•",
+                                    color = settingsState.activeBrandColor,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = note,
+                                    color = TextSecondary,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+                    }
+
+                    if (isDownloadingUpdate) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LinearProgressIndicator(
+                            progress = { updateDownloadProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = settingsState.activeBrandColor,
+                            trackColor = Color.White.copy(alpha = 0.12f)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Downloading update... ${(updateDownloadProgress * 100).toInt()}%",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
         }
 
         // Global Celebration Pop-up when Background Playlist Import Completes

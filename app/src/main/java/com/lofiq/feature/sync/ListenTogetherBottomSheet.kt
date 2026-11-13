@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -100,17 +101,13 @@ fun ListenTogetherBottomSheet(
         }
     }
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF101010),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.2f)) },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 6.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -167,31 +164,26 @@ fun ListenTogetherBottomSheet(
 
                                     Spacer(modifier = Modifier.height(24.dp))
 
-                                    // Option 1: Host a Room Card
-                                    Surface(
+                                    // Option 1: Host a Room Card (Liquid Glass)
+                                    GlassCard(
                                         onClick = {
                                             haptics.play(Haptic.Tap)
                                             currentMode = ListenTogetherMode.HOST
                                         },
+                                        preset = GlassPreset.DARK,
                                         shape = RoundedCornerShape(20.dp),
-                                        color = Color.White.copy(alpha = 0.05f),
-                                        border = androidx.compose.foundation.BorderStroke(
-                                            1.dp,
-                                            Color.White.copy(alpha = 0.14f)
-                                        ),
+                                        padding = PaddingValues(18.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(18.dp),
+                                            modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(46.dp)
                                                     .clip(RoundedCornerShape(14.dp))
-                                                    .background(Color.White.copy(alpha = 0.1f)),
+                                                    .background(LiquidGlassTokens.PillGlassFill),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
@@ -233,31 +225,26 @@ fun ListenTogetherBottomSheet(
 
                                     Spacer(modifier = Modifier.height(12.dp))
 
-                                    // Option 2: Join a Room Card
-                                    Surface(
+                                    // Option 2: Join a Room Card (Liquid Glass)
+                                    GlassCard(
                                         onClick = {
                                             haptics.play(Haptic.Tap)
                                             currentMode = ListenTogetherMode.JOIN
                                         },
+                                        preset = GlassPreset.DARK,
                                         shape = RoundedCornerShape(20.dp),
-                                        color = Color.White.copy(alpha = 0.05f),
-                                        border = androidx.compose.foundation.BorderStroke(
-                                            1.dp,
-                                            Color.White.copy(alpha = 0.14f)
-                                        ),
+                                        padding = PaddingValues(18.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(18.dp),
+                                            modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(46.dp)
                                                     .clip(RoundedCornerShape(14.dp))
-                                                    .background(Color.White.copy(alpha = 0.1f)),
+                                                    .background(LiquidGlassTokens.PillGlassFill),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
@@ -280,7 +267,7 @@ fun ListenTogetherBottomSheet(
                                                     )
                                                 )
                                                 Text(
-                                                    text = "Enter 4-digit code to sync playback",
+                                                    text = "Listen along with a friend's session",
                                                     style = MaterialTheme.typography.bodySmall.copy(
                                                         color = TextSecondary,
                                                         fontSize = 12.sp

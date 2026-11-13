@@ -22,6 +22,12 @@ val AccentBlue = Color(0xFF0A84FF)
 val BrandPink = Color(0xFFFF2D55)
 val BrandTeal = Color(0xFF00C7BE)
 
+// LofiQ Core Brand Colors
+val BrandTangerine = Color(0xFFEB7D00)
+val BrandVanilla = Color(0xFFEBE3A7)
+val BrandBrunswickGreen = Color(0xFF2C5745)
+val BrandDrabDarkBrown = Color(0xFF2E2910)
+
 // Player Overlays
 val PlayerBackgroundDim = Color(0xCC050505)
 val GlassmorphismOverlay = Color(0x33252525)

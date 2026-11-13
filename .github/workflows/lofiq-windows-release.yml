@@ -105,24 +105,64 @@ jobs:
           Write-Host "Compiling Windows Release Executable via Flutter..." -ForegroundColor Cyan
           flutter build windows --release
 
-      - name: 9. Execute Release Packaging & Verification Script
+      - name: 8b. Configure Windows Authenticode Code-Signing Certificate (If Secret Configured)
+        id: setup_cert
+        env:
+          CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+        run: |
+          if ($env:CERT_BASE64) {
+            Write-Host "Code-signing secret detected. Decoding certificate to secure runner directory..." -ForegroundColor Green
+            $certPath = Join-Path $env:RUNNER_TEMP "lofiq_codesign.pfx"
+            [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:CERT_BASE64))
+            "cert_path=$certPath" >> $env:GITHUB_OUTPUT
+            "cert_configured=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Code-signing certificate installed at $certPath" -ForegroundColor Green
+          } else {
+            Write-Host "::warning::WINDOWS_CERT_BASE64 secret is not configured. Binaries will be packaged UNSIGNED." -ForegroundColor Yellow
+            Write-Host "::notice::Windows 11 Smart App Control will require user MotW unblocking or an Authenticode certificate from a Microsoft Trusted Root CA." -ForegroundColor Yellow
+            "cert_configured=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: 9. Execute Release Packaging & Code Signing
+        env:
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
         run: |
           cd desktop
-          powershell -ExecutionPolicy Bypass -File installer/package_release.ps1 -SkipBuild
+          $certArgs = @()
+          if ('${{ steps.setup_cert.outputs.cert_configured }}' -eq 'true') {
+            $certArgs += "-CertPath"
+            $certArgs += "${{ steps.setup_cert.outputs.cert_path }}"
+            if ($env:CERT_PASSWORD) {
+              $certArgs += "-CertPassword"
+              $certArgs += $env:CERT_PASSWORD
+            }
+            $certArgs += "-SignBinaries"
+          }
+          powershell -ExecutionPolicy Bypass -File installer/package_release.ps1 -SkipBuild @certArgs
+
+      - name: 9b. Securely Clean Up Code-Signing Certificate
+        if: always()
+        run: |
+          $certPath = "${{ steps.setup_cert.outputs.cert_path }}"
+          if ($certPath -and (Test-Path $certPath)) {
+            Remove-Item -Force $certPath
+            Write-Host "Code-signing certificate securely purged from runner." -ForegroundColor Green
+          }
 
       - name: 10. Audit & Validate Generated Release Artifacts
         id: validate_artifacts
         run: |
-          $installerPath = "desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe"
-          $portablePath = "desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip"
+          # Detect actual generated files dynamically
+          $installer = Get-ChildItem -Path "desktop/build/installer" -Filter "LofiQ-*-Windows-Setup.exe" | Select-Object -First 1
+          $portable = Get-ChildItem -Path "desktop/build/dist" -Filter "LofiQ-*-Windows-Portable.zip" | Select-Object -First 1
           $checksumsPath = "desktop/build/dist/SHA256SUMS.txt"
 
-          if (-not (Test-Path $installerPath)) {
-            Write-Host "::error::Expected installer not found at $installerPath" -ForegroundColor Red
+          if (-not $installer) {
+            Write-Host "::error::Generated installer not found in desktop/build/installer!" -ForegroundColor Red
             exit 1
           }
-          if (-not (Test-Path $portablePath)) {
-            Write-Host "::error::Expected portable archive not found at $portablePath" -ForegroundColor Red
+          if (-not $portable) {
+            Write-Host "::error::Generated portable archive not found in desktop/build/dist!" -ForegroundColor Red
             exit 1
           }
           if (-not (Test-Path $checksumsPath)) {
@@ -130,32 +170,50 @@ jobs:
             exit 1
           }
 
-          $installerSize = (Get-Item $installerPath).Length
-          $portableSize = (Get-Item $portablePath).Length
+          $installerPath = $installer.FullName
+          $portablePath = $portable.FullName
+          $installerName = $installer.Name
+          $portableName = $portable.Name
+
+          $installerSize = $installer.Length
+          $portableSize = $portable.Length
 
           Write-Host "=== RELEASE ARTIFACTS VERIFIED ===" -ForegroundColor Green
-          Write-Host "  Installer: $installerPath ($([math]::Round($installerSize / 1MB, 2)) MB)"
-          Write-Host "  Portable:  $portablePath ($([math]::Round($portableSize / 1MB, 2)) MB)"
+          Write-Host "  Installer: $installerName ($([math]::Round($installerSize / 1MB, 2)) MB)"
+          Write-Host "  Portable:  $portableName ($([math]::Round($portableSize / 1MB, 2)) MB)"
           Write-Host "`n=== SHA-256 CHECKSUMS ===" -ForegroundColor Cyan
           Get-Content $checksumsPath
 
+          # Check Authenticode signature status on generated installer
+          $sigStatus = (Get-AuthenticodeSignature -FilePath $installerPath).Status
+          Write-Host "`n=== AUTHENTICODE SIGNATURE STATUS ===" -ForegroundColor Cyan
+          Write-Host "  Installer Signature: $sigStatus"
+
           # Output summary to GitHub step summary
-          "## 🚀 LofiQ Desktop v1.0.3 Release Build Succeeded" >> $env:GITHUB_STEP_SUMMARY
-          "| Artifact | Size | SHA-256 Checksum |" >> $env:GITHUB_STEP_SUMMARY
-          "| :--- | :--- | :--- |" >> $env:GITHUB_STEP_SUMMARY
+          "## 🚀 LofiQ Desktop Production Release Artifacts" >> $env:GITHUB_STEP_SUMMARY
+          "| Artifact | Size | SHA-256 Checksum | Signature Status |" >> $env:GITHUB_STEP_SUMMARY
+          "| :--- | :--- | :--- | :--- |" >> $env:GITHUB_STEP_SUMMARY
           $bt = [char]96
           $installerHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
           $portableHash = (Get-FileHash -Path $portablePath -Algorithm SHA256).Hash.ToLower()
-          "| ${bt}LofiQ-v1.0.3-Windows-Setup.exe${bt} | $([math]::Round($installerSize / 1MB, 2)) MB | ${bt}$installerHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
-          "| ${bt}LofiQ-v1.0.3-Windows-Portable.zip${bt} | $([math]::Round($portableSize / 1MB, 2)) MB | ${bt}$portableHash${bt} |" >> $env:GITHUB_STEP_SUMMARY
+          "| ${bt}$installerName${bt} | $([math]::Round($installerSize / 1MB, 2)) MB | ${bt}$installerHash${bt} | $sigStatus |" >> $env:GITHUB_STEP_SUMMARY
+          "| ${bt}$portableName${bt} | $([math]::Round($portableSize / 1MB, 2)) MB | ${bt}$portableHash${bt} | Standalone ZIP |" >> $env:GITHUB_STEP_SUMMARY
+
+          if ($sigStatus -ne "Valid") {
+            "" >> $env:GITHUB_STEP_SUMMARY
+            "> [!NOTE]" >> $env:GITHUB_STEP_SUMMARY
+            "> **Smart App Control Advisory:** This release is packaged without a commercial Authenticode certificate." >> $env:GITHUB_STEP_SUMMARY
+            "> Windows 11 Smart App Control evaluates downloads tagged with Mark of the Web (MotW)." >> $env:GITHUB_STEP_SUMMARY
+            "> Users can either run the Portable ZIP after unblocking (`Unblock-File`), or administrators can sign the release using an EV/Trusted Signing certificate." >> $env:GITHUB_STEP_SUMMARY
+          }
 
       - name: 11. Upload GitHub Actions Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LofiQ-v1.0.3-Windows-Release
+          name: LofiQ-Windows-Release
           path: |
-            desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe
-            desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip
+            desktop/build/installer/LofiQ-*-Windows-Setup.exe
+            desktop/build/dist/LofiQ-*-Windows-Portable.zip
             desktop/build/dist/SHA256SUMS.txt
           retention-days: 30
 
@@ -163,35 +221,41 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.3' }}
-          name: "LofiQ V1.0.3 (Gapless Playback & Dual-Player Crossfade)"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.4' }}
+          name: "LofiQ V1.0.4 (Gapless Playback & Windows Smart App Control Fix)"
           draft: ${{ github.event.inputs.draft == 'true' }}
           prerelease: false
           generate_release_notes: false
           body: |
-            ## LofiQ V1.0.3 Official Release (Android & Windows)
+            ## LofiQ V1.0.4 Official Production Release (Android & Windows)
 
-            ### 📦 Release Assets & Verification
-            - **Android APK:** `LofiQ.apk` (Version Code 66)
-            - **Windows Installer:** `LofiQ-v1.0.3-Windows-Setup.exe` (Inno Setup 6, x64)
-            - **Windows Portable:** `LofiQ-v1.0.3-Windows-Portable.zip` (Standalone x64)
-            - **Cryptographic Verification:** `SHA256SUMS.txt`
+            ### 📦 Windows Desktop Distribution Packages
+            - **Windows Setup Installer:** `LofiQ-v1.0.4-Windows-Setup.exe` (Inno Setup 6, x64, Per-User Clean Install)
+            - **Windows Portable Edition:** `LofiQ-v1.0.4-Windows-Portable.zip` (Standalone x64, Zero-Install)
+            - **Cryptographic Verification:** `SHA256SUMS.txt` (SHA-256 Hashes)
 
-            ### 🎵 Core Audio Engine Upgrade (v1.0.3)
-            - **True Dual-Player Architecture:** Symmetric Active & Secondary audio slots on both Android (Media3 ExoPlayer) and Windows (`media_kit` / `libmpv`).
-            - **Early ~10s Silent Preloading:** Resolves and buffers incoming tracks on the secondary player while active playback continues uninterrupted at full volume.
-            - **Zero-Overlap Gapless Playback (`0s`):** Preloads upcoming tracks silently and executes instantaneous track-end handovers.
-            - **Seamless Equal-Power Crossfade:** Smooth `cos`/`sin` overlap transitions with atomic slot promotion and full EQ preservation.
-            - **Isolated Recovery & Controls:** Isolated preload error handling, pause/resume sync mid-transition, and MediaSession/SMTC metadata handovers.
+            ### 🛡️ Windows 11 Smart App Control & SmartScreen Guidance
+            - **Installer:** Windows 11 Smart App Control monitors applications downloaded from the internet. If blocked with *"Smart App Control blocked an app that may be unsafe"*, users can run the standalone Portable Edition.
+            - **Portable Edition Unblock Procedure:**
+              1. Download `LofiQ-v1.0.4-Windows-Portable.zip`.
+              2. Right-click the ZIP -> **Properties** -> Check **Unblock** -> Click **Apply**.
+              3. Extract and double-click `LofiQ.exe`.
+              *(Or in PowerShell: `Unblock-File -Path .\LofiQ-v1.0.4-Windows-Portable.zip`)*
+
+            ### 🎵 Core Audio Engine Highlights (v1.0.4)
+            - **True Dual-Player Gapless Architecture:** Symmetric Active & Secondary audio slots on both Android (ExoPlayer) and Windows (`media_kit` / `libmpv`).
+            - **Early ~10s Silent Preloading:** Resolves and prepares incoming streams silently at 0% volume before the current song ends.
+            - **Instantaneous 0-second Gapless Handover:** Zero tail replay, zero overlap clicks, atomic state swap.
+            - **Equal-Power Audio Crossfade:** Cosine/Sine power curves preserving 10-band EQ, Bass Boost, and Spatializer filters.
+            - **Windows Integration:** Windows System Media Transport Controls (SMTC) & Hardware Media Key listeners.
 
             ### 🌐 Official Distribution Portals
             - Primary Portal: https://lofiq-web.vercel.app/
             - Backup Mirror: https://mybackuplofiq.netlify.app/
           files: |
-            desktop/build/installer/LofiQ-v1.0.3-Windows-Setup.exe
-            desktop/build/dist/LofiQ-v1.0.3-Windows-Portable.zip
+            desktop/build/installer/LofiQ-*-Windows-Setup.exe
+            desktop/build/dist/LofiQ-*-Windows-Portable.zip
             desktop/build/dist/SHA256SUMS.txt
             web/downloads/LofiQ.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -47,23 +48,13 @@ fun AccountDialog(
     var showSignOutConfirm by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
+        GlassSurface(
             shape = RoundedCornerShape(28.dp),
-            color = SurfaceCard,
-            tonalElevation = 8.dp,
+            preset = GlassPreset.MODAL,
+            hasGlow = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            AccentWhite.copy(alpha = 0.15f),
-                            AccentWhite.copy(alpha = 0.03f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                )
         ) {
             Column(
                 modifier = Modifier
@@ -323,54 +314,50 @@ fun AccountDialog(
                         }
                     }
                 } else {
-                    Button(
+                    GlassButton(
                         onClick = {
                             haptics.play(Haptic.Select)
                             onStartLogin()
                         },
+                        isPrimary = true,
+                        accentColor = BrandTangerine,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = brandColor,
-                            contentColor = AccentWhite
-                        )
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Login,
                             contentDescription = null,
+                            tint = Color.Black,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Sign in with YouTube Music",
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Settings Navigation Button
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable {
-                            haptics.play(Haptic.Tap)
-                            onDismiss()
-                            onOpenSettings()
-                        },
-                    color = SurfaceElevated,
+                // Settings Navigation Button (Liquid Glass Card)
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    preset = GlassPreset.SUBTLE,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, AccentWhite.copy(alpha = 0.08f))
+                    padding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+                    onClick = {
+                        haptics.play(Haptic.Tap)
+                        onDismiss()
+                        onOpenSettings()
+                    }
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {

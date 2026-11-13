@@ -102,8 +102,8 @@ object PlaybackModule {
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl)
-            .setAudioAttributes(audioAttributes, true)
-            .setHandleAudioBecomingNoisy(true)
+            .setAudioAttributes(audioAttributes, false) // Centralized app-level audio focus managed via PlaybackAudioFocusManager
+            .setHandleAudioBecomingNoisy(false) // Centralized via PlaybackAudioFocusManager
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
     }
@@ -138,8 +138,8 @@ object PlaybackModule {
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl)
-            .setAudioAttributes(audioAttributes, false) // Promoted to true atomically at handover
-            .setHandleAudioBecomingNoisy(true)
+            .setAudioAttributes(audioAttributes, false) // Centralized app-level audio focus managed via PlaybackAudioFocusManager
+            .setHandleAudioBecomingNoisy(false) // Centralized via PlaybackAudioFocusManager
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
     }

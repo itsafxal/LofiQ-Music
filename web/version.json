@@ -32,16 +32,16 @@
     ]
   },
   "windows": {
-    "versionName": "1.0.3",
-    "versionCode": 66,
-    "releaseDate": "2026-11-12",
-    "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/LofiQ-v1.0.3-Windows-Setup.exe",
-    "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/LofiQ-v1.0.3-Windows-Portable.zip",
-    "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.3/SHA256SUMS.txt",
-    "installerSize": "16.6 MB",
-    "portableSize": "19.7 MB",
-    "installerChecksum": "b5a13d5a88592b45a5c89dca3303afe690e09f3bbee3f564bef82b59ba9afbcb",
-    "portableChecksum": "8b3f6f9e7ffe91c28aeef790acdcb844469376c279197b938af40798606dcfc3",
+    "versionName": "1.0.4",
+    "versionCode": 67,
+    "releaseDate": "2026-11-14",
+    "installerUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/LofiQ-v1.0.4-Windows-Setup.exe",
+    "portableUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/LofiQ-v1.0.4-Windows-Portable.zip",
+    "checksumUrl": "https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/SHA256SUMS.txt",
+    "installerSize": "16.8 MB",
+    "portableSize": "19.9 MB",
+    "installerChecksum": "Pending CI Verification",
+    "portableChecksum": "Pending CI Verification",
     "systemRequirements": {
       "os": "Windows 10 / Windows 11 (64-bit x64)",
       "processor": "1 GHz or faster 64-bit processor",
@@ -50,7 +50,9 @@
       "audio": "Windows Core Audio / WASAPI compatible audio output"
     },
     "releaseNotes": [
-      "🚀 Official Windows Desktop Production Release (V1.0.3 - Build 66)",
+      "🚀 Official Windows Desktop Production Release (V1.0.4 - Build 67)",
+      "🛡️ Hardened Windows Release Pipeline & Inno Setup Packaging with AppUserModelID identity integration",
+      "📦 Added Zero-Install Standalone Portable Package (LofiQ-v1.0.4-Windows-Portable.zip) with MotW unblock instructions",
       "🎵 True Dual-Player Gapless & Equal-Power Crossfade Architecture via media_kit & libmpv",
       "⚡ Early ~10s Silent Preloading with readiness verification and bounded demuxer readahead",
       "♾️ Zero-Overlap Gapless Playback (0s) with EOF race fix and smooth pause/resume mid-transition",

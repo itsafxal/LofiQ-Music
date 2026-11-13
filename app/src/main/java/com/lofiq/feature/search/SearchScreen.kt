@@ -47,6 +47,7 @@ import com.lofiq.core.model.Song
 import com.lofiq.ui.components.ArtworkImage
 import com.lofiq.ui.components.SongRow
 import com.lofiq.ui.components.WaveformIndicator
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -104,13 +105,11 @@ fun SearchScreen(
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
             )
 
-            // Search Text Field (Minimalist Dark Pill)
-            TextField(
+            // Search Text Field (Liquid Glass Input)
+            GlassInput(
                 value = searchQuery,
                 onValueChange = { viewModel.onQueryChange(it) },
-                placeholder = {
-                    Text("Songs, artists, or albums...", color = TextTertiary, fontSize = 14.sp)
-                },
+                placeholder = "Songs, artists, or albums...",
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Search,
@@ -129,36 +128,10 @@ fun SearchScreen(
                         }
                     }
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                        viewModel.submitQuery(searchQuery)
-                    }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else SurfaceCard,
-                    unfocusedContainerColor = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else SurfaceCard,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    cursorColor = AccentWhite
-                ),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .then(
-                        if (isLiquidGlass) {
-                            Modifier.border(
-                                LiquidGlassTokens.specularBorderStroke(),
-                                RoundedCornerShape(14.dp)
-                            )
-                        } else Modifier
-                    )
                     .focusRequester(focusRequester)
             )
 

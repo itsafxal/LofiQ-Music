@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.lofiq.R
 import com.lofiq.core.common.AppIconTheme
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -64,15 +65,13 @@ fun AppearanceThemeDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
+        GlassSurface(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .wrapContentHeight()
-                .clip(RoundedCornerShape(26.dp)),
+                .wrapContentHeight(),
+            preset = GlassPreset.MODAL,
             shape = RoundedCornerShape(26.dp),
-            color = if (isLiquidGlass) LiquidGlassTokens.GlassSurfaceElevated else Color(0xFF131317),
-            border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder),
-            shadowElevation = 24.dp
+            hasGlow = true
         ) {
             Column(
                 modifier = Modifier
@@ -95,7 +94,7 @@ fun AppearanceThemeDialog(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else MonochromeSubtle),
+                                .background(LiquidGlassTokens.PillGlassFill),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -144,11 +143,11 @@ fun AppearanceThemeDialog(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 // Section 1: App Icon & Logo Theme Selector Card
-                Surface(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
+                    preset = GlassPreset.DARK,
                     shape = RoundedCornerShape(18.dp),
-                    color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
-                    border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+                    padding = PaddingValues(14.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -396,23 +395,22 @@ fun AppearanceThemeDialog(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Done Button
-                Button(
+                // Done Button (Liquid Glass Primary Button)
+                GlassButton(
                     onClick = onDismiss,
+                    isPrimary = true,
+                    accentColor = BrandTangerine,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLiquidGlass) Color.White.copy(alpha = 0.22f) else Color.White,
-                        contentColor = if (isLiquidGlass) Color.White else Color.Black
-                    )
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
                         text = "Done",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
+                            fontSize = 15.sp,
+                            color = Color.Black
                         )
                     )
                 }
@@ -430,32 +428,33 @@ private fun ThemeToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     isLiquidGlass: Boolean
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onCheckedChange(!checked) },
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        preset = if (checked) GlassPreset.DARK else GlassPreset.SUBTLE,
         shape = RoundedCornerShape(16.dp),
-        color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
-        border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+        padding = PaddingValues(horizontal = 14.dp, vertical = 13.dp),
+        onClick = { onCheckedChange(!checked) }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 13.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else MonochromeSubtle),
+                    .background(if (checked) BrandTangerine.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.04f))
+                    .border(
+                        1.dp,
+                        if (checked) BrandTangerine.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.08f),
+                        RoundedCornerShape(10.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = AccentWhite,
+                    tint = if (checked) BrandTangerine else TextSecondary,
                     modifier = Modifier.size(19.dp)
                 )
             }
@@ -484,16 +483,10 @@ private fun ThemeToggleRow(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Switch(
+            GlassSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF2563EB),
-                    uncheckedThumbColor = Color(0xFFAAAAAA),
-                    uncheckedTrackColor = Color(0xFF222226),
-                    uncheckedBorderColor = Color.White.copy(alpha = 0.15f)
-                )
+                activeColor = BrandTangerine
             )
         }
     }

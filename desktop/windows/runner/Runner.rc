@@ -89,14 +89,16 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "LofiQ" "\0"
+            VALUE "CompanyName", "LofiQ Team" "\0"
             VALUE "FileDescription", "LofiQ Desktop Music Player" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "LofiQ" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 LofiQ. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 LofiQ Team. All rights reserved." "\0"
             VALUE "OriginalFilename", "LofiQ.exe" "\0"
             VALUE "ProductName", "LofiQ Music Player" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
+            VALUE "Comments", "LofiQ Desktop - High-Fidelity Music Streaming & Ambient Player for Windows (https://lofiq-web.vercel.app/)" "\0"
+            VALUE "LegalTrademarks", "LofiQ is a registered trademark of LofiQ Team." "\0"
         END
     END
     BLOCK "VarFileInfo"

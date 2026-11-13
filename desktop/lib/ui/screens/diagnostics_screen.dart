@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../core/theme/colors.dart';
 import '../../data/resolvers/resolver_manager.dart';
 import '../../data/lyrics/lyrics_repository.dart';
-import '../components/glass_card.dart';
+import '../components/glass/glass_components.dart';
 
 class DiagnosticsScreen extends StatefulWidget {
   const DiagnosticsScreen({Key? key}) : super(key: key);
@@ -176,34 +176,37 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
+                GlassButton(
                   onPressed: _isTestingAll ? null : _testAllEndpoints,
-                  icon: _isTestingAll
-                      ? const SizedBox(
+                  isPrimary: true,
+                  accentColor: brandTangerine,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isTestingAll)
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.speed_rounded, size: 18),
-                  label: Text(_isTestingAll ? 'Testing...' : 'Probe All Services'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: LofiQColors.neonPurple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      else
+                        const Icon(Icons.speed_rounded, size: 18),
+                      const SizedBox(width: 8),
+                      Text(_isTestingAll ? 'Testing...' : 'Probe All Services'),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                ElevatedButton.icon(
+                GlassButton(
                   onPressed: _clearCaches,
-                  icon: const Icon(Icons.cleaning_services_rounded, size: 18),
-                  label: const Text('Flush Caches'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    foregroundColor: LofiQColors.textSecondary,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  preset: GlassPreset.subtle,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cleaning_services_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text('Flush Caches'),
+                    ],
                   ),
                 ),
               ],
@@ -235,6 +238,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: GlassCard(
+                    preset: ep.isOnline ? GlassPreset.dark : GlassPreset.subtle,
+                    hasGlow: ep.isOnline,
+                    glowColor: statusColor,
                     padding: const EdgeInsets.all(18),
                     child: Row(
                       children: [
@@ -289,9 +295,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        IconButton(
+                        GlassIconButton(
                           tooltip: 'Probe this endpoint',
-                          icon: const Icon(Icons.refresh_rounded, size: 20, color: LofiQColors.textSecondary),
+                          icon: Icons.refresh_rounded,
+                          iconSize: 20,
+                          iconColor: LofiQColors.textSecondary,
                           onPressed: ep.isTesting ? null : () => _testEndpoint(ep),
                         ),
                       ],

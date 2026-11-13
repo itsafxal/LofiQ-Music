@@ -15,6 +15,7 @@ import androidx.media3.session.*
 import com.lofiq.MainActivity
 import com.lofiq.R
 import com.lofiq.core.common.LofiQLogger
+import com.lofiq.playback.engine.PlaybackDiagnosticLogger
 import com.lofiq.playback.engine.PlaybackEngine
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +38,9 @@ class LofiQMediaSessionService : MediaSessionService() {
 
     @Inject
     lateinit var listenTogetherManager: com.lofiq.feature.sync.ListenTogetherManager
+
+    @Inject
+    lateinit var diagnosticLogger: PlaybackDiagnosticLogger
 
     private var mediaSession: MediaSession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -184,9 +188,27 @@ class LofiQMediaSessionService : MediaSessionService() {
             .setCallback(callback)
             .build()
         addSession(mediaSession!!)
+
+        // Synchronous handover coordination: immediately re-bind MediaSession to promoted player
+        // BEFORE the outgoing player is silenced/stopped in performPlayerHandoverLocked.
+        playbackEngine.sessionHandoverCallback = { nextActive ->
+            val session = mediaSession
+            if (session != null) {
+                session.player = createForwardingPlayer(nextActive)
+                onUpdateNotification(session, startInForegroundRequired = true)
+                diagnosticLogger.logServiceLifecycle(
+                    "SESSION_PLAYER_PROMOTED_SYNCHRONOUSLY",
+                    "slotSessionId=${nextActive.audioSessionId}, isPlaying=${nextActive.isPlaying}"
+                )
+            }
+        }
+
         serviceScope.launch {
             playbackEngine.activePlayerFlow.drop(1).collect { nextActive ->
-                mediaSession?.player = createForwardingPlayer(nextActive)
+                mediaSession?.let { session ->
+                    session.player = createForwardingPlayer(nextActive)
+                    onUpdateNotification(session, startInForegroundRequired = true)
+                }
                 LofiQLogger.i(
                     LofiQLogger.Category.PLAYBACK,
                     "[PLAYER_HANDOVER] Updated MediaSession active ForwardingPlayer (sessionId=${nextActive.audioSessionId})"
@@ -200,7 +222,26 @@ class LofiQMediaSessionService : MediaSessionService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        diagnosticLogger.logServiceLifecycle("ON_START_COMMAND", "flags=$flags, startId=$startId")
+        mediaSession?.let { session ->
+            if (playbackEngine.playerState.value.isPlaying) {
+                onUpdateNotification(session, startInForegroundRequired = true)
+            }
+        }
         return START_STICKY
+    }
+
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        val isEnginePlaying = playbackEngine.playerState.value.isPlaying
+        val isPlayerPlaying = session.player.playWhenReady &&
+            session.player.playbackState != Player.STATE_IDLE &&
+            session.player.playbackState != Player.STATE_ENDED
+        val mustStayInForeground = startInForegroundRequired || isEnginePlaying || isPlayerPlaying
+        diagnosticLogger.logServiceLifecycle(
+            "ON_UPDATE_NOTIFICATION",
+            "mustStayInForeground=$mustStayInForeground (req=$startInForegroundRequired, enginePlaying=$isEnginePlaying, playerPlaying=$isPlayerPlaying)"
+        )
+        super.onUpdateNotification(session, mustStayInForeground)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -242,7 +283,9 @@ class LofiQMediaSessionService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        diagnosticLogger.logServiceLifecycle("ON_DESTROY")
         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "LofiQMediaSessionService onDestroy")
+        playbackEngine.sessionHandoverCallback = null
         serviceScope.cancel()
         val syncState = listenTogetherManager.syncState.value
         if (syncState is com.lofiq.feature.sync.ListenTogetherState.Connected && !syncState.isHost) {

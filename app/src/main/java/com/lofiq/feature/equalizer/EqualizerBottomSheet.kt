@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.lofiq.feature.equalizer.components.EqCurveVisualizer
 import com.lofiq.feature.equalizer.components.RotaryKnob
 import com.lofiq.feature.equalizer.components.VerticalEqFader
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -43,27 +44,13 @@ fun EqualizerBottomSheet(
     val cardBackground = Color(0xFF131318)
     val cardBorder = Color(0xFF26262F)
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0C0C10),
-        contentColor = AccentWhite,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.35f))
-            )
-        },
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp)
-                .padding(bottom = 36.dp)
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -90,23 +77,18 @@ fun EqualizerBottomSheet(
                             .size(8.dp)
                             .clip(CircleShape)
                             .background(
-                                if (effectsController.isEnabled) neonCyan else Color.White.copy(alpha = 0.2f)
+                                if (effectsController.isEnabled) BrandTangerine else Color.White.copy(alpha = 0.2f)
                             )
                     )
                 }
 
-                Switch(
+                GlassSwitch(
                     checked = effectsController.isEnabled,
                     onCheckedChange = {
                         haptics.play(if (it) Haptic.ToggleOn else Haptic.ToggleOff)
                         effectsController.toggleEnabled(it)
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = AccentWhite,
-                        checkedTrackColor = neonCyan,
-                        uncheckedThumbColor = TextTertiary,
-                        uncheckedTrackColor = SurfaceElevated
-                    )
+                    activeColor = BrandTangerine
                 )
             }
 
@@ -119,24 +101,15 @@ fun EqualizerBottomSheet(
             ) {
                 effectsController.presets.forEachIndexed { index, preset ->
                     val isSelected = effectsController.selectedPresetIndex == index
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) neonCyan.copy(alpha = 0.16f)
-                                else cardBackground
-                            )
-                            .border(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) neonCyan else cardBorder,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .clickable {
-                                haptics.play(Haptic.Select)
-                                effectsController.applyPreset(index)
-                            }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center
+                    GlassSurface(
+                        preset = if (isSelected) GlassPreset.LIGHT else GlassPreset.SUBTLE,
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            haptics.play(Haptic.Select)
+                            effectsController.applyPreset(index)
+                        },
+                        hasGlow = isSelected,
+                        glowColor = BrandTangerine
                     ) {
                         Text(
                             text = preset.name,
@@ -144,21 +117,24 @@ fun EqualizerBottomSheet(
                                 color = if (isSelected) AccentWhite else TextSecondary,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 12.5.sp
-                            )
+                            ),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                         )
                     }
                 }
             }
 
             // Multi-Band Equalizer Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = cardBackground),
-                shape = RoundedCornerShape(18.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, cardBorder),
+            GlassCard(
+                preset = GlassPreset.DARK,
+                shape = RoundedCornerShape(20.dp),
+                hasGlow = effectsController.isEnabled,
+                glowColor = BrandTangerine,
+                padding = PaddingValues(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     EqCurveVisualizer(
@@ -229,16 +205,16 @@ fun EqualizerBottomSheet(
             }
 
             // Dual Rotary Knobs Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = cardBackground),
-                shape = RoundedCornerShape(18.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, cardBorder),
+            GlassCard(
+                preset = GlassPreset.DARK,
+                shape = RoundedCornerShape(20.dp),
+                hasGlow = effectsController.isEnabled,
+                glowColor = BrandTangerine,
+                padding = PaddingValues(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

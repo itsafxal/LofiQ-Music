@@ -57,7 +57,11 @@ class PlaybackEngine @Inject constructor(
     private val preferences: LofiQPreferences,
     private val networkQualityMonitor: com.lofiq.core.common.NetworkQualityMonitor,
     private val lyricsRepository: com.lofiq.data.lyrics.LyricsRepository? = null,
-    private val dispatchers: DispatcherProvider
+    private val dispatchers: DispatcherProvider,
+    val audioFocusManager: PlaybackAudioFocusManager = PlaybackAudioFocusManager(context, dispatchers, PlaybackDiagnosticLogger(context)),
+    val wakeLockManager: PlaybackWakeLockManager = PlaybackWakeLockManager(context, PlaybackDiagnosticLogger(context)),
+    val screenStateMonitor: ScreenStateMonitor = ScreenStateMonitor(context, PlaybackDiagnosticLogger(context)),
+    val diagnosticLogger: PlaybackDiagnosticLogger = PlaybackDiagnosticLogger(context)
 ) {
     companion object {
         const val PRELOAD_TARGET_MS = 10_000L
@@ -269,11 +273,27 @@ class PlaybackEngine @Inject constructor(
         }
     }
 
+    var sessionHandoverCallback: ((newPlayer: ExoPlayer) -> Unit)? = null
+
     init {
+        screenStateMonitor.startMonitoring()
         attachSlotListener(playerSlotA, isSlotA = true)
         attachSlotListener(playerSlotB, isSlotA = false)
         observePreferences()
         startPositionTracker()
+
+        audioFocusManager.onPausePlayback = {
+            diagnosticLogger.logAudioFocus("INTERRUPT_PAUSE", "Focus lost / headphones disconnected -> pausing playback")
+            pause()
+        }
+        audioFocusManager.onResumePlayback = {
+            diagnosticLogger.logAudioFocus("INTERRUPT_RESUME", "Focus regained -> resuming playback")
+            play()
+        }
+        audioFocusManager.onDuckVolume = { scale ->
+            diagnosticLogger.logAudioFocus("INTERRUPT_DUCK", "Duck scale=$scale")
+            setMasterVolumeScale(scale)
+        }
     }
 
     private fun attachSlotListener(slotPlayer: ExoPlayer, isSlotA: Boolean) {
@@ -281,6 +301,15 @@ class PlaybackEngine @Inject constructor(
             private fun isFromActiveSlot(): Boolean = isSlotA == isSlotAActive
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                diagnosticLogger.logPlayerState(
+                    slot = if (isSlotA) "A" else "B",
+                    state = if (isFromActiveSlot()) "ACTIVE_IS_PLAYING" else "SECONDARY_IS_PLAYING",
+                    isPlaying = isPlaying,
+                    playWhenReady = slotPlayer.playWhenReady,
+                    posMs = slotPlayer.currentPosition,
+                    durMs = slotPlayer.duration,
+                    reason = "onIsPlayingChanged"
+                )
                 if (isFromActiveSlot()) {
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId][slot=${if (isSlotA) "A" else "B"}] IS_PLAYING=$isPlaying")
                     updateState()
@@ -303,6 +332,16 @@ class PlaybackEngine @Inject constructor(
                     Player.STATE_ENDED -> "ENDED"
                     else -> "UNKNOWN"
                 }
+
+                diagnosticLogger.logPlayerState(
+                    slot = if (isSlotA) "A" else "B",
+                    state = stateName,
+                    isPlaying = slotPlayer.isPlaying,
+                    playWhenReady = slotPlayer.playWhenReady,
+                    posMs = slotPlayer.currentPosition,
+                    durMs = slotPlayer.duration,
+                    reason = "onPlaybackStateChanged(isFromActive=${isFromActiveSlot()})"
+                )
 
                 if (!isFromActiveSlot()) {
                     // Secondary slot readiness tracking
@@ -729,7 +768,16 @@ class PlaybackEngine @Inject constructor(
         currentCrossfadeT = 0f
         _playerState.update { it.copy(isCrossfading = true) }
 
+        // Acquire transition WakeLock so CPU does not sleep during screen-off crossfade overlap
+        wakeLockManager.acquireTransitionWakeLock(fadeDurationMs + 10_000L)
+
         val outgoingTitle = currentSong?.title ?: "Unknown"
+        diagnosticLogger.logCrossfade(
+            event = "START",
+            outTrack = outgoingTitle,
+            inTrack = targetSong.title,
+            details = "fade=${fadeDurationMs}ms, outSlot=${if (isSlotAActive) "A" else "B"}, inSlot=${if (isSlotAActive) "B" else "A"}"
+        )
         LofiQLogger.i(
             LofiQLogger.Category.PLAYBACK,
             "[CROSSFADE] Starting equal-power dual-player overlap: out='$outgoingTitle' (slot=${if (isSlotAActive) "A" else "B"}, pos=${outgoing.currentPosition}ms) -> in='${targetSong.title}' (slot=${if (isSlotAActive) "B" else "A"}, buffered=${incoming.bufferedPosition}ms, fade=${fadeDurationMs}ms)"
@@ -769,6 +817,15 @@ class PlaybackEngine @Inject constructor(
                     val t = (elapsedMs.toFloat() / fadeDurationMs.toFloat()).coerceIn(0.0f, 1.0f)
                     currentCrossfadeT = t
 
+                    if (elapsedMs % 1000L < tickMs) {
+                        diagnosticLogger.logCrossfade(
+                            event = "PROGRESS",
+                            outTrack = outgoingTitle,
+                            inTrack = targetSong.title,
+                            progressPercent = (t * 100).toInt()
+                        )
+                    }
+
                     val outVol = (equalPowerOutGain(t) * masterVolumeScale).coerceIn(0f, 1f)
                     val inVol = (equalPowerInGain(t) * masterVolumeScale).coerceIn(0f, 1f)
 
@@ -786,15 +843,19 @@ class PlaybackEngine @Inject constructor(
                 incoming.volume = masterVolumeScale
                 outgoing.volume = 0f
 
+                diagnosticLogger.logCrossfade("RAMP_100", outgoingTitle, targetSong.title)
                 LofiQLogger.i(
                     LofiQLogger.Category.PLAYBACK,
                     "[CROSSFADE] Volume ramp reached 100% for '${targetSong.title}' -> performing atomic handover"
                 )
                 performPlayerHandover(expectedIncomingSong = targetSong, isGapless = false)
             } catch (e: CancellationException) {
+                wakeLockManager.releaseTransitionWakeLock()
                 throw e
             } catch (e: Exception) {
+                diagnosticLogger.logError("CROSSFADE_ERROR", "Transition error: ${e.message}", e)
                 LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] [CROSSFADE] Transition error: ${e.message}", e)
+                wakeLockManager.releaseTransitionWakeLock()
                 cancelFadeAndRestoreVolume(clearPreload = false)
             }
         }
@@ -809,6 +870,8 @@ class PlaybackEngine @Inject constructor(
 
         isTransitioning = true
         transitionTargetSongId = targetSong.id
+        wakeLockManager.acquireTransitionWakeLock(15_000L)
+        diagnosticLogger.logCrossfade("GAPLESS_START", currentSong?.title ?: "Unknown", targetSong.title)
         LofiQLogger.i(
             LofiQLogger.Category.PLAYBACK,
             "[GAPLESS] Zero-overlap handover triggered: '${currentSong?.title}' -> '${targetSong.title}' (buffered=${incoming.bufferedPosition}ms)"
@@ -837,13 +900,22 @@ class PlaybackEngine @Inject constructor(
         val newPrimary = secondaryPlayer
 
         if (secondarySongId != expectedIncomingSong.id || newPrimary.mediaItemCount == 0) {
+            diagnosticLogger.logHandover("ABORTED", if (isSlotAActive) "B" else "A", expectedIncomingSong.title, "incoming mismatch")
             LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] [PLAYER_HANDOVER] Handover aborted: incoming mismatch for '${expectedIncomingSong.title}'")
             cancelFadeAndRestoreVolume(clearPreload = true)
+            wakeLockManager.releaseTransitionWakeLock()
             return
         }
 
         val incomingArtwork = secondaryArtworkBytes
         val incomingMediaItem = secondaryPreparedMediaItem
+
+        diagnosticLogger.logHandover(
+            "START",
+            promotedSlot = if (isSlotAActive) "B" else "A",
+            incomingTrack = expectedIncomingSong.title,
+            details = "isGapless=$isGapless"
+        )
 
         // 1. Ensure incoming player owns audible output at full volume and starts/stays playing
         newPrimary.volume = masterVolumeScale
@@ -852,15 +924,27 @@ class PlaybackEngine @Inject constructor(
             newPrimary.play()
         }
 
-        // 2. Transfer audio focus ownership cleanly without creating a second MediaSession
-        oldPrimary.setAudioAttributes(mediaAudioAttributes, false)
-        newPrimary.setAudioAttributes(mediaAudioAttributes, true)
+        // 2. Ensure AudioFocus is continuously held by LofiQ at the application level
+        audioFocusManager.ensureAudioFocus()
 
         // 3. Atomic slot promotion
         isSlotAActive = !isSlotAActive
         _activePlayerFlow.value = newPrimary
 
-        // 4. Silence and release old primary media resources so it becomes clean secondary slot
+        // 4. CRITICAL FIX: Synchronously promote incoming player to MediaSession BEFORE stopping outgoing player!
+        // This guarantees MediaSession & MediaSessionService never see a stopped/idle session player, preventing
+        // stopForeground(false) from ever dropping the service to background during screen-off handover.
+        sessionHandoverCallback?.invoke(newPrimary)
+        diagnosticLogger.logHandover(
+            "SESSION_PLAYER_PROMOTED",
+            promotedSlot = if (isSlotAActive) "A" else "B",
+            incomingTrack = expectedIncomingSong.title,
+            details = "activePlaybackId=$activePlaybackId"
+        )
+
+        // 5. Silence and release old primary media resources so it becomes clean secondary slot.
+        // Because mediaSession was already synchronously re-bound to newPrimary in Step 4,
+        // this cleanup cannot affect MediaSession or foreground service status!
         runCatching {
             oldPrimary.volume = 0f
             oldPrimary.playWhenReady = false
@@ -868,6 +952,7 @@ class PlaybackEngine @Inject constructor(
             oldPrimary.stop()
             oldPrimary.clearMediaItems()
         }
+        diagnosticLogger.logHandover("OLD_PRIMARY_CLEANED", if (isSlotAActive) "B" else "A", expectedIncomingSong.title)
 
         // 5. Update queue pointer & track metadata
         val targetIdx = findTargetIndexForSong(expectedIncomingSong.id)
@@ -939,6 +1024,8 @@ class PlaybackEngine @Inject constructor(
             )
         }
         updateState()
+        wakeLockManager.releaseTransitionWakeLock()
+        diagnosticLogger.logHandover("COMPLETE", if (isSlotAActive) "A" else "B", updatedSong.title)
 
         LofiQLogger.i(
             LofiQLogger.Category.PLAYBACK,
@@ -1149,7 +1236,10 @@ class PlaybackEngine @Inject constructor(
                         runCatching { if (secondary.isPlaying) secondary.pause() }
                     }
                     active.pause()
+                    audioFocusManager.abandonAudioFocus()
+                    wakeLockManager.releaseAll()
                 } else {
+                    audioFocusManager.requestAudioFocus()
                     if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
                         startPlaybackInternal(currentSong!!)
                     } else {
@@ -1175,6 +1265,7 @@ class PlaybackEngine @Inject constructor(
     fun play() {
         engineScope.launch {
             commandMutex.withLock {
+                audioFocusManager.requestAudioFocus()
                 val active = activePlayer
                 val secondary = secondaryPlayer
                 if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
@@ -1207,6 +1298,8 @@ class PlaybackEngine @Inject constructor(
                     runCatching { if (secondaryPlayer.isPlaying) secondaryPlayer.pause() }
                 }
                 activePlayer.pause()
+                audioFocusManager.abandonAudioFocus()
+                wakeLockManager.releaseAll()
                 updateState()
             }
         }
@@ -1220,6 +1313,8 @@ class PlaybackEngine @Inject constructor(
                 playbackJob?.cancel()
                 playbackJob = null
                 failedPreloadForTrackIds.clear()
+                wakeLockManager.releaseAll()
+                audioFocusManager.abandonAudioFocus()
                 runCatching {
                     playerSlotA.playWhenReady = false
                     playerSlotA.stop()
@@ -1949,6 +2044,10 @@ class PlaybackEngine @Inject constructor(
         secondaryPreparedMediaItem = null
         secondaryArtworkBytes = null
 
+        // Acquire preload WakeLock so background network resolution doesn't get suspended by kernel CPU sleep
+        wakeLockManager.acquirePreloadWakeLock(timeoutMs = 20_000L)
+        diagnosticLogger.logPreload("START", nextSong.title, nextSong.id, targetEpoch)
+
         preloadJob = engineScope.launch(dispatchers.io) {
             try {
                 LofiQLogger.i(
@@ -1982,6 +2081,7 @@ class PlaybackEngine @Inject constructor(
 
                 withContext(dispatchers.main) {
                     if (!isActive || targetEpoch != preloadEpoch || isTransitioning || getNextSong()?.id != nextSong.id) {
+                        wakeLockManager.releasePreloadWakeLock()
                         return@withContext
                     }
                     val nextSongIndex = findTargetIndexForSong(nextSong.id)
@@ -2005,14 +2105,19 @@ class PlaybackEngine @Inject constructor(
                     if (sec.playbackState == Player.STATE_READY) {
                         secondarySlotState = SecondarySlotState.READY
                     }
+                    diagnosticLogger.logPreload("READY", nextSong.title, nextSong.id, targetEpoch, "state=$secondarySlotState")
+                    wakeLockManager.releasePreloadWakeLock()
                     LofiQLogger.i(
                         LofiQLogger.Category.PREFETCH,
                         "[SECONDARY_PLAYER] Loaded '${nextSong.title}' into slot ${if (isSlotAActive) "B" else "A"} (state=$secondarySlotState, vol=0%, playWhenReady=false)"
                     )
                 }
             } catch (e: CancellationException) {
+                wakeLockManager.releasePreloadWakeLock()
                 throw e
             } catch (e: Exception) {
+                wakeLockManager.releasePreloadWakeLock()
+                diagnosticLogger.logPreload("FAILED", nextSong.title, nextSong.id, targetEpoch, e.message ?: "unknown")
                 withContext(dispatchers.main) {
                     if (targetEpoch == preloadEpoch) {
                         failedPreloadForTrackIds.add(nextSong.id)
@@ -2088,6 +2193,7 @@ class PlaybackEngine @Inject constructor(
             }
 
             withContext(dispatchers.main) {
+                audioFocusManager.requestAudioFocus()
                 runCatching {
                     val serviceIntent = Intent(context, LofiQMediaSessionService::class.java)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -2097,9 +2203,18 @@ class PlaybackEngine @Inject constructor(
                     }
                 }
                 val active = activePlayer
+                diagnosticLogger.logPlayerState(
+                    slot = if (isSlotAActive) "A" else "B",
+                    state = "PREPARE_AND_PLAY",
+                    isPlaying = true,
+                    playWhenReady = true,
+                    posMs = 0L,
+                    durMs = song.durationMs,
+                    reason = "startPlaybackInternal:reqId=$reqId"
+                )
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$reqId][slot=${if (isSlotAActive) "A" else "B"}] PREPARE & PLAY")
                 active.volume = masterVolumeScale
-                active.setAudioAttributes(mediaAudioAttributes, true)
+                active.setAudioAttributes(mediaAudioAttributes, false)
                 active.repeatMode = Player.REPEAT_MODE_OFF
                 active.playWhenReady = true
                 active.setMediaItem(mediaItem, /* resetPosition = */ true)
@@ -2367,6 +2482,9 @@ class PlaybackEngine @Inject constructor(
         get() = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else null
 
     fun release() {
+        screenStateMonitor.stopMonitoring()
+        audioFocusManager.abandonAudioFocus()
+        wakeLockManager.releaseAll()
         positionJob?.cancel()
         playbackJob?.cancel()
         preloadJob?.cancel()

@@ -49,6 +49,7 @@ import com.lofiq.core.model.Song
 import com.lofiq.ui.components.CollectionDetailScreen
 import com.lofiq.ui.components.LofiQLogo
 import com.lofiq.ui.components.SongRow
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -242,47 +243,42 @@ fun LibraryScreen(
             )
         }
 
-        // Dialog for creating a playlist
+        // Dialog for creating a playlist (Liquid Glass Modal)
         if (showCreatePlaylistDialog) {
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = { showCreatePlaylistDialog = false },
-                title = { Text("New Playlist", color = AccentWhite, fontWeight = FontWeight.Bold) },
-                text = {
-                    OutlinedTextField(
-                        value = newPlaylistName,
-                        onValueChange = { newPlaylistName = it },
-                        label = { Text("Playlist Name") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = AccentWhite,
-                            unfocusedTextColor = AccentWhite,
-                            cursorColor = AccentWhite,
-                            focusedBorderColor = AccentWhite,
-                            focusedLabelColor = AccentWhite
-                        )
-                    )
-                },
+                icon = Icons.Rounded.PlaylistAdd,
+                title = "New Playlist",
                 confirmButton = {
-                    TextButton(
+                    GlassButton(
                         onClick = {
                             if (newPlaylistName.isNotBlank()) {
                                 viewModel.createPlaylist(newPlaylistName)
                                 newPlaylistName = ""
                                 showCreatePlaylistDialog = false
                             }
-                        }
+                        },
+                        isPrimary = true,
+                        accentColor = BrandTangerine
                     ) {
-                        Text("Create", color = AccentWhite, fontWeight = FontWeight.Bold)
+                        Text("Create", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showCreatePlaylistDialog = false }) {
+                    GlassButton(
+                        onClick = { showCreatePlaylistDialog = false },
+                        preset = GlassPreset.SUBTLE
+                    ) {
                         Text("Cancel", color = TextSecondary)
                     }
-                },
-                containerColor = SurfaceElevated,
-                shape = RoundedCornerShape(20.dp)
-            )
+                }
+            ) {
+                GlassInput(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    placeholder = "Playlist Name"
+                )
+            }
         }
 
         // Spotify Integration Options Dialog

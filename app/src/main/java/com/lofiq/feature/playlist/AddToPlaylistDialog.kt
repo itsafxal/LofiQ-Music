@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.lofiq.core.model.Playlist
 import com.lofiq.core.model.Song
 import com.lofiq.data.repository.LibraryRepository
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -47,20 +48,8 @@ fun AddToPlaylistDialog(
     val cardBg = Color(0xFF141419)
     val cardBorder = Color(0xFF26262F)
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0F0F14),
-        contentColor = AccentWhite,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.35f))
-            )
-        },
         modifier = modifier
     ) {
         Column(
@@ -247,30 +236,14 @@ fun AddToPlaylistDialog(
         }
     }
 
-    // New Playlist Name Input Dialog
+    // New Playlist Name Input Dialog (Liquid Glass Modal)
     if (showCreateNewDialog) {
-        AlertDialog(
+        GlassDialog(
             onDismissRequest = { showCreateNewDialog = false },
-            title = { Text("New Playlist", fontWeight = FontWeight.Bold, color = AccentWhite) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = newPlaylistName,
-                        onValueChange = { newPlaylistName = it },
-                        placeholder = { Text("Playlist Name", color = TextSecondary) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = AccentWhite,
-                            unfocusedTextColor = AccentWhite,
-                            focusedBorderColor = neonCyan,
-                            unfocusedBorderColor = cardBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
+            icon = Icons.Rounded.PlaylistAdd,
+            title = "New Playlist",
             confirmButton = {
-                TextButton(
+                GlassButton(
                     onClick = {
                         if (newPlaylistName.isNotBlank()) {
                             coroutineScope.launch {
@@ -279,18 +252,27 @@ fun AddToPlaylistDialog(
                                 newPlaylistName = ""
                             }
                         }
-                    }
+                    },
+                    isPrimary = true,
+                    accentColor = BrandTangerine
                 ) {
-                    Text("Create", color = neonCyan, fontWeight = FontWeight.Bold)
+                    Text("Create", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateNewDialog = false }) {
+                GlassButton(
+                    onClick = { showCreateNewDialog = false },
+                    preset = GlassPreset.SUBTLE
+                ) {
                     Text("Cancel", color = TextSecondary)
                 }
-            },
-            containerColor = Color(0xFF141419),
-            shape = RoundedCornerShape(16.dp)
-        )
+            }
+        ) {
+            GlassInput(
+                value = newPlaylistName,
+                onValueChange = { newPlaylistName = it },
+                placeholder = "Playlist Name"
+            )
+        }
     }
 }

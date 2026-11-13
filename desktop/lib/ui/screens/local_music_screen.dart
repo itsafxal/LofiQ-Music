@@ -3,7 +3,7 @@ import '../../core/models/song.dart';
 import '../../core/theme/colors.dart';
 import '../../data/local_audio/local_audio_scanner.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
+import '../components/glass/glass_components.dart';
 import '../components/song_row.dart';
 
 class LocalMusicScreen extends StatefulWidget {
@@ -109,69 +109,55 @@ class _LocalMusicScreenState extends State<LocalMusicScreen> {
                   ),
                 ),
                 // Rescan Action Button
-                ElevatedButton.icon(
+                GlassButton(
                   onPressed: _isScanning ? null : _loadLocalMusic,
-                  icon: _isScanning
-                      ? const SizedBox(
+                  preset: GlassPreset.subtle,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isScanning)
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.refresh_rounded, size: 18),
-                  label: Text(_isScanning ? 'Scanning...' : 'Rescan Folder'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    foregroundColor: LofiQColors.neonCyan,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      else
+                        const Icon(Icons.refresh_rounded, size: 18),
+                      const SizedBox(width: 8),
+                      Text(_isScanning ? 'Scanning...' : 'Rescan Folder'),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                ElevatedButton.icon(
+                GlassButton(
                   onPressed: _localSongs.isEmpty ? null : () => _playAll(shuffle: false),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                  label: const Text('Play All'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: LofiQColors.neonPurple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  isPrimary: true,
+                  accentColor: brandTangerine,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow_rounded, size: 20),
+                      SizedBox(width: 8),
+                      Text('Play All'),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
+                GlassIconButton(
                   tooltip: 'Shuffle All',
                   onPressed: _localSongs.isEmpty ? null : () => _playAll(shuffle: true),
-                  icon: const Icon(Icons.shuffle_rounded, color: LofiQColors.neonCyan),
-                  style: IconButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                  ),
+                  icon: Icons.shuffle_rounded,
+                  iconColor: brandTangerine,
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
             // Search Bar Filter
-            GlassCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: TextField(
-                style: const TextStyle(color: LofiQColors.textPrimary),
-                onChanged: (val) => setState(() => _searchFilter = val),
-                decoration: InputDecoration(
-                  icon: const Icon(Icons.search_rounded, color: LofiQColors.textSecondary),
-                  hintText: 'Filter local tracks by title, artist, or album...',
-                  hintStyle: const TextStyle(color: LofiQColors.textSecondary),
-                  border: InputBorder.none,
-                  suffixIcon: _searchFilter.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close_rounded, color: LofiQColors.textSecondary),
-                          onPressed: () => setState(() => _searchFilter = ''),
-                        )
-                      : null,
-                ),
-              ),
+            GlassInput(
+              hintText: 'Filter local tracks by title, artist, or album...',
+              prefixIcon: Icons.search_rounded,
+              onChanged: (val) => setState(() => _searchFilter = val),
             ),
             const SizedBox(height: 20),
 

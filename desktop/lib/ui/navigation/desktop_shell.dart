@@ -3,6 +3,7 @@ import '../../core/theme/colors.dart';
 import '../../playback/playback_controller.dart';
 import '../../playback/equalizer/equalizer_controller.dart';
 import '../components/dynamic_ambient_background.dart';
+import '../components/glass/glass_components.dart';
 import '../components/mini_player.dart';
 import '../components/window_titlebar.dart';
 import '../screens/home_screen.dart';
@@ -110,101 +111,103 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   Widget _buildNavRail() {
-    return Container(
-      width: 230,
-      color: LofiQColors.surfaceBlack.withValues(alpha: 0.85),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // LofiQ Branding Logo
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0, bottom: 24.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(9.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: LofiQColors.brandPurple.withValues(alpha: 0.45),
-                        blurRadius: 10,
-                        spreadRadius: 1,
+    return GlassNavigationSurface(
+      cornerRadius: 0.0,
+      child: Container(
+        width: 230,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // LofiQ Branding Logo
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0, bottom: 24.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(9.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: brandTangerine.withOpacity(0.45),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(9.0),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        width: 34,
+                        height: 34,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [brandTangerine, brandBrunswickGreen],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(9.0),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LofiQ',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'DESKTOP V1.0.3',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: brandTangerine,
+                        ),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(9.0),
-                    child: Image.asset(
-                      'assets/images/app_logo.png',
-                      width: 34,
-                      height: 34,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [LofiQColors.brandPurple, LofiQColors.brandTeal],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'LofiQ',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      'DESKTOP V1.0.3',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                        color: LofiQColors.brandPurpleLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Main Navigation Items
-          _buildNavSectionTitle('MAIN'),
-          _buildNavItem(0, 'Home', Icons.home_rounded),
-          _buildNavItem(1, 'Explore', Icons.explore_rounded),
-          _buildNavItem(2, 'Search', Icons.search_rounded),
-          _buildNavItem(3, 'Library', Icons.library_music_rounded),
-          _buildNavItem(4, 'On-Device Audio', Icons.folder_special_rounded),
+            // Main Navigation Items
+            _buildNavSectionTitle('MAIN'),
+            _buildNavItem(0, 'Home', Icons.home_rounded),
+            _buildNavItem(1, 'Explore', Icons.explore_rounded),
+            _buildNavItem(2, 'Search', Icons.search_rounded),
+            _buildNavItem(3, 'Library', Icons.library_music_rounded),
+            _buildNavItem(4, 'On-Device Audio', Icons.folder_special_rounded),
 
-          const SizedBox(height: 16),
-          _buildNavSectionTitle('TOOLS & DSP'),
-          _buildNavItem(5, 'Equalizer & DSP', Icons.graphic_eq_rounded),
-          _buildNavItem(6, 'Spotify Importer', Icons.import_export_rounded),
+            const SizedBox(height: 16),
+            _buildNavSectionTitle('TOOLS & DSP'),
+            _buildNavItem(5, 'Equalizer & DSP', Icons.graphic_eq_rounded),
+            _buildNavItem(6, 'Spotify Importer', Icons.import_export_rounded),
 
-          const Spacer(),
+            const Spacer(),
 
-          _buildNavSectionTitle('SYSTEM'),
-          _buildNavItem(7, 'Settings', Icons.settings_rounded),
-          _buildNavItem(8, 'Diagnostics', Icons.network_check_rounded),
-        ],
+            _buildNavSectionTitle('SYSTEM'),
+            _buildNavItem(7, 'Settings', Icons.settings_rounded),
+            _buildNavItem(8, 'Diagnostics', Icons.network_check_rounded),
+          ],
+        ),
       ),
     );
   }
@@ -229,43 +232,35 @@ class _DesktopShellState extends State<DesktopShell> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10.0),
-          onTap: () => _onSelectNav(index),
-          hoverColor: Colors.white.withValues(alpha: 0.05),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-            decoration: BoxDecoration(
-              color: isSelected ? LofiQColors.brandPurple.withValues(alpha: 0.20) : Colors.transparent,
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(
-                color: isSelected ? LofiQColors.brandPurple.withValues(alpha: 0.40) : Colors.transparent,
+      child: GlassSurface(
+        preset: isSelected ? GlassPreset.light : GlassPreset.subtle,
+        borderRadius: BorderRadius.circular(10.0),
+        hasGlow: isSelected,
+        glowColor: brandTangerine,
+        onTap: () => _onSelectNav(index),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? brandTangerine : LofiQColors.textSecondary,
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isSelected ? LofiQColors.brandPurpleLight : LofiQColors.textSecondary,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : LofiQColors.textSecondary,
-                    ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : LofiQColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

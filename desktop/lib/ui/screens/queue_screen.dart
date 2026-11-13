@@ -3,7 +3,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/time_format.dart';
 import '../../core/database/local_storage.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
+import '../components/glass/glass_components.dart';
 
 class QueueScreen extends StatefulWidget {
   final PlaybackController playbackController;
@@ -40,30 +40,22 @@ class _QueueScreenState extends State<QueueScreen> {
     final controller = TextEditingController(text: 'Queue ${DateTime.now().month}/${DateTime.now().day}');
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: LofiQColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-        ),
-        title: const Text('Save Queue as Playlist', style: TextStyle(color: LofiQColors.textPrimary)),
-        content: TextField(
+      builder: (ctx) => GlassDialog(
+        title: 'Save Queue as Playlist',
+        content: GlassInput(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: LofiQColors.textPrimary),
-          decoration: const InputDecoration(
-            hintText: 'Enter playlist title...',
-            hintStyle: TextStyle(color: LofiQColors.textSecondary),
-          ),
+          hintText: 'Enter playlist title...',
         ),
         actions: [
-          TextButton(
+          GlassButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel', style: TextStyle(color: LofiQColors.textSecondary)),
           ),
-          ElevatedButton(
+          GlassButton(
+            isPrimary: true,
+            accentColor: brandTangerine,
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: LofiQColors.neonPurple),
             child: const Text('Save'),
           ),
         ],
@@ -93,87 +85,100 @@ class _QueueScreenState extends State<QueueScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Padding(
-        padding: const EdgeInsets.all(28.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Bar
-            Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 580;
+          final contentPadding = isCompact ? const EdgeInsets.all(16.0) : const EdgeInsets.all(28.0);
+
+          return Padding(
+            padding: contentPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: LofiQColors.neonPurple.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: LofiQColors.neonPurple.withOpacity(0.3)),
-                  ),
-                  child: const Icon(Icons.queue_music_rounded, color: LofiQColors.neonPurple, size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Playback Queue',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: LofiQColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                // Top Bar
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(isCompact ? 8.0 : 12.0),
+                      decoration: BoxDecoration(
+                        color: LofiQColors.neonPurple.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: LofiQColors.neonPurple.withOpacity(0.3)),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${queue.length} tracks • Reorder, manage, or export to a playlist',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: LofiQColors.textSecondary,
+                      child: Icon(Icons.queue_music_rounded, color: LofiQColors.neonPurple, size: isCompact ? 20.0 : 28.0),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isCompact ? 'Queue' : 'Playback Queue',
+                            style: isCompact
+                                ? const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: LofiQColors.textPrimary)
+                                : Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    color: LofiQColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${queue.length} tracks • ${isCompact ? "Manage & reorder" : "Reorder, manage, or export to a playlist"}',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: LofiQColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Actions
+                    if (isCompact) ...[
+                      GlassIconButton(
+                        tooltip: 'Save as Playlist',
+                        onPressed: queue.isEmpty ? null : _saveQueueAsPlaylist,
+                        icon: Icons.playlist_add_rounded,
+                        iconColor: brandTangerine,
+                      ),
+                    ] else ...[
+                      GlassButton(
+                        onPressed: queue.isEmpty ? null : _saveQueueAsPlaylist,
+                        isPrimary: true,
+                        accentColor: brandTangerine,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.playlist_add_rounded, size: 18),
+                            SizedBox(width: 8),
+                            Text('Save as Playlist'),
+                          ],
                         ),
                       ),
                     ],
-                  ),
+                    const SizedBox(width: 8),
+                    GlassIconButton(
+                      tooltip: 'Shuffle Queue',
+                      onPressed: queue.isEmpty ? null : () => widget.playbackController.shuffleQueue(),
+                      icon: Icons.shuffle_rounded,
+                      iconColor: brandTangerine,
+                    ),
+                    const SizedBox(width: 6),
+                    GlassIconButton(
+                      tooltip: 'Clear Queue',
+                      onPressed: queue.isEmpty ? null : () => widget.playbackController.clearQueue(),
+                      icon: Icons.clear_all_rounded,
+                      iconColor: Colors.redAccent,
+                    ),
+                  ],
                 ),
-                // Actions
-                ElevatedButton.icon(
-                  onPressed: queue.isEmpty ? null : _saveQueueAsPlaylist,
-                  icon: const Icon(Icons.playlist_add_rounded, size: 18),
-                  label: const Text('Save as Playlist'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    foregroundColor: LofiQColors.neonPurple,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton(
-                  tooltip: 'Shuffle Queue',
-                  onPressed: queue.isEmpty ? null : () => widget.playbackController.shuffleQueue(),
-                  icon: const Icon(Icons.shuffle_rounded, color: LofiQColors.neonCyan),
-                  style: IconButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Clear Queue',
-                  onPressed: queue.isEmpty ? null : () => widget.playbackController.clearQueue(),
-                  icon: const Icon(Icons.clear_all_rounded, color: Colors.redAccent),
-                  style: IconButton.styleFrom(
-                    backgroundColor: LofiQColors.cardBackground,
-                    side: const BorderSide(color: LofiQColors.glassBorderSubtle),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
             // Now Playing Card
             if (currentSong != null) ...[
               const Text(
                 'NOW PLAYING',
                 style: TextStyle(
-                  color: LofiQColors.neonPurple,
+                  color: brandTangerine,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -181,6 +186,9 @@ class _QueueScreenState extends State<QueueScreen> {
               ),
               const SizedBox(height: 10),
               GlassCard(
+                preset: GlassPreset.elevated,
+                hasGlow: true,
+                glowColor: brandTangerine,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
@@ -296,21 +304,12 @@ class _QueueScreenState extends State<QueueScreen> {
                         return Container(
                           key: ValueKey('${song.id}_$index'),
                           margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: isNowPlaying
-                                ? LofiQColors.neonPurple.withOpacity(0.12)
-                                : LofiQColors.cardBackground.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isNowPlaying
-                                  ? LofiQColors.neonPurple.withOpacity(0.4)
-                                  : LofiQColors.glassBorderSubtle,
-                            ),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            leading: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          child: GlassCard(
+                            preset: isNowPlaying ? GlassPreset.light : GlassPreset.subtle,
+                            hasGlow: isNowPlaying,
+                            glowColor: brandTangerine,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            child: Row(
                               children: [
                                 ReorderableDragStartListener(
                                   index: index,
@@ -329,39 +328,49 @@ class _QueueScreenState extends State<QueueScreen> {
                                         )
                                       : _buildPlaceholder(),
                                 ),
-                              ],
-                            ),
-                            title: Text(
-                              song.title,
-                              style: TextStyle(
-                                color: isNowPlaying ? LofiQColors.neonCyan : LofiQColors.textPrimary,
-                                fontWeight: isNowPlaying ? FontWeight.bold : FontWeight.normal,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              song.artist,
-                              style: const TextStyle(color: LofiQColors.textSecondary, fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => widget.playbackController.skipToIndex(index),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          song.title,
+                                          style: TextStyle(
+                                            color: isNowPlaying ? brandTangerine : LofiQColors.textPrimary,
+                                            fontWeight: isNowPlaying ? FontWeight.bold : FontWeight.normal,
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          song.artist,
+                                          style: const TextStyle(color: LofiQColors.textSecondary, fontSize: 12),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                                 Text(
                                   TimeFormatUtils.formatDurationMs(song.durationMs),
                                   style: const TextStyle(color: LofiQColors.textSecondary, fontSize: 13),
                                 ),
                                 const SizedBox(width: 8),
-                                IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 18, color: LofiQColors.textSecondary),
+                                GlassIconButton(
+                                  icon: Icons.close_rounded,
+                                  iconSize: 18,
+                                  size: 32,
+                                  iconColor: LofiQColors.textSecondary,
                                   onPressed: () => widget.playbackController.removeFromQueue(index),
                                   tooltip: 'Remove from queue',
                                 ),
                               ],
                             ),
-                            onTap: () => widget.playbackController.skipToIndex(index),
                           ),
                         );
                       },
@@ -369,8 +378,10 @@ class _QueueScreenState extends State<QueueScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 
   Widget _buildPlaceholder() {

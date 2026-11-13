@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.lofiq.feature.equalizer.components.EqCurveVisualizer
 import com.lofiq.feature.equalizer.components.RotaryKnob
 import com.lofiq.feature.equalizer.components.VerticalEqFader
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -77,32 +78,28 @@ fun EqualizerScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = AccentWhite
-                        )
-                    }
+                    GlassIconButton(
+                        onClick = onNavigateBack,
+                        icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = AccentWhite,
+                        size = 38.dp,
+                        iconSize = 20.dp
+                    )
                 },
                 actions = {
-                    Switch(
+                    GlassSwitch(
                         checked = effectsController.isEnabled,
                         onCheckedChange = {
                             haptics.play(if (it) Haptic.ToggleOn else Haptic.ToggleOff)
                             effectsController.toggleEnabled(it)
                         },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = AccentWhite,
-                            checkedTrackColor = neonCyan,
-                            uncheckedThumbColor = TextTertiary,
-                            uncheckedTrackColor = SurfaceElevated
-                        )
+                        activeColor = BrandTangerine
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundBlack
+                    containerColor = Color.Transparent
                 )
             )
         },
@@ -136,7 +133,7 @@ fun EqualizerScreen(
                         Text(
                             text = "Reset",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = neonCyan,
+                                color = BrandTangerine,
                                 fontWeight = FontWeight.SemiBold
                             ),
                             modifier = Modifier
@@ -158,28 +155,19 @@ fun EqualizerScreen(
                 ) {
                     effectsController.presets.forEachIndexed { index, preset ->
                         val isSelected = effectsController.selectedPresetIndex == index
-                        val activeBorder = if (isSelected) neonCyan else Color.Transparent
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) neonCyan.copy(alpha = 0.16f)
-                                    else cardBackground
-                                )
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) neonCyan else cardBorder,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .clickable {
-                                    haptics.play(Haptic.Select)
-                                    effectsController.applyPreset(index)
-                                }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
+                        GlassSurface(
+                            preset = if (isSelected) GlassPreset.LIGHT else GlassPreset.SUBTLE,
+                            shape = RoundedCornerShape(12.dp),
+                            onClick = {
+                                haptics.play(Haptic.Select)
+                                effectsController.applyPreset(index)
+                            },
+                            hasGlow = isSelected,
+                            glowColor = BrandTangerine
                         ) {
                             Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -187,7 +175,7 @@ fun EqualizerScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.GraphicEq,
                                         contentDescription = null,
-                                        tint = neonCyan,
+                                        tint = BrandTangerine,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -206,10 +194,12 @@ fun EqualizerScreen(
             }
 
             // ── 2. Master Studio Multi-Band Equalizer Rack ───────────────────
-            Card(
-                colors = CardDefaults.cardColors(containerColor = cardBackground),
-                shape = RoundedCornerShape(20.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, cardBorder),
+            GlassCard(
+                preset = GlassPreset.DARK,
+                shape = RoundedCornerShape(22.dp),
+                hasGlow = effectsController.isEnabled,
+                glowColor = BrandTangerine,
+                padding = PaddingValues(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -344,10 +334,12 @@ fun EqualizerScreen(
             }
 
             // ── 3. Acoustic Enhancements Rotary Knobs ────────────────────────
-            Card(
-                colors = CardDefaults.cardColors(containerColor = cardBackground),
-                shape = RoundedCornerShape(20.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, cardBorder),
+            GlassCard(
+                preset = GlassPreset.DARK,
+                shape = RoundedCornerShape(22.dp),
+                hasGlow = effectsController.isEnabled,
+                glowColor = BrandTangerine,
+                padding = PaddingValues(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(

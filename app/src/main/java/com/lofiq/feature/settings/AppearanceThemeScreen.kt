@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lofiq.core.common.AppIconTheme
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -88,24 +89,17 @@ fun AppearanceThemeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    IconButton(
+                    GlassIconButton(
                         onClick = {
                             haptics.play(Haptic.Tap)
                             onNavigateBack()
                         },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else SurfaceSubtleColor)
-                            .border(1.dp, SubtleBorderColor, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = AccentWhite,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = AccentWhite,
+                        size = 42.dp,
+                        iconSize = 20.dp
+                    )
 
                     Column {
                         Text(
@@ -140,22 +134,19 @@ fun AppearanceThemeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Dedicated Option Card requested by user
-            Surface(
+            // Dedicated Option Card for App Icon & Themes
+            GlassCard(
+                preset = GlassPreset.DARK,
                 shape = RoundedCornerShape(22.dp),
-                color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else SurfaceCardColor,
-                border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, SubtleBorderColor),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        haptics.play(Haptic.Tap)
-                        onNavigateToAppIconTheme()
-                    }
+                padding = PaddingValues(20.dp),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    haptics.play(Haptic.Tap)
+                    onNavigateToAppIconTheme()
+                }
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -168,7 +159,7 @@ fun AppearanceThemeScreen(
                             modifier = Modifier
                                 .size(50.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else SurfaceSubtleColor)
+                                .background(LiquidGlassTokens.PillGlassFill)
                                 .border(1.dp, SubtleBorderColor, RoundedCornerShape(16.dp)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -227,21 +218,18 @@ fun AppearanceThemeScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Dedicated Option Card for Seekbar Style
-            Surface(
+            GlassCard(
+                preset = GlassPreset.DARK,
                 shape = RoundedCornerShape(22.dp),
-                color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else SurfaceCardColor,
-                border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, SubtleBorderColor),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        haptics.play(Haptic.Tap)
-                        onNavigateToSeekbarStyle()
-                    }
+                padding = PaddingValues(20.dp),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    haptics.play(Haptic.Tap)
+                    onNavigateToSeekbarStyle()
+                }
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -254,7 +242,7 @@ fun AppearanceThemeScreen(
                             modifier = Modifier
                                 .size(50.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else SurfaceSubtleColor)
+                                .background(LiquidGlassTokens.PillGlassFill)
                                 .border(1.dp, SubtleBorderColor, RoundedCornerShape(16.dp)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -431,19 +419,15 @@ private fun ThemeToggleCard(
     onCheckedChange: (Boolean) -> Unit,
     isLiquidGlass: Boolean
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .clickable { onCheckedChange(!checked) },
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        preset = if (checked) GlassPreset.DARK else GlassPreset.SUBTLE,
         shape = RoundedCornerShape(18.dp),
-        color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else SurfaceCardColor,
-        border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, SubtleBorderColor)
+        padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        onClick = { onCheckedChange(!checked) }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -456,10 +440,10 @@ private fun ThemeToggleCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (checked) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f))
+                        .background(if (checked) BrandTangerine.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.04f))
                         .border(
                             1.dp,
-                            if (checked) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.08f),
+                            if (checked) BrandTangerine.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.08f),
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -467,7 +451,7 @@ private fun ThemeToggleCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (checked) AccentWhite else TextSecondary,
+                        tint = if (checked) BrandTangerine else TextSecondary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -493,16 +477,10 @@ private fun ThemeToggleCard(
                 }
             }
 
-            Switch(
+            GlassSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = BackgroundBlack,
-                    checkedTrackColor = AccentWhite,
-                    uncheckedThumbColor = Color(0xFFAAAAAA),
-                    uncheckedTrackColor = Color(0xFF222228),
-                    uncheckedBorderColor = Color.White.copy(alpha = 0.15f)
-                )
+                activeColor = BrandTangerine
             )
         }
     }

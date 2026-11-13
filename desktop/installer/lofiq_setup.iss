@@ -1,45 +1,64 @@
 ; =====================================================================
 ; LofiQ Desktop Music Player - Production Inno Setup Script
-; Official Version: 1.0.3 (Build 66)
-; Target Platform: Windows 10 / Windows 11 (64-bit)
+; Official Version: 1.0.4 (Build 67)
+; Target Platform: Windows 10 / Windows 11 (64-bit x64)
 ; =====================================================================
 
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.4"
+#endif
+#ifndef MyAppVersionNum
+  #define MyAppVersionNum "1.0.4.67"
+#endif
+
 #define MyAppName "LofiQ"
-#define MyAppVersion "1.0.3"
 #define MyAppPublisher "LofiQ Team"
 #define MyAppURL "https://lofiq-web.vercel.app/"
 #define MyAppExeName "LofiQ.exe"
-#define MyAppId "{{A8D3F912-7C3A-4E1B-95F8-180D825E6A3B}"
+#define MyAppId "{{A8D3F912-7C3A-4E1B-95F8-180D825E6A3B}}"
+#define MyAppUserModelId "com.lofiq.lofiq_desktop"
 
 [Setup]
 AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} V{#MyAppVersion}
+AppVerName={#MyAppName} v{#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\build\installer
-OutputBaseFilename=LofiQ-v1.0.3-Windows-Setup
+OutputBaseFilename=LofiQ-v{#MyAppVersion}-Windows-Setup
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
-VersionInfoVersion=1.0.3.66
-VersionInfoCompany=LofiQ
-VersionInfoDescription=LofiQ Desktop Music Player Installer
-VersionInfoCopyright=Copyright (C) 2026 LofiQ. All rights reserved.
-VersionInfoProductName=LofiQ
-VersionInfoProductVersion=1.0.3.66
+CloseApplications=yes
+CloseApplicationsFilter=*.exe
+VersionInfoVersion={#MyAppVersionNum}
+VersionInfoTextVersion={#MyAppVersion}
+VersionInfoProductVersion={#MyAppVersionNum}
+VersionInfoProductTextVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} Desktop Music Player Setup
+VersionInfoCopyright=Copyright (C) 2026 {#MyAppPublisher}. All rights reserved.
+VersionInfoProductName={#MyAppName}
+
+#ifdef SignInstaller
+SignTool=custom_sign_tool
+SignedUninstaller=yes
+#else
+SignedUninstaller=no
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -49,31 +68,16 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart"; Description: "Launch LofiQ automatically on Windows startup"; GroupDescription: "Additional Options:"; Flags: unchecked
 
 [Files]
-; Primary Windows Executable (LofiQ.exe)
-Source: "..\build\windows\x64\runner\Release\LofiQ.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\build\windows\x64\runner\Release\desktop.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion skipifsourcedoesntexist
+; Primary Windows Executable & Core Dependencies
+Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; Core Flutter Engine DLL
-Source: "..\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-
-; Native MediaKit and Libmpv Audio Engine Libraries
-Source: "..\build\windows\x64\runner\Release\media_kit_native_event_loop.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\build\windows\x64\runner\Release\libmpv-2.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+; Fallback ensure for root native libmpv-2.dll if not present in runner Release folder
 Source: "..\libmpv-2.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
-; Windows Native Plugin DLLs
-Source: "..\build\windows\x64\runner\Release\screen_retriever_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\build\windows\x64\runner\Release\window_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\build\windows\x64\runner\Release\smtc_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-
-; Flutter Data Assets and Unicode ICU Table
-Source: "..\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
-
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
-Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: autostart
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; AppUserModelID: "{#MyAppUserModelId}"
+Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: autostart; AppUserModelID: "{#MyAppUserModelId}"
 
 [Registry]
 ; Register custom URI protocol (lofiq://) for Listen Together deep links
@@ -107,4 +111,3 @@ begin
     end;
   end;
 end;
-

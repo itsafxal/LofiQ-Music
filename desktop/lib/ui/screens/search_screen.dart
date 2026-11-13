@@ -6,7 +6,7 @@ import '../../core/theme/colors.dart';
 import '../../data/resolvers/jiosaavn_client.dart';
 import '../../data/resolvers/youtube_stream_extractor.dart';
 import '../../playback/playback_controller.dart';
-import '../components/glass_card.dart';
+import '../components/glass/glass_components.dart';
 import '../components/song_row.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -22,7 +22,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool _isLoading = false;
   List<Song> _searchResults = [];
-  String _activeFilter = 'All'; // 'All', 'JioSaavn', 'YouTube'
+  int _activeFilterIndex = 0; // 0: All, 1: JioSaavn, 2: YouTube
+  final List<String> _filters = const ['All Providers', 'JioSaavn (320k)', 'YouTube Audio'];
 
   void _onQueryChanged(String query) {
     _debounceTimer?.cancel();
@@ -46,13 +47,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       // 1. Search JioSaavn for 320k tracks
-      if (_activeFilter == 'All' || _activeFilter == 'JioSaavn') {
+      if (_activeFilterIndex == 0 || _activeFilterIndex == 1) {
         final js = await JioSaavnClient.instance.search(query);
         combinedResults.addAll(js);
       }
 
       // 2. Search YouTube
-      if (_activeFilter == 'All' || _activeFilter == 'YouTube') {
+      if (_activeFilterIndex == 0 || _activeFilterIndex == 2) {
         final yt = await YouTubeStreamExtractor.instance.search(query);
         combinedResults.addAll(yt);
       }
@@ -85,85 +86,68 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Header Title
-          const Text(
-            'Search & Discovery',
-            style: TextStyle(
-              fontSize: 26.0,
-              fontWeight: FontWeight.w700,
-              color: LofiQColors.textPrimary,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 18.0),
-
-          // Search Input Bar
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: LofiQColors.surfaceCard,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            ),
-            child: Row(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14.0),
-                  child: Icon(Icons.search_rounded, color: LofiQColors.textTertiary, size: 20),
+          // Search Header Title with Brand Badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: LofiQColors.brandTangerine.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: LofiQColors.brandTangerine.withValues(alpha: 0.35),
+                    width: 1.0,
+                  ),
                 ),
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    onChanged: _onQueryChanged,
-                    style: const TextStyle(color: LofiQColors.textPrimary, fontSize: 14.0),
-                    decoration: const InputDecoration(
-                      hintText: 'Search songs, artists, albums, or lofi playlists...',
-                      hintStyle: TextStyle(color: LofiQColors.textTertiary, fontSize: 14.0),
-                      border: InputBorder.none,
+                child: const Icon(Icons.search_rounded, color: LofiQColors.brandTangerine, size: 24),
+              ),
+              const SizedBox(width: 14),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Search & Discovery',
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.bold,
+                      color: LofiQColors.textPrimary,
+                      letterSpacing: -0.4,
                     ),
                   ),
-                ),
-                if (_controller.text.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18, color: LofiQColors.textTertiary),
-                    onPressed: () {
-                      _controller.clear();
-                      _onQueryChanged('');
-                    },
+                  SizedBox(height: 2.0),
+                  Text(
+                    'Discover 320kbps master audio and lossless lofi soundscapes across multiple providers',
+                    style: TextStyle(color: LofiQColors.textSecondary, fontSize: 12.0),
                   ),
-              ],
-            ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20.0),
+
+          // Search Input Bar
+          GlassInput(
+            controller: _controller,
+            hintText: 'Search songs, artists, albums, or lofi playlists...',
+            prefixIcon: Icons.search_rounded,
+            onChanged: _onQueryChanged,
+            onSubmitted: (q) => _performSearch(q.trim()),
           ),
           const SizedBox(height: 14.0),
 
-          // Filter Chips
-          Row(
-            children: ['All', 'JioSaavn', 'YouTube'].map((filter) {
-              final isSel = filter == _activeFilter;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: ChoiceChip(
-                  label: Text(filter == 'JioSaavn' ? 'JioSaavn (320 kbps)' : filter),
-                  selected: isSel,
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() => _activeFilter = filter);
-                      if (_controller.text.isNotEmpty) {
-                        _performSearch(_controller.text.trim());
-                      }
-                    }
-                  },
-                  selectedColor: LofiQColors.brandPurple,
-                  backgroundColor: Colors.white.withValues(alpha: 0.06),
-                  labelStyle: TextStyle(
-                    fontSize: 12.0,
-                    color: isSel ? Colors.white : LofiQColors.textSecondary,
-                    fontWeight: isSel ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              );
-            }).toList(),
+          // Segmented Provider Filter
+          SizedBox(
+            width: 480,
+            child: GlassSegmentedControl(
+              items: _filters,
+              selectedIndex: _activeFilterIndex,
+              onSelect: (idx) {
+                setState(() => _activeFilterIndex = idx);
+                if (_controller.text.isNotEmpty) {
+                  _performSearch(_controller.text.trim());
+                }
+              },
+            ),
           ),
           const SizedBox(height: 20.0),
 
@@ -171,7 +155,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: LofiQColors.brandPurpleLight),
+                    child: CircularProgressIndicator(color: LofiQColors.brandTangerine),
                   )
                 : _searchResults.isEmpty
                     ? Center(
@@ -182,7 +166,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             const SizedBox(height: 12.0),
                             Text(
                               _controller.text.isEmpty
-                                  ? 'Type to search high-fidelity audio streams'
+                                  ? 'Type above to search high-fidelity audio streams'
                                   : 'No results found for "${_controller.text}"',
                               style: const TextStyle(color: LofiQColors.textTertiary, fontSize: 14.0),
                             ),
@@ -193,7 +177,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                         child: ListView.separated(
                           itemCount: _searchResults.length,
-                          separatorBuilder: (_, __) => Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
+                          separatorBuilder: (_, _) => Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
                           itemBuilder: (context, index) {
                             final song = _searchResults[index];
                             return SongRow(
@@ -210,4 +194,3 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
-

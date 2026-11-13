@@ -3,6 +3,7 @@ import '../../core/theme/colors.dart';
 import '../../data/lyrics/lyrics_models.dart';
 import '../../data/lyrics/lyrics_repository.dart';
 import '../../playback/playback_controller.dart';
+import '../components/glass/glass_components.dart';
 
 class LyricsScreen extends StatefulWidget {
   final PlaybackController playbackController;
@@ -183,26 +184,17 @@ class _LyricsScreenState extends State<LyricsScreen> {
                   ),
                 ),
                 if (_lyrics != null)
-                  Container(
+                  GlassSurface(
+                    preset: GlassPreset.subtle,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _lyrics!.isSynced
-                          ? LofiQColors.neonCyan.withOpacity(0.15)
-                          : Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _lyrics!.isSynced
-                            ? LofiQColors.neonCyan.withOpacity(0.4)
-                            : Colors.white24,
-                      ),
-                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _lyrics!.isSynced ? Icons.sync_rounded : Icons.text_snippet_rounded,
                           size: 14,
-                          color: _lyrics!.isSynced ? LofiQColors.neonCyan : Colors.white60,
+                          color: _lyrics!.isSynced ? brandTangerine : Colors.white60,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -210,16 +202,17 @@ class _LyricsScreenState extends State<LyricsScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: _lyrics!.isSynced ? LofiQColors.neonCyan : Colors.white60,
+                            color: _lyrics!.isSynced ? brandTangerine : Colors.white60,
                           ),
                         ),
                       ],
                     ),
                   ),
                 const SizedBox(width: 12),
-                IconButton(
+                GlassIconButton(
                   tooltip: 'Reload Lyrics',
-                  icon: const Icon(Icons.refresh_rounded, color: LofiQColors.textSecondary),
+                  icon: Icons.refresh_rounded,
+                  iconColor: LofiQColors.textSecondary,
                   onPressed: () => _checkAndFetchLyrics(forceRefresh: true),
                 ),
               ],
@@ -233,7 +226,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(color: LofiQColors.neonPurple),
+                          CircularProgressIndicator(color: brandTangerine),
                           SizedBox(height: 16),
                           Text('Fetching synced lyrics from LRCLIB & Kugou...',
                               style: TextStyle(color: LofiQColors.textSecondary)),
@@ -252,14 +245,17 @@ class _LyricsScreenState extends State<LyricsScreen> {
                                 style: const TextStyle(color: LofiQColors.textSecondary, fontSize: 16),
                               ),
                               const SizedBox(height: 12),
-                              ElevatedButton.icon(
+                              GlassButton(
                                 onPressed: () => _checkAndFetchLyrics(forceRefresh: true),
-                                icon: const Icon(Icons.search_rounded, size: 16),
-                                label: const Text('Search Again'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: LofiQColors.cardBackground,
-                                  foregroundColor: LofiQColors.neonPurple,
-                                  side: const BorderSide(color: LofiQColors.glassBorderSubtle),
+                                isPrimary: true,
+                                accentColor: brandTangerine,
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.search_rounded, size: 16),
+                                    SizedBox(width: 6),
+                                    Text('Search Again'),
+                                  ],
                                 ),
                               ),
                             ],

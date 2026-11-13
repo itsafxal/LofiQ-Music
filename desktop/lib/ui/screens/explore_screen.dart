@@ -4,6 +4,7 @@ import '../../core/models/audio_quality.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/liquid_glass.dart';
 import '../../playback/playback_controller.dart';
+import '../components/glass/glass_components.dart';
 
 class ExploreScreen extends StatefulWidget {
   final PlaybackController playbackController;
@@ -152,24 +153,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: const Icon(Icons.explore_rounded, color: LofiQColors.neonPurple, size: 28),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Explore Soundscapes',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: LofiQColors.textPrimary,
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Explore Soundscapes',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: LofiQColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Curated ambient stations, binaural study moods, and lo-fi radio frequencies',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: LofiQColors.textSecondary,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Curated ambient stations, binaural study moods, and lo-fi radio frequencies',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: LofiQColors.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -183,18 +186,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   final isSelected = _selectedMood == mood;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(mood),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _selectedMood = mood),
-                      selectedColor: LofiQColors.neonPurple.withOpacity(0.25),
-                      backgroundColor: LofiQColors.cardBackground,
-                      side: BorderSide(
-                        color: isSelected ? LofiQColors.neonPurple : LofiQColors.glassBorderSubtle,
-                      ),
-                      labelStyle: TextStyle(
-                        color: isSelected ? LofiQColors.neonPurple : LofiQColors.textSecondary,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    child: GlassSurface(
+                      preset: isSelected ? GlassPreset.light : GlassPreset.subtle,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      hasGlow: isSelected,
+                      glowColor: brandTangerine,
+                      onTap: () => setState(() => _selectedMood = mood),
+                      child: Text(
+                        mood,
+                        style: TextStyle(
+                          color: isSelected ? brandTangerine : LofiQColors.textSecondary,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   );
@@ -227,32 +232,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 final station = _stations[index];
                 final gradients = station['gradient'] as List<Color>;
 
-                return Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradients,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: LiquidGlass.cardRadius,
-                    border: Border.all(color: LofiQColors.glassBorderSubtle),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.35),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: LiquidGlass.cardRadius,
-                      onTap: () => _playStation(station),
-                      hoverColor: Colors.white.withOpacity(0.05),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Row(
+                return GlassCard(
+                  preset: GlassPreset.elevated,
+                  hasGlow: true,
+                  glowColor: gradients.first,
+                  padding: const EdgeInsets.all(20.0),
+                  onTap: () => _playStation(station),
+                  child: Row(
                           children: [
                             Container(
                               width: 64,
@@ -328,9 +314,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
                 );
               },
             ),

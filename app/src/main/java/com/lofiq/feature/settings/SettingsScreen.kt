@@ -43,6 +43,7 @@ import com.lofiq.auth.UserAccount
 import com.lofiq.core.model.AudioQuality
 import com.lofiq.feature.profile.ProfileViewModel
 import com.lofiq.ui.components.LofiQLogo
+import com.lofiq.ui.components.glass.*
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -125,30 +126,27 @@ fun SettingsScreen(
             // Accounts & Integrations Section
             SettingsSectionHeader(title = "ACCOUNTS & INTEGRATIONS")
 
-            Surface(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .clickable {
-                        haptics.play(Haptic.Tap)
-                        showYouTubeMusicDialog = true
-                    },
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                preset = GlassPreset.DARK,
                 shape = RoundedCornerShape(18.dp),
-                color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
-                border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+                padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                onClick = {
+                    haptics.play(Haptic.Tap)
+                    showYouTubeMusicDialog = true
+                }
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else MonochromeSubtle),
+                            .background(LiquidGlassTokens.PillGlassFill),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -296,44 +294,42 @@ fun SettingsScreen(
             // About Section
             SettingsSectionHeader(title = "ABOUT LOFIQ")
 
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
-                    border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                preset = GlassPreset.DARK,
+                shape = RoundedCornerShape(18.dp),
+                padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.app_logo_transparent),
-                            contentDescription = "LofiQ Logo",
-                            modifier = Modifier.size(42.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo_transparent),
+                        contentDescription = "LofiQ Logo",
+                        modifier = Modifier.size(42.dp)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "LofiQ V${com.lofiq.BuildConfig.VERSION_NAME}",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AccentWhite
+                            )
                         )
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                text = "LofiQ V${com.lofiq.BuildConfig.VERSION_NAME}",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = AccentWhite
-                                )
+                        Text(
+                            text = "Music without limits",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextSecondary,
+                                fontSize = 11.5.sp
                             )
-                            Text(
-                                text = "Music without limits",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.5.sp
-                                )
-                            )
-                        }
+                        )
                     }
                 }
+            }
 
                 SettingsItem(
                     icon = Icons.Rounded.SystemUpdate,
@@ -351,125 +347,26 @@ fun SettingsScreen(
                 )
         }
 
-        // Update Notification Dialog (Black & White style)
+        // Update Notification Dialog (Liquid Glass Modal)
         if (uiState.updateInfo != null) {
             val update = uiState.updateInfo!!
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = {
                     if (!uiState.isDownloadingUpdate) {
                         viewModel.dismissUpdateDialog()
                     }
                 },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.RocketLaunch,
-                            contentDescription = null,
-                            tint = AccentWhite,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "New Update Available!",
-                            color = AccentWhite,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                    }
-                },
-                text = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LofiQ V${update.versionName} (${update.apkSize})",
-                                color = AccentWhite,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            if (update.releaseDate.isNotBlank()) {
-                                Text(
-                                    text = update.releaseDate,
-                                    color = TextSecondary,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "What's New:",
-                            color = AccentWhite,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 200.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            update.releaseNotes.forEach { note ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "•",
-                                        color = AccentWhite,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = note,
-                                        color = TextSecondary,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        if (uiState.isDownloadingUpdate) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LinearProgressIndicator(
-                                progress = { uiState.downloadProgress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                                color = Color.White,
-                                trackColor = MonochromeSubtle
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Downloading update... ${(uiState.downloadProgress * 100).toInt()}%",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                },
+                icon = Icons.Rounded.RocketLaunch,
+                title = "New Update Available!",
                 confirmButton = {
                     val confirmContentColor = if (uiState.activeBrandColor.luminance() > 0.5f) Color.Black else Color.White
-                    Button(
+                    GlassButton(
                         onClick = {
                             viewModel.downloadAndInstallUpdate(context, update)
                         },
                         enabled = !uiState.isDownloadingUpdate,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = uiState.activeBrandColor,
-                            contentColor = confirmContentColor,
-                            disabledContainerColor = uiState.activeBrandColor.copy(alpha = 0.5f),
-                            disabledContentColor = confirmContentColor.copy(alpha = 0.7f)
-                        ),
+                        isPrimary = true,
+                        accentColor = uiState.activeBrandColor,
                         modifier = Modifier.height(42.dp)
                     ) {
                         if (uiState.isDownloadingUpdate) {
@@ -495,28 +392,101 @@ fun SettingsScreen(
                         )
                     }
                 },
-                dismissButton = {
-                    if (!uiState.isDownloadingUpdate) {
-                        OutlinedButton(
+                dismissButton = if (!uiState.isDownloadingUpdate) {
+                    {
+                        GlassButton(
                             onClick = { viewModel.dismissUpdateDialog() },
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, SurfaceBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = TextSecondary
-                            ),
+                            preset = GlassPreset.SUBTLE,
                             modifier = Modifier.height(42.dp)
                         ) {
                             Text(
                                 text = "Later",
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.5.sp
+                                fontSize = 13.5.sp,
+                                color = TextSecondary
                             )
                         }
                     }
-                },
-                containerColor = MonochromeCard,
-                shape = RoundedCornerShape(24.dp)
-            )
+                } else null
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "LofiQ V${update.versionName} (${update.apkSize})",
+                            color = AccentWhite,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        if (update.releaseDate.isNotBlank()) {
+                            Text(
+                                text = update.releaseDate,
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "What's New:",
+                        color = AccentWhite,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        update.releaseNotes.forEach { note ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "•",
+                                    color = BrandTangerine,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = note,
+                                    color = TextSecondary,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+                    }
+
+                    if (uiState.isDownloadingUpdate) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LinearProgressIndicator(
+                            progress = { uiState.downloadProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = BrandTangerine,
+                            trackColor = Color.White.copy(alpha = 0.12f)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Downloading update... ${(uiState.downloadProgress * 100).toInt()}%",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
         }
 
         // Show Toast feedback when checking updates
@@ -533,33 +503,46 @@ fun SettingsScreen(
             }
         }
 
-        // Audio Quality Picker Dialog (Black & White style)
+        // Audio Quality Picker Dialog (Liquid Glass Modal)
         if (showQualityDialog) {
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = { showQualityDialog = false },
-                title = { Text("Select Audio Quality", color = AccentWhite, fontWeight = FontWeight.Bold) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AudioQuality.entries.forEach { quality ->
+                icon = Icons.Rounded.HighQuality,
+                title = "Select Audio Quality",
+                confirmButton = {
+                    GlassButton(
+                        onClick = { showQualityDialog = false },
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text("Close", color = AccentWhite, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AudioQuality.entries.forEach { quality ->
+                        val isSelected = uiState.audioQuality == quality
+                        GlassCard(
+                            preset = if (isSelected) GlassPreset.ELEVATED else GlassPreset.SUBTLE,
+                            padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                            onClick = {
+                                viewModel.setAudioQuality(quality)
+                                showQualityDialog = false
+                            },
+                            hasGlow = isSelected,
+                            glowColor = BrandTangerine
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .clickable {
-                                        viewModel.setAudioQuality(quality)
-                                        showQualityDialog = false
-                                    }
-                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
-                                    selected = uiState.audioQuality == quality,
+                                    selected = isSelected,
                                     onClick = {
                                         viewModel.setAudioQuality(quality)
                                         showQualityDialog = false
                                     },
                                     colors = RadioButtonDefaults.colors(
-                                        selectedColor = Color.White,
+                                        selectedColor = BrandTangerine,
                                         unselectedColor = TextSecondary
                                     )
                                 )
@@ -569,8 +552,8 @@ fun SettingsScreen(
                                         Text(
                                             text = quality.label,
                                             style = MaterialTheme.typography.bodyMedium.copy(
-                                                color = if (uiState.audioQuality == quality) AccentWhite else TextSecondary,
-                                                fontWeight = if (uiState.audioQuality == quality) FontWeight.Bold else FontWeight.Medium
+                                                color = if (isSelected) AccentWhite else TextSecondary,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                             )
                                         )
                                         if (quality == AudioQuality.AUTO) {
@@ -600,15 +583,8 @@ fun SettingsScreen(
                             }
                         }
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showQualityDialog = false }) {
-                        Text("Close", color = AccentWhite)
-                    }
-                },
-                containerColor = MonochromeCard,
-                shape = RoundedCornerShape(24.dp)
-            )
+                }
+            }
         }
 
         // Seamless Play Dialog
@@ -620,11 +596,26 @@ fun SettingsScreen(
             )
         }
 
-        // YouTube Music Management Popup Dialog
+        // YouTube Music Management Popup Dialog (Liquid Glass Modal)
         if (showYouTubeMusicDialog) {
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = { showYouTubeMusicDialog = false },
-                title = {
+                icon = null,
+                title = null,
+                confirmButton = {
+                    GlassButton(
+                        onClick = { showYouTubeMusicDialog = false },
+                        preset = GlassPreset.SUBTLE,
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text("Close", color = TextSecondary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -660,209 +651,171 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        IconButton(
-                            onClick = { showYouTubeMusicDialog = false },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = "Close",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                     }
-                },
-                text = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        if (userAccount.isLoggedIn) {
-                            // Account Profile Header Card
-                            Surface(
+
+                    if (userAccount.isLoggedIn) {
+                        GlassCard(
+                            preset = GlassPreset.SUBTLE,
+                            padding = PaddingValues(12.dp)
+                        ) {
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MonochromeSubtle,
-                                border = BorderStroke(1.dp, MonochromeBorder)
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .size(42.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.1f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (!userAccount.avatarUrl.isNullOrBlank()) {
-                                            AsyncImage(
-                                                model = userAccount.avatarUrl,
-                                                contentDescription = "Avatar",
-                                                colorFilter = GrayscaleFilter,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                        } else {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Person,
-                                                contentDescription = null,
-                                                tint = AccentWhite,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = userAccount.name.ifBlank { "YouTube Music User" },
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = AccentWhite,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                    if (!userAccount.avatarUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = userAccount.avatarUrl,
+                                            contentDescription = "Avatar",
+                                            colorFilter = GrayscaleFilter,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
-                                        Text(
-                                            text = userAccount.email ?: "Account connected",
-                                            fontSize = 12.sp,
-                                            color = TextSecondary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(0xFF10B981).copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
-                                    ) {
-                                        Text(
-                                            text = "Connected",
-                                            color = Color(0xFF34D399),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Person,
+                                            contentDescription = null,
+                                            tint = AccentWhite,
+                                            modifier = Modifier.size(22.dp)
                                         )
                                     }
                                 }
-                            }
 
-                            // 1. Sync Music Button
-                            Button(
-                                onClick = {
-                                    haptics.play(Haptic.Tap)
-                                    profileViewModel.syncYouTubeLibrary { liked, playlists ->
-                                        Toast.makeText(context, "YouTube Music synced ($liked songs, $playlists playlists)", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                enabled = !isYouTubeSyncing,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(22.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black,
-                                    disabledContainerColor = Color(0xFF262626),
-                                    disabledContentColor = TextTertiary
-                                )
-                            ) {
-                                if (isYouTubeSyncing) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                        color = Color.Black
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = userAccount.name.ifBlank { "YouTube Music User" },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = AccentWhite,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Syncing...", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Sync,
-                                        contentDescription = null,
-                                        tint = Color.Black,
-                                        modifier = Modifier.size(18.dp)
+                                    Text(
+                                        text = userAccount.email ?: "Account connected",
+                                        fontSize = 12.sp,
+                                        color = TextSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Sync Music", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF10B981).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
+                                ) {
+                                    Text(
+                                        text = "Connected",
+                                        color = Color(0xFF34D399),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
                                 }
                             }
+                        }
 
-                            // 2. Disconnect / Log Out Button
-                            OutlinedButton(
-                                onClick = {
-                                    haptics.play(Haptic.Tap)
-                                    showYouTubeMusicDialog = false
-                                    showSignOutConfirm = true
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(22.dp),
-                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.45f)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color(0xFFEF4444).copy(alpha = 0.08f),
-                                    contentColor = Color(0xFFF87171)
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Logout,
-                                    contentDescription = null,
-                                    tint = Color(0xFFF87171),
-                                    modifier = Modifier.size(18.dp)
+                        GlassButton(
+                            onClick = {
+                                haptics.play(Haptic.Tap)
+                                profileViewModel.syncYouTubeLibrary { liked, playlists ->
+                                    Toast.makeText(context, "YouTube Music synced ($liked songs, $playlists playlists)", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            enabled = !isYouTubeSyncing,
+                            isPrimary = true,
+                            accentColor = BrandTangerine,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(22.dp)
+                        ) {
+                            if (isYouTubeSyncing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.Black
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Log Out of YouTube Music", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFF87171))
-                            }
-                        } else {
-                            // Not Logged In State
-                            Text(
-                                text = "Connect your YouTube Music account to automatically sync your playlists, liked songs, and personalized favorites into LofiQ.",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = TextSecondary,
-                                    fontSize = 13.sp,
-                                    lineHeight = 19.sp
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Button(
-                                onClick = {
-                                    haptics.play(Haptic.Tap)
-                                    showYouTubeMusicDialog = false
-                                    showLoginDialog = true
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(22.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                )
-                            ) {
+                                Text("Syncing...", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            } else {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Login,
+                                    imageVector = Icons.Rounded.Sync,
                                     contentDescription = null,
                                     tint = Color.Black,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Connect YouTube Music", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
+                                Text("Sync Music", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         }
+
+                        GlassButton(
+                            onClick = {
+                                haptics.play(Haptic.Tap)
+                                showYouTubeMusicDialog = false
+                                showSignOutConfirm = true
+                            },
+                            preset = GlassPreset.SUBTLE,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(22.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.Logout,
+                                contentDescription = null,
+                                tint = Color(0xFFF87171),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Log Out of YouTube Music", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFF87171))
+                        }
+                    } else {
+                        Text(
+                            text = "Connect your YouTube Music account to automatically sync your playlists, liked songs, and personalized favorites into LofiQ.",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextSecondary,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        GlassButton(
+                            onClick = {
+                                haptics.play(Haptic.Tap)
+                                showYouTubeMusicDialog = false
+                                showLoginDialog = true
+                            },
+                            isPrimary = true,
+                            accentColor = BrandTangerine,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(22.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.Login,
+                                contentDescription = null,
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Connect YouTube Music", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
+                        }
                     }
-                },
-                confirmButton = {},
-                containerColor = MonochromeCard,
-                shape = RoundedCornerShape(24.dp)
-            )
+                }
+            }
         }
 
         // YouTube Music Login Dialog Sheet
@@ -882,32 +835,14 @@ fun SettingsScreen(
             )
         }
 
-        // YouTube Music Logout Confirmation Alert
+        // YouTube Music Logout Confirmation Alert (Liquid Glass Modal)
         if (showSignOutConfirm) {
-            AlertDialog(
+            GlassDialog(
                 onDismissRequest = { showSignOutConfirm = false },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.Logout,
-                            contentDescription = null,
-                            tint = Color(0xFFF87171),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text("Log Out of YouTube Music?", color = AccentWhite, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    }
-                },
-                text = {
-                    Text(
-                        "Are you sure you want to log out of your YouTube Music account? You will be switched to guest mode. Your local and downloaded music will remain safe.",
-                        color = TextSecondary,
-                        fontSize = 13.5.sp,
-                        lineHeight = 19.sp
-                    )
-                },
+                icon = Icons.AutoMirrored.Rounded.Logout,
+                title = "Log Out of YouTube Music?",
                 confirmButton = {
-                    Button(
+                    GlassButton(
                         onClick = {
                             showSignOutConfirm = false
                             scope.launch {
@@ -915,23 +850,29 @@ fun SettingsScreen(
                                 Toast.makeText(context, "Logged out of YouTube Music", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEF4444),
-                            contentColor = Color.White
-                        ),
+                        isPrimary = true,
+                        accentColor = Color(0xFFEF4444),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Log Out", fontWeight = FontWeight.Bold)
+                        Text("Log Out", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSignOutConfirm = false }) {
+                    GlassButton(
+                        onClick = { showSignOutConfirm = false },
+                        preset = GlassPreset.SUBTLE
+                    ) {
                         Text("Cancel", color = TextSecondary)
                     }
-                },
-                containerColor = MonochromeCard,
-                shape = RoundedCornerShape(24.dp)
-            )
+                }
+            ) {
+                Text(
+                    "Are you sure you want to log out of your YouTube Music account? You will be switched to guest mode. Your local and downloaded music will remain safe.",
+                    color = TextSecondary,
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp
+                )
+            }
         }
     }
 }
@@ -957,28 +898,24 @@ private fun SettingsItem(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    val isLiquidGlass = LocalLiquidGlassEnabled.current
-    Surface(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        preset = GlassPreset.DARK,
         shape = RoundedCornerShape(18.dp),
-        border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+        padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        onClick = onClick
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else MonochromeSubtle),
+                    .background(LiquidGlassTokens.PillGlassFill),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1027,28 +964,24 @@ private fun SettingsSwitchItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    val isLiquidGlass = LocalLiquidGlassEnabled.current
-    Surface(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .clickable { onCheckedChange(!checked) },
-        color = if (isLiquidGlass) LiquidGlassTokens.CardGlassFill else MonochromeCard,
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        preset = GlassPreset.DARK,
         shape = RoundedCornerShape(18.dp),
-        border = if (isLiquidGlass) LiquidGlassTokens.specularBorderStroke() else BorderStroke(1.dp, MonochromeBorder)
+        padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        onClick = { onCheckedChange(!checked) }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isLiquidGlass) LiquidGlassTokens.PillGlassFill else MonochromeSubtle),
+                    .background(LiquidGlassTokens.PillGlassFill),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1079,16 +1012,10 @@ private fun SettingsSwitchItem(
                 )
             }
 
-            Switch(
+            GlassSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF2563EB),
-                    uncheckedThumbColor = Color(0xFFAAAAAA),
-                    uncheckedTrackColor = Color(0xFF222226),
-                    uncheckedBorderColor = Color.White.copy(alpha = 0.15f)
-                )
+                activeColor = BrandTangerine
             )
         }
     }

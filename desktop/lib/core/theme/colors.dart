@@ -16,6 +16,10 @@ class LofiQColors {
   // Brand & Accent Colors
   static const Color brandPurple = Color(0xFF7C3AED);
   static const Color brandPurpleLight = Color(0xFFA78BFA);
+  static const Color brandTangerine = Color(0xFFEB7D00);
+  static const Color brandVanilla = Color(0xFFEBE3A7);
+  static const Color brandBrunswickGreen = Color(0xFF2C5745);
+  static const Color brandDrabDarkBrown = Color(0xFF2E2910);
   static const Color accentWhite = Color(0xFFFFFFFF);
   static const Color accentGray = Color(0xFF3A3A3C);
   static const Color accentRed = Color(0xFFFF453A);
@@ -42,3 +46,9 @@ class LofiQColors {
   static const Color glassmorphismOverlay = Color(0x33252525);
   static const Color glassmorphismBorder = Color(0x22FFFFFF);
 }
+
+// Top-level Brand Color Constants
+const Color brandTangerine = LofiQColors.brandTangerine;
+const Color brandVanilla = LofiQColors.brandVanilla;
+const Color brandBrunswickGreen = LofiQColors.brandBrunswickGreen;
+const Color brandDrabDarkBrown = LofiQColors.brandDrabDarkBrown;
