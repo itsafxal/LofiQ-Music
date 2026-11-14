@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -179,13 +180,24 @@ fun BottomNavBar(
                             label = "tabIconScale_$index"
                         )
 
+                        val tabInteractionSource = remember { MutableInteractionSource() }
+                        val isTabFocused by tabInteractionSource.collectIsFocusedAsState()
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(24.dp))
+                                .border(
+                                    width = if (isTabFocused) 1.5.dp else 0.dp,
+                                    color = if (isTabFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .background(
+                                    if (isTabFocused) Color.White.copy(alpha = 0.12f) else Color.Transparent
+                                )
                                 .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
+                                    interactionSource = tabInteractionSource,
                                     indication = null
                                 ) {
                                     haptics.play(Haptic.Select)

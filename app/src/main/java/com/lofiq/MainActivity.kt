@@ -146,6 +146,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        return when (keyCode) {
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            android.view.KeyEvent.KEYCODE_HEADSETHOOK -> {
+                playbackEngine.togglePlayPause()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                playbackEngine.play()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                playbackEngine.pause()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
+            android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                playbackEngine.next()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+            android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                playbackEngine.previous()
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
     override fun onDestroy() {
         if (isFinishing) {
             val syncState = listenTogetherManager.syncState.value

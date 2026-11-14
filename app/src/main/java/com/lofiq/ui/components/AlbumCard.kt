@@ -1,19 +1,25 @@
 package com.lofiq.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -37,15 +43,34 @@ fun AlbumCard(
     isCurrent: Boolean = false,
     onLongClick: (() -> Unit)? = null
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
     Column(
         modifier = modifier
             .width(148.dp)
+            .scale(if (isFocused) 1.05f else 1.0f)
             .clip(RoundedCornerShape(14.dp))
+            .border(
+                width = if (isFocused) 1.5.dp else 0.dp,
+                color = if (isFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .background(if (isFocused) Color.White.copy(alpha = 0.08f) else Color.Transparent)
             .then(
                 if (onLongClick != null) {
-                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
                 } else {
-                    Modifier.clickable(onClick = onClick)
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick
+                    )
                 }
             )
             .padding(4.dp)
@@ -268,16 +293,34 @@ fun CompactSongRowCard(
     rank: Int? = null,
     onLongClick: (() -> Unit)? = null
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
     Row(
         modifier = modifier
             .width(280.dp)
             .height(58.dp)
             .clip(RoundedCornerShape(10.dp))
+            .background(if (isFocused) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .border(
+                width = if (isFocused) 1.5.dp else 0.dp,
+                color = if (isFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
             .then(
                 if (onLongClick != null) {
-                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
                 } else {
-                    Modifier.clickable(onClick = onClick)
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick
+                    )
                 }
             )
             .padding(horizontal = 6.dp, vertical = 4.dp),
@@ -432,16 +475,34 @@ fun FeaturedLargeAlbumCard(
     isCurrent: Boolean = false,
     onLongClick: (() -> Unit)? = null
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
     Box(
         modifier = modifier
             .width(215.dp)
             .height(215.dp)
+            .scale(if (isFocused) 1.05f else 1.0f)
             .clip(RoundedCornerShape(18.dp))
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = if (isFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
+                shape = RoundedCornerShape(18.dp)
+            )
             .then(
                 if (onLongClick != null) {
-                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
                 } else {
-                    Modifier.clickable(onClick = onClick)
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = onClick
+                    )
                 }
             )
     ) {

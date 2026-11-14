@@ -1,34 +1,34 @@
 {
-  "versionCode": 68,
-  "versionName": "1.0.5",
+  "versionCode": 69,
+  "versionName": "1.0.6",
   "minSupportedVersion": 1,
   "releaseDate": "2026-11-14",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.8 MB",
-  "checksum": "a833dbad010639b2a0a13dd5396e7492855cb8c3d2a4bcef28c01cc72b8f2c60",
+  "checksum": "0e0c8acf6797bf30af157fce937e58c8b9e052d708e727083d08b7394a5cc55e",
   "releaseNotes": [
-    "🚀 Official Production Release (V1.0.5 - Build 68)",
-    "📋 Smart Queue Management: Long-press any song across Home shelves, Search, Library, Playlists, Albums, Artists, and Local Music for instant contextual actions.",
-    "⏭️ Deterministic Play Next & Add to Queue: 'Play Next' inserts immediately following the active song with strict LIFO priority; 'Add to Queue' safely appends at the queue tail.",
-    "✨ Duplicate Queue Resilience: Instance-unique queue identities prevent UI crashes when adding identical songs to the queue multiple times.",
-    "🏠 Reliable Home Tab Reset: Tapping Home on the bottom navigation bar always cleanly resets to the root Home screen from any nested screen (Settings, Equalizer, Profile, Albums, Artists) without interrupting playback.",
-    "⬇️ Real-Time Download Status: Seamlessly integrated TrackDownloadManager directly into song contextual sheets with live download progress."
+    "🚀 Official Production Release (V1.0.6 - Build 69)",
+    "📺 Android TV & Google TV Universal Support: Full Leanback launcher banner and touch-free remote control compatibility on Android TV, Google TV, and Fire TV devices.",
+    "🎮 TV Remote Media Keys: Instantaneous hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
+    "✨ Sleek D-Pad Focus Indicators: High-contrast focus borders and scale animations for seamless TV remote directional navigation across shelves, cards, and songs.",
+    "📋 Smart Queue Management: Universal long-press song context menu with deterministic Play Next (LIFO) and Add to Queue (FIFO) semantics.",
+    "🏠 Reliable Home Tab Reset: Cleanly resets nested navigation backstack to root Home without disturbing active playback."
   ],
   "android": {
-    "versionCode": 68,
-    "versionName": "1.0.5",
+    "versionCode": 69,
+    "versionName": "1.0.6",
     "minSupportedVersion": 1,
     "releaseDate": "2026-11-14",
     "apkUrl": "/downloads/LofiQ.apk",
     "apkSize": "21.8 MB",
-    "checksum": "a833dbad010639b2a0a13dd5396e7492855cb8c3d2a4bcef28c01cc72b8f2c60",
+    "checksum": "0e0c8acf6797bf30af157fce937e58c8b9e052d708e727083d08b7394a5cc55e",
     "releaseNotes": [
-      "🚀 Official Production Release (V1.0.5 - Build 68)",
-      "📋 Smart Queue Management: Long-press any song across Home shelves, Search, Library, Playlists, Albums, Artists, and Local Music for instant contextual actions.",
-      "⏭️ Deterministic Play Next & Add to Queue: 'Play Next' inserts immediately following the active song with strict LIFO priority; 'Add to Queue' safely appends at the queue tail.",
-      "✨ Duplicate Queue Resilience: Instance-unique queue identities prevent UI crashes when adding identical songs to the queue multiple times.",
-      "🏠 Reliable Home Tab Reset: Tapping Home on the bottom navigation bar always cleanly resets to the root Home screen from any nested screen (Settings, Equalizer, Profile, Albums, Artists) without interrupting playback.",
-      "⬇️ Real-Time Download Status: Seamlessly integrated TrackDownloadManager directly into song contextual sheets with live download progress."
+      "🚀 Official Production Release (V1.0.6 - Build 69)",
+      "📺 Android TV & Google TV Universal Support: Full Leanback launcher banner and touch-free remote control compatibility on Android TV, Google TV, and Fire TV devices.",
+      "🎮 TV Remote Media Keys: Instantaneous hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
+      "✨ Sleek D-Pad Focus Indicators: High-contrast focus borders and scale animations for seamless TV remote directional navigation across shelves, cards, and songs.",
+      "📋 Smart Queue Management: Universal long-press song context menu with deterministic Play Next (LIFO) and Add to Queue (FIFO) semantics.",
+      "🏠 Reliable Home Tab Reset: Cleanly resets nested navigation backstack to root Home without disturbing active playback."
     ]
   },
   "windows": {

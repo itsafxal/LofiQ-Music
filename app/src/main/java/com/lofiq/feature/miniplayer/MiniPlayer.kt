@@ -16,6 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +63,9 @@ fun MiniPlayer(
     val isLiquidGlass = isLiquidGlassActive()
     val isPerfMode = LocalPerformanceModeEnabled.current
     val brandColor = LocalBrandColor.current
+
+    val miniPlayerInteractionSource = remember { MutableInteractionSource() }
+    val isMiniPlayerFocused by miniPlayerInteractionSource.collectIsFocusedAsState()
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDismissed by remember { mutableStateOf(false) }
@@ -126,8 +131,9 @@ fun MiniPlayer(
                 }
             )
             .border(
-                width = 1.dp,
-                brush = if (isLiquidGlass) LiquidGlassTokens.specularBorder(0.38f)
+                width = if (isMiniPlayerFocused) 2.dp else 1.dp,
+                brush = if (isMiniPlayerFocused) Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.90f), Color.White.copy(alpha = 0.70f)))
+                else if (isLiquidGlass) LiquidGlassTokens.specularBorder(0.38f)
                 else Brush.verticalGradient(
                     colors = listOf(
                         Color.White.copy(alpha = 0.20f),
@@ -138,10 +144,14 @@ fun MiniPlayer(
             )
             .clip(RoundedCornerShape(18.dp))
             .background(
-                if (isLiquidGlass) Color(0xFF101016).copy(alpha = 0.60f)
+                if (isMiniPlayerFocused) Color(0xFF20202C).copy(alpha = 0.95f)
+                else if (isLiquidGlass) Color(0xFF101016).copy(alpha = 0.60f)
                 else Color(0xFF16161C).copy(alpha = 0.96f)
             )
-            .clickable {
+            .clickable(
+                interactionSource = miniPlayerInteractionSource,
+                indication = ripple()
+            ) {
                 haptics.play(Haptic.Expand)
                 onClick()
             }

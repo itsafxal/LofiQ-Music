@@ -3,9 +3,12 @@ package com.lofiq.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +18,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,12 +62,22 @@ fun SongRow(
         label = "songRowBg"
     )
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(animatedBg)
+            .background(if (isFocused) Color.White.copy(alpha = 0.12f) else animatedBg)
+            .border(
+                width = if (isFocused) 1.5.dp else 0.dp,
+                color = if (isFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
+                shape = RoundedCornerShape(12.dp)
+            )
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 onClick = onClick,
                 onLongClick = effectiveLongClick
             )
