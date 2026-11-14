@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LofiQ Changelog — Release Notes & Version History</title>
+  <meta name="description" content="View the full release notes and changelog history for LofiQ Music across Android, Windows Desktop, and Smart TV." />
+  
+  <link rel="canonical" href="https://lofiq-web.vercel.app/changelog" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://lofiq-web.vercel.app/changelog" />
+  <meta property="og:title" content="LofiQ Changelog — Full Version History" />
+  <meta property="og:description" content="Explore release notes and updates for LofiQ on Android and Windows Desktop." />
+  <meta property="og:image" content="https://lofiq-web.vercel.app/assets/logo.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LofiQ Changelog — Full Version History" />
+  <meta name="twitter:description" content="Explore release notes and updates for LofiQ on Android and Windows Desktop." />
+  <meta name="twitter:image" content="https://lofiq-web.vercel.app/assets/logo.png" />
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css?v=20261114_multiplatform_v3" />
+</head>
+<body>
+  <!-- Ambient Liquid Glass Mesh -->
+  <div class="liquid-mesh" aria-hidden="true">
+    <div class="liquid-orb orb-1"></div>
+    <div class="liquid-orb orb-2"></div>
+    <div class="liquid-orb orb-3"></div>
+    <div class="liquid-grid"></div>
+  </div>
+
+  <!-- Mobile Nav Drawer -->
+  <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
+  <aside class="mobile-nav-drawer" id="mobile-nav-drawer" aria-label="Mobile Navigation Menu">
+    <div class="drawer-header">
+      <div class="logo-text-group">
+        <span class="logo-text">LofiQ</span>
+        <span class="logo-tagline">Multi-Platform</span>
+      </div>
+      <button class="drawer-close-btn" id="drawer-close-btn" aria-label="Close menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <nav class="drawer-nav-links">
+      <a href="/" class="drawer-nav-link"><span>Home</span></a>
+      <a href="/features" class="drawer-nav-link"><span>Features</span></a>
+      <a href="/android-download" class="drawer-nav-link"><span>Android Experience</span></a>
+      <a href="/desktop-download" class="drawer-nav-link"><span>Windows Desktop</span></a>
+      <a href="/tv-download" class="drawer-nav-link"><span>Smart TV Preview</span></a>
+      <a href="/changelog" class="drawer-nav-link active"><span>Changelog</span></a>
+      <a href="/android-download" class="liquid-btn-primary" style="margin-top: 14px; text-decoration: none; justify-content: center;">
+        <span>Get LofiQ</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Sleek Liquid Glass Floating Header -->
+  <header>
+    <div class="nav-container liquid-glass-nav">
+      <a href="/" class="logo-brand" aria-label="LofiQ Home">
+        <div class="logo-wrapper">
+          <img src="assets/logo.png" alt="LofiQ Logo" class="logo-img" />
+          <div class="logo-glare"></div>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-text">LofiQ</span>
+          <span class="logo-tagline">Liquid Glass Edition</span>
+        </div>
+      </a>
+      
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a href="/features" class="nav-link">Features</a>
+        <a href="/android-download" class="nav-link">Android</a>
+        <a href="/desktop-download" class="nav-link">Windows</a>
+        <a href="/tv-download" class="nav-link">Smart TV</a>
+        <a href="/changelog" class="nav-link active">Changelog</a>
+        <a href="/android-download" class="nav-cta">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get LofiQ</span>
+        </a>
+      </nav>
+
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open Navigation Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+      <div class="page-breadcrumb">
+        <a href="/">Home</a>
+        <span>/</span>
+        <span style="color: #ffffff;">Changelog</span>
+      </div>
+
+      <div class="liquid-pill-badge" style="margin-bottom: 20px;">
+        <span class="pulse-dot"></span>
+        <span class="badge-text">Release History</span>
+        <span class="badge-tag">Verified Builds</span>
+      </div>
+
+      <h1 class="page-hero-title">
+        Release Notes. <br />
+        <span class="metallic-text">Evolution of LofiQ.</span>
+      </h1>
+
+      <p class="page-hero-subtitle">
+        Explore detailed release notes, architectural enhancements, and bug fixes for Android, Windows Desktop, and Smart TV platforms.
+      </p>
+    </section>
+
+    <!-- CHANGELOG FEED -->
+    <section style="max-width: 900px; margin: 0 auto; padding: 0 24px 80px 24px;">
+      
+      <!-- RELEASE 1: Android v1.0.6 (Latest) -->
+      <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag" style="background: rgba(255, 255, 255, 0.12); color: #fff;">Android &amp; TV Release</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.6 (Build 69) — Gesture Queue &amp; TV Universal</h2>
+            <p class="changelog-date">November 14, 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip dynamic-version">v1.0.6</span>
+            <span class="version-stable">Latest Stable</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> 🚀 <strong>Official Production Release (V1.0.6 - Build 69):</strong> Full release assembly and distribution pipeline verification.</li>
+          <li><span class="bullet">&#10022;</span> ✨ <strong>Player Queue Gesture:</strong> Removed visible 'Q' button from the player interface. The queue is now revealed via an intuitive swipe-up gesture with smooth Jetpack Compose transitions.</li>
+          <li><span class="bullet">&#10022;</span> ⬇️ <strong>Real-Time Download Notification:</strong> Foreground Android notification progress bar displays live download percentage and automatically dismisses upon completion, failure, or cancellation.</li>
+          <li><span class="bullet">&#10022;</span> 📺 <strong>Android TV Universal Compatibility:</strong> Added <code>LEANBACK_LAUNCHER</code> intent filter and official 640x360 <code>tv_banner.png</code> for full launcher integration on Android TV, Google TV, and Fire TV.</li>
+          <li><span class="bullet">&#10022;</span> 🎮 <strong>TV Remote Media Keys:</strong> Native hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.</li>
+          <li><span class="bullet">&#10022;</span> 📋 <strong>Smart Queue Management &amp; Home Reset:</strong> Universal long-press song context menu (LIFO Play Next, FIFO Add to Queue) across 8 app surfaces, and deterministic Home tab reset.</li>
+        </ul>
+
+        <div style="margin-top: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-btn-primary dynamic-download-btn" style="text-decoration: none; padding: 8px 18px; font-size: 0.85rem;">
+            <span>Download APK (21.8 MB)</span>
+          </a>
+          <a href="/android-download" style="color: var(--text-silver); text-decoration: none; font-size: 0.85rem;">View Android Page &rarr;</a>
+        </div>
+      </article>
+
+      <!-- RELEASE 2: Windows v1.0.4 (Latest) -->
+      <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag" style="background: rgba(255, 255, 255, 0.12); color: #fff;">Windows Desktop Release</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.4 (Build 67) — Audiophile Desktop Engine</h2>
+            <p class="changelog-date">November 14, 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip dynamic-windows-version">v1.0.4</span>
+            <span class="version-stable">Latest Stable</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> 🚀 <strong>Official Windows Desktop Release:</strong> Native 64-bit (x64) release built on Flutter and media_kit with native libmpv.</li>
+          <li><span class="bullet">&#10022;</span> 🛡️ <strong>Hardened Inno Setup Packaging:</strong> Inno Setup installer script with proper AppUserModelID registration and taskbar identity.</li>
+          <li><span class="bullet">&#10022;</span> 📦 <strong>Standalone Portable ZIP:</strong> Added zero-install <code>LofiQ-v1.0.4-Windows-Portable.zip</code> with Mark-of-the-Web (MotW) unblock instructions.</li>
+          <li><span class="bullet">&#10022;</span> 🎵 <strong>True Dual-Player Gapless &amp; Crossfade:</strong> Dual media_kit players with equal-power crossfading and 10-second early silent preloading.</li>
+          <li><span class="bullet">&#10022;</span> 🎛️ <strong>10-Band Graphic Equalizer:</strong> 10-band ISO graphic equalizer with Bass Boost and Virtualizer synchronized across both audio slots.</li>
+          <li><span class="bullet">&#10022;</span> ⌨️ <strong>SMTC Media Controls:</strong> Windows System Media Transport Controls, taskbar thumbnails, and keyboard media keys integration.</li>
+        </ul>
+
+        <div style="margin-top: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <a href="https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/LofiQ-v1.0.4-Windows-Setup.exe" class="hero-windows-btn" style="text-decoration: none; padding: 8px 18px; font-size: 0.85rem;">
+            <span>Download Setup (.exe)</span>
+          </a>
+          <a href="/desktop-download" style="color: var(--text-silver); text-decoration: none; font-size: 0.85rem;">View Desktop Page &rarr;</a>
+        </div>
+      </article>
+
+      <!-- RELEASE 3: Android v1.0.5 -->
+      <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag">Android Milestone</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.5 — Dual Pipeline &amp; Audio Switcher</h2>
+            <p class="changelog-date">November 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip">v1.0.5</span>
+            <span class="version-stable">Archive</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> ⚡ <strong>Dual High-Bitrate Pipeline:</strong> JioSaavn studio 320kbps primary source with instant sub-second YouTube InnerTube failover.</li>
+          <li><span class="bullet">&#10022;</span> 🔊 <strong>In-App Audio Switcher:</strong> Direct routing pill to switch between Speaker, Bluetooth LDAC, and Wired Aux without system menus.</li>
+          <li><span class="bullet">&#10022;</span> 💎 <strong>Liquid Glass Refinements:</strong> Specular card borders, enhanced frosted blur, and smooth scrub animations on the player seekbar.</li>
+        </ul>
+      </article>
+
+      <!-- RELEASE 4: Android v1.0.4 -->
+      <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag">Android Milestone</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.4 — Listen Together Rooms &amp; Synced Lyrics</h2>
+            <p class="changelog-date">November 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip">v1.0.4</span>
+            <span class="version-stable">Archive</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> 👥 <strong>Listen Together Rooms:</strong> WebSockets synchronization engine for shared rooms with millisecond drift correction.</li>
+          <li><span class="bullet">&#10022;</span> 🎤 <strong>Synced Karaoke Lyrics:</strong> Integrated LRCLIB and Kugou providers for word-by-word real-time synced lyrics.</li>
+          <li><span class="bullet">&#10022;</span> 🖼️ <strong>Studio Artist Visuals:</strong> 500x500 HD artist portraits with dynamic monochrome tinting.</li>
+        </ul>
+      </article>
+
+      <!-- RELEASE 5: Android v1.0.2 / Initial -->
+      <article class="changelog-card liquid-glass-card">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag">Foundational Release</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.2 — Initial Liquid Glass Edition</h2>
+            <p class="changelog-date">November 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip">v1.0.2</span>
+            <span class="version-stable">Initial</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> 🖤 <strong>Monochrome Liquid Glass Architecture:</strong> Initial release with deep blacks, frosted glass cards, and metallic text.</li>
+          <li><span class="bullet">&#10022;</span> 🎵 <strong>Lossless Audio Engine:</strong> Media3 background playback service with media session controls.</li>
+          <li><span class="bullet">&#10022;</span> 📱 <strong>Glance AppWidgets:</strong> Initial home screen widgets for Android 12+.</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img src="assets/logo.png" alt="LofiQ" class="footer-logo" />
+          <span class="footer-title">LofiQ</span>
+        </div>
+        <p class="footer-desc">One Sound. Every Screen. Engineered for Android (Compose &amp; Media3) and Windows Desktop (Flutter &amp; Libmpv).</p>
+      </div>
+
+      <div class="footer-meta">
+        <p>&copy; 2026 LofiQ. Developed by <a href="https://itsafxal.vercel.app" target="_blank" rel="noopener noreferrer">Afsal</a>.</p>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/features">Features</a>
+          <a href="/android-download">Android APK</a>
+          <a href="/desktop-download">Windows Desktop</a>
+          <a href="/tv-download">Smart TV</a>
+          <a href="/changelog">Changelog</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js?v=20261114_multiplatform_v3"></script>
+</body>
+</html>

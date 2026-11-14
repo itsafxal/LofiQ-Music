@@ -1,6 +1,13 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/android-download", "destination": "/android-download.html" },
+    { "source": "/desktop-download", "destination": "/desktop-download.html" },
+    { "source": "/tv-download", "destination": "/tv-download.html" },
+    { "source": "/features", "destination": "/features.html" },
+    { "source": "/changelog", "destination": "/changelog.html" }
+  ],
   "headers": [
     {
       "source": "/downloads/(.*)",

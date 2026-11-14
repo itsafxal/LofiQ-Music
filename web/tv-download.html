@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LofiQ for Smart TV — 10-Foot Living Room Audio Experience</title>
+  <meta name="description" content="Discover LofiQ for Smart TV. Designed for Android TV, Google TV, and Amazon Fire TV with a touch-free 10-foot Leanback interface, hardware remote control, and living room acoustics." />
+  
+  <link rel="canonical" href="https://lofiq-web.vercel.app/tv-download" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://lofiq-web.vercel.app/tv-download" />
+  <meta property="og:title" content="LofiQ for Smart TV — 10-Foot Living Room Symphony" />
+  <meta property="og:description" content="Explore LofiQ for Smart TV. 10-foot Leanback interface, hardware remote media keys, and lossless living room streaming." />
+  <meta property="og:image" content="https://lofiq-web.vercel.app/assets/tv_banner.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LofiQ for Smart TV — 10-Foot Living Room Symphony" />
+  <meta name="twitter:description" content="Explore LofiQ for Smart TV with touch-free remote control navigation and lossless living room acoustics." />
+  <meta name="twitter:image" content="https://lofiq-web.vercel.app/assets/tv_banner.png" />
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css?v=20261114_multiplatform_v3" />
+</head>
+<body>
+  <!-- Ambient Liquid Glass Mesh -->
+  <div class="liquid-mesh" aria-hidden="true">
+    <div class="liquid-orb orb-1"></div>
+    <div class="liquid-orb orb-2"></div>
+    <div class="liquid-orb orb-3"></div>
+    <div class="liquid-grid"></div>
+  </div>
+
+  <!-- Mobile Nav Drawer -->
+  <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
+  <aside class="mobile-nav-drawer" id="mobile-nav-drawer" aria-label="Mobile Navigation Menu">
+    <div class="drawer-header">
+      <div class="logo-text-group">
+        <span class="logo-text">LofiQ</span>
+        <span class="logo-tagline">Multi-Platform</span>
+      </div>
+      <button class="drawer-close-btn" id="drawer-close-btn" aria-label="Close menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <nav class="drawer-nav-links">
+      <a href="/" class="drawer-nav-link"><span>Home</span></a>
+      <a href="/features" class="drawer-nav-link"><span>Features</span></a>
+      <a href="/android-download" class="drawer-nav-link"><span>Android Experience</span></a>
+      <a href="/desktop-download" class="drawer-nav-link"><span>Windows Desktop</span></a>
+      <a href="/tv-download" class="drawer-nav-link active"><span>Smart TV Preview</span></a>
+      <a href="/changelog" class="drawer-nav-link"><span>Changelog</span></a>
+      <a href="/android-download" class="liquid-btn-primary" style="margin-top: 14px; text-decoration: none; justify-content: center;">
+        <span>Get Android / TV APK</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Sleek Liquid Glass Floating Header -->
+  <header>
+    <div class="nav-container liquid-glass-nav">
+      <a href="/" class="logo-brand" aria-label="LofiQ Home">
+        <div class="logo-wrapper">
+          <img src="assets/logo.png" alt="LofiQ Logo" class="logo-img" />
+          <div class="logo-glare"></div>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-text">LofiQ</span>
+          <span class="logo-tagline">Liquid Glass Edition</span>
+        </div>
+      </a>
+      
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a href="/features" class="nav-link">Features</a>
+        <a href="/android-download" class="nav-link">Android</a>
+        <a href="/desktop-download" class="nav-link">Windows</a>
+        <a href="/tv-download" class="nav-link active">Smart TV</a>
+        <a href="/changelog" class="nav-link">Changelog</a>
+        <a href="/android-download" class="nav-cta">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get APK</span>
+        </a>
+      </nav>
+
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open Navigation Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+      <div class="page-breadcrumb">
+        <a href="/">Home</a>
+        <span>/</span>
+        <span style="color: #ffffff;">Smart TV Experience</span>
+      </div>
+
+      <!-- Critical Official Preview Status Badge -->
+      <div class="preview-status-pill">
+        <span class="pulse-dot"></span>
+        <span>TV Experience Preview • Coming Soon</span>
+      </div>
+
+      <h1 class="page-hero-title">
+        LofiQ for Smart TV. <br />
+        <span class="metallic-text">10-Foot Living Room Symphony.</span>
+      </h1>
+
+      <p class="page-hero-subtitle">
+        Immerse your living room in pure monochrome audio luxury. Engineered with a dedicated 10-foot Leanback interface, touch-free D-pad remote navigation, hardware media keys, and high-fidelity output for soundbars and home theaters.
+      </p>
+    </section>
+
+    <!-- TV PREVIEW & NOTIFICATION STATION -->
+    <section style="max-width: 1200px; margin: 0 auto; padding: 0 24px 60px 24px;">
+      <div class="download-container liquid-glass-card">
+        <div class="download-glass-glow"></div>
+
+        <div class="download-grid">
+          <!-- Left Info & Waitlist Form -->
+          <div class="download-info">
+            <div class="download-badge">
+              <span class="download-shield">★</span>
+              <span>Next-Gen Living Room Platform • Preview Edition</span>
+            </div>
+
+            <h2 class="download-title">
+              Designed for the Big Screen. <br />
+              <span class="metallic-text">Touch-Free Remote Control.</span>
+            </h2>
+
+            <p class="download-subtitle">
+              Enjoy high-contrast typography, large 500x500 album artwork, and seamless browsing from across the room using your standard TV remote.
+            </p>
+
+            <!-- Priority Email Notification Card -->
+            <div class="tv-notify-card">
+              <h4>Get Notified on Full TV Store Launch</h4>
+              <p>Be the first to know when the dedicated Android TV &amp; Fire TV store builds are published.</p>
+              
+              <form class="notify-form">
+                <input type="email" class="notify-input" placeholder="Enter your email address" required />
+                <button type="submit" class="notify-btn">
+                  <span>Notify Me</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+              </form>
+              <div class="notify-success-msg"></div>
+            </div>
+
+            <!-- Existing Sideloading Pathway for Android TV Users -->
+            <div class="tv-sideload-hint">
+              <p style="margin-bottom: 10px;">
+                <strong>Want to use LofiQ on your Android TV today?</strong><br />
+                Our production Android APK (<strong class="dynamic-version">v1.0.6</strong>) already includes universal <code>LEANBACK_LAUNCHER</code> support, official 640x360 TV banner, and hardware media keys!
+              </p>
+              <a href="/android-download" class="liquid-btn-primary" style="display: inline-flex; text-decoration: none; padding: 10px 20px; font-size: 0.86rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.59-2.94-.92-4.47-.92s-3.07.33-4.47.92L5.65 5.67c-.19-.28-.55-.37-.84-.22-.3.16-.42.54-.26.85l1.85 3.18C3.81 10.97 2 13.58 2 16.5h20c0-2.92-1.81-5.53-4.4-7.02zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+                <span>Get Universal Android &amp; TV APK</span>
+              </a>
+            </div>
+
+            <div class="download-meta-tags">
+              <span class="meta-tag">📺 10-Foot Leanback UI</span>
+              <span class="meta-tag">🎮 D-Pad Navigation</span>
+              <span class="meta-tag">🔊 HDMI ARC Lossless</span>
+              <span class="meta-tag">📻 Leanback Banner Included</span>
+            </div>
+          </div>
+
+          <!-- Right: Interactive TV Display & Remote Control Simulation -->
+          <div class="download-qr-deck">
+            <div class="tv-mockup-container">
+              <div class="tv-set-wrapper">
+                <div class="tv-frame">
+                  <div class="tv-screen-bezel"></div>
+                  <div class="tv-display">
+                    <div class="tv-leanback-nav">
+                      <div class="tv-brand-pill">
+                        <img src="assets/favicon.png" alt="LofiQ" width="14" height="14" />
+                        <span>LofiQ TV</span>
+                      </div>
+                      <span class="tv-time-clock">08:42 PM</span>
+                    </div>
+
+                    <div class="tv-leanback-row">
+                      <div class="tv-card-preview is-focused">
+                        <div class="tv-card-art">
+                          <img src="assets/logo.png" alt="Album" />
+                        </div>
+                        <span class="tv-card-title">Kesariya</span>
+                        <span class="tv-card-subtitle">320kbps Master</span>
+                      </div>
+                      <div class="tv-card-preview">
+                        <div class="tv-card-art">
+                          <img src="assets/tv_banner.png" alt="TV Banner" />
+                        </div>
+                        <span class="tv-card-title">Listen Together</span>
+                        <span class="tv-card-subtitle">Living Room Sync</span>
+                      </div>
+                      <div class="tv-card-preview">
+                        <div class="tv-card-art">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                        </div>
+                        <span class="tv-card-title">Top Hits</span>
+                        <span class="tv-card-subtitle">Lossless Radio</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tv-stand-dual">
+                  <div class="tv-leg"></div>
+                  <div class="tv-leg"></div>
+                </div>
+              </div>
+
+              <!-- Interactive TV Remote Simulation -->
+              <div class="tv-remote-mockup" title="Click D-pad to navigate TV focus!">
+                <div class="remote-power-btn" title="Power">⏻</div>
+                <div class="remote-dpad">
+                  <button class="remote-dpad-btn dpad-up" id="remote-up" aria-label="Up">▲</button>
+                  <button class="remote-dpad-btn dpad-down" id="remote-down" aria-label="Down">▼</button>
+                  <button class="remote-dpad-btn dpad-left" id="remote-left" aria-label="Left">◀</button>
+                  <button class="remote-dpad-btn dpad-right" id="remote-right" aria-label="Right">▶</button>
+                  <button class="remote-ok-btn" id="remote-ok" aria-label="Select">OK</button>
+                </div>
+                <div class="remote-media-keys">
+                  <button class="remote-key-btn" title="Previous">⏮</button>
+                  <button class="remote-key-btn" title="Play / Pause">⏯</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TV FEATURES SHOWCASE -->
+    <section class="features-section" style="padding-top: 20px;">
+      <div class="section-header">
+        <span class="section-tag">Living Room Audio</span>
+        <h2 class="section-title">Acoustics for the Modern Home</h2>
+        <p class="section-desc">Transform your living room into an acoustic sanctuary with high-bitrate streaming and effortless remote navigation.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+          </div>
+          <span class="feature-badge">10-Foot UI</span>
+          <h3 class="card-title">Leanback Television UI</h3>
+          <p class="card-desc">High-contrast typography, large 500x500 album art tiles, and fluid focus animations tailored specifically for couch viewing distances.</p>
+        </div>
+
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+          </div>
+          <span class="feature-badge">Zero Touch</span>
+          <h3 class="card-title">100% Remote D-Pad Navigation</h3>
+          <p class="card-desc">Navigate library rails, search queries, and playback queues entirely with standard Up, Down, Left, Right, and Select remote buttons.</p>
+        </div>
+
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </div>
+          <span class="feature-badge">HDMI ARC</span>
+          <h3 class="card-title">Home Theater Audio</h3>
+          <p class="card-desc">Stream uncompressed 320kbps and FLAC lossless streams directly through HDMI eARC and Optical S/PDIF to high-end soundbars and AV receivers.</p>
+        </div>
+
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <span class="feature-badge">Communal</span>
+          <h3 class="card-title">Party &amp; Listen Together Sync</h3>
+          <p class="card-desc">Display living room playback rooms on the TV while guests join and queue songs from their smartphones in real time.</p>
+        </div>
+
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><circle cx="12" cy="14" r="4"></circle><line x1="12" y1="6" x2="12.01" y2="6"></line></svg>
+          </div>
+          <span class="feature-badge">Hardware Keys</span>
+          <h3 class="card-title">Hardware Media Key Controls</h3>
+          <p class="card-desc">Full responsiveness to TV remote Play, Pause, Next, Previous, Rewind, and Fast-Forward physical hardware media buttons.</p>
+        </div>
+
+        <div class="liquid-glass-card feature-card">
+          <div class="card-glass-specular"></div>
+          <div class="card-icon-glass">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </div>
+          <span class="feature-badge">Universal</span>
+          <h3 class="card-title">Leanback Banner &amp; Launcher</h3>
+          <p class="card-desc">Integrates natively into Android TV home row launchers with official 640x360 banner assets and instant wake-on-media.</p>
+        </div>
+      </div>
+
+      <!-- TV PLATFORM COMPATIBILITY TABLE -->
+      <div style="margin-top: 60px;">
+        <div class="section-header">
+          <span class="section-tag">Compatibility</span>
+          <h2 class="section-title">Supported TV Platforms &amp; Devices</h2>
+        </div>
+
+        <div class="specs-table-wrapper">
+          <table class="specs-table">
+            <tbody>
+              <tr>
+                <th>Android TV &amp; Google TV</th>
+                <td>Sony Bravia, TCL, Hisense, Xiaomi Mi TV, Philips, Sharp (Android 8.0+)</td>
+              </tr>
+              <tr>
+                <th>Streaming Media Players</th>
+                <td>NVIDIA Shield TV, Chromecast with Google TV, Xiaomi Mi Box S</td>
+              </tr>
+              <tr>
+                <th>Amazon Fire TV</th>
+                <td>Fire TV Stick (Lite, 4K, 4K Max), Fire TV Cube, Fire TV Edition Smart TVs</td>
+              </tr>
+              <tr>
+                <th>Navigation Input Methods</th>
+                <td>Bluetooth Remote, IR Remote, Android TV Remote Service App, Game Controllers</td>
+              </tr>
+              <tr>
+                <th>Audio Passthrough</th>
+                <td>PCM Stereo, HDMI ARC/eARC Stereo Bitstream, Optical S/PDIF</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CROSS-PLATFORM EXPLORE -->
+      <div style="margin-top: 60px;">
+        <div class="section-header">
+          <span class="section-tag">Other Platforms</span>
+          <h2 class="section-title">LofiQ on Your Other Devices</h2>
+        </div>
+
+        <div class="cross-platform-grid">
+          <a href="/android-download" class="liquid-glass-card cross-platform-card">
+            <div>
+              <div class="cross-card-header">
+                <div class="cross-card-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.59-2.94-.92-4.47-.92s-3.07.33-4.47.92L5.65 5.67c-.19-.28-.55-.37-.84-.22-.3.16-.42.54-.26.85l1.85 3.18C3.81 10.97 2 13.58 2 16.5h20c0-2.92-1.81-5.53-4.4-7.02zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+                  </svg>
+                </div>
+                <span class="cross-card-arrow">&rarr;</span>
+              </div>
+              <h3 class="cross-card-title">Android APK</h3>
+              <p class="cross-card-desc">Swipe-up queue gestures, live download notifications, Listen Together sync, and home screen widgets for mobile.</p>
+            </div>
+          </a>
+
+          <a href="/desktop-download" class="liquid-glass-card cross-platform-card">
+            <div>
+              <div class="cross-card-header">
+                <div class="cross-card-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/></svg>
+                </div>
+                <span class="cross-card-arrow">&rarr;</span>
+              </div>
+              <h3 class="cross-card-title">Windows Desktop</h3>
+              <p class="cross-card-desc">Audiophile playback with WASAPI exclusive streaming, 10-band equalizer, crossfade, and SMTC keyboard media controls.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img src="assets/logo.png" alt="LofiQ" class="footer-logo" />
+          <span class="footer-title">LofiQ</span>
+        </div>
+        <p class="footer-desc">One Sound. Every Screen. Engineered for Android (Compose &amp; Media3) and Windows Desktop (Flutter &amp; Libmpv).</p>
+      </div>
+
+      <div class="footer-meta">
+        <p>&copy; 2026 LofiQ. Developed by <a href="https://itsafxal.vercel.app" target="_blank" rel="noopener noreferrer">Afsal</a>.</p>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/features">Features</a>
+          <a href="/android-download">Android APK</a>
+          <a href="/desktop-download">Windows Desktop</a>
+          <a href="/tv-download">Smart TV</a>
+          <a href="/changelog">Changelog</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js?v=20261114_multiplatform_v3"></script>
+</body>
+</html>
