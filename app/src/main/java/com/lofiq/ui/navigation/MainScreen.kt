@@ -53,6 +53,8 @@ import com.lofiq.feature.settings.AppIconStudioScreen
 import com.lofiq.feature.settings.SeekbarStyleScreen
 import com.lofiq.feature.settings.SettingsScreen
 import com.lofiq.ui.components.AmbientAppAtmosphere
+import com.lofiq.ui.components.LocalSongContextMenu
+import com.lofiq.ui.components.SongContextMenuSheet
 import com.lofiq.playback.engine.PlaybackEngine
 import com.lofiq.feature.sync.ListenTogetherBottomSheet
 import com.lofiq.feature.sync.ListenTogetherMode
@@ -90,6 +92,7 @@ fun MainScreen(
     val userAccount by profileViewModel.authRepository.userAccount.collectAsStateWithLifecycle(initialValue = UserAccount.GUEST)
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     var isFullPlayerVisible by remember { mutableStateOf(false) }
+    var contextMenuSong by remember { mutableStateOf<com.lofiq.core.model.Song?>(null) }
     var showListenTogetherSheet by remember { mutableStateOf(false) }
     var listenTogetherInitialMode by remember { mutableStateOf(ListenTogetherMode.CHOICE) }
     val effectsController = remember { AudioEffectsController(context.applicationContext) }
@@ -205,7 +208,8 @@ fun MainScreen(
         LocalAppIconTheme provides settingsState.appIconTheme,
         LocalBrandColor provides AccentWhite,
         LocalSeekbarStyle provides settingsState.seekbarStyle,
-        LocalPerformanceModeEnabled provides effectivePerformanceMode
+        LocalPerformanceModeEnabled provides effectivePerformanceMode,
+        LocalSongContextMenu provides { song -> contextMenuSong = song }
     ) {
         Box(
             modifier = modifier
@@ -407,13 +411,7 @@ fun MainScreen(
         }
 
         // Floating Bottom Controls Overlay (MiniPlayer + Frosted Capsule BottomNavBar)
-        val isBottomBarRoute = currentRoute in listOf(
-            NavScreen.HOME.route,
-            NavScreen.LIBRARY.route,
-            NavScreen.SEARCH.route,
-            NavScreen.PROFILE.route,
-            "explore"
-        )
+        val isBottomBarRoute = !isFullPlayerVisible
 
         Column(
             modifier = Modifier
@@ -467,13 +465,31 @@ fun MainScreen(
                 BottomNavBar(
                     currentRoute = currentRoute,
                     onNavigate = { screen ->
-                        if (currentRoute != screen.route) {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                        if (screen == NavScreen.HOME) {
+                            if (currentRoute == NavScreen.HOME.route) {
+                                navController.popBackStack(NavScreen.HOME.route, inclusive = false)
+                            } else {
+                                navController.navigate(NavScreen.HOME.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        inclusive = false
+                                        saveState = false
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = false
                                 }
-                                launchSingleTop = true
-                                restoreState = true
+                                navController.popBackStack(NavScreen.HOME.route, inclusive = false)
+                            }
+                        } else {
+                            if (currentRoute == screen.route) {
+                                navController.popBackStack(screen.route, inclusive = false)
+                            } else {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         }
                     },
@@ -717,6 +733,15 @@ fun MainScreen(
                         restoreState = true
                     }
                 }
+            )
+        }
+        // Global Song Context Menu Bottom Sheet
+        if (contextMenuSong != null) {
+            SongContextMenuSheet(
+                song = contextMenuSong,
+                playbackEngine = playbackEngine,
+                downloadManager = downloadManager,
+                onDismiss = { contextMenuSong = null }
             )
         }
     }

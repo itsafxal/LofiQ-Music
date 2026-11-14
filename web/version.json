@@ -1,34 +1,34 @@
 {
-  "versionCode": 67,
-  "versionName": "1.0.4",
+  "versionCode": 68,
+  "versionName": "1.0.5",
   "minSupportedVersion": 1,
-  "releaseDate": "2026-11-12",
+  "releaseDate": "2026-11-14",
   "apkUrl": "/downloads/LofiQ.apk",
-  "apkSize": "21.7 MB",
-  "checksum": "225bca49c4f2cc64952b8c919ae8df5aa567a3b050c81724019da3ad4166809a",
+  "apkSize": "21.8 MB",
+  "checksum": "a833dbad010639b2a0a13dd5396e7492855cb8c3d2a4bcef28c01cc72b8f2c60",
   "releaseNotes": [
-    "🚀 Official Production Release (V1.0.4 - Build 67)",
-    "🔐 Listen Together Firebase Auth & Room Sync Fix: Restored production Firebase project config and hardened guest join/re-join handling under strict Firestore security rules.",
-    "🎵 True Dual-Player Seamless Playback: Symmetric Active & Secondary audio slots eliminate tail replays, audio gaps, and stalls during track transitions.",
-    "⚡ Early ~10s Silent Preloading: Next track stream & decoder prepare silently at 0% volume around 10 seconds into playback without interrupting the current song.",
-    "♾️ Zero-Overlap Gapless Playback (0s) & Equal-Power Crossfade: Instantaneous gapless transitions or cos/sin overlap preserving full 10-band EQ & Bass Boost.",
-    "🛡️ Resilient Controls & Recovery: Pause/resume mid-crossfade pauses both players cleanly, isolated preload errors never stop active music, and shuffle reorders upcoming queue items."
+    "🚀 Official Production Release (V1.0.5 - Build 68)",
+    "📋 Smart Queue Management: Long-press any song across Home shelves, Search, Library, Playlists, Albums, Artists, and Local Music for instant contextual actions.",
+    "⏭️ Deterministic Play Next & Add to Queue: 'Play Next' inserts immediately following the active song with strict LIFO priority; 'Add to Queue' safely appends at the queue tail.",
+    "✨ Duplicate Queue Resilience: Instance-unique queue identities prevent UI crashes when adding identical songs to the queue multiple times.",
+    "🏠 Reliable Home Tab Reset: Tapping Home on the bottom navigation bar always cleanly resets to the root Home screen from any nested screen (Settings, Equalizer, Profile, Albums, Artists) without interrupting playback.",
+    "⬇️ Real-Time Download Status: Seamlessly integrated TrackDownloadManager directly into song contextual sheets with live download progress."
   ],
   "android": {
-    "versionCode": 67,
-    "versionName": "1.0.4",
+    "versionCode": 68,
+    "versionName": "1.0.5",
     "minSupportedVersion": 1,
-    "releaseDate": "2026-11-12",
+    "releaseDate": "2026-11-14",
     "apkUrl": "/downloads/LofiQ.apk",
-    "apkSize": "21.7 MB",
-    "checksum": "225bca49c4f2cc64952b8c919ae8df5aa567a3b050c81724019da3ad4166809a",
+    "apkSize": "21.8 MB",
+    "checksum": "a833dbad010639b2a0a13dd5396e7492855cb8c3d2a4bcef28c01cc72b8f2c60",
     "releaseNotes": [
-      "🚀 Official Production Release (V1.0.4 - Build 67)",
-      "🔐 Fixed Listen Together Firebase API key configuration while preserving all strict Firestore security rules.",
-      "👥 Hardened Guest Room Join & Re-Join Synchronization with awaited Firestore participant registration.",
-      "🎵 True Dual-Player Architecture: Independent Active & Secondary ExoPlayer slots with atomic MediaSession handovers & ~10s silent preload.",
-      "♾️ Gapless Playback (0s) & Equal-Power Crossfade with full 10-band EQ, Bass Boost, and Virtualizer continuity.",
-      "🔀 Real upcoming queue Shuffle & isolated secondary preload error recovery."
+      "🚀 Official Production Release (V1.0.5 - Build 68)",
+      "📋 Smart Queue Management: Long-press any song across Home shelves, Search, Library, Playlists, Albums, Artists, and Local Music for instant contextual actions.",
+      "⏭️ Deterministic Play Next & Add to Queue: 'Play Next' inserts immediately following the active song with strict LIFO priority; 'Add to Queue' safely appends at the queue tail.",
+      "✨ Duplicate Queue Resilience: Instance-unique queue identities prevent UI crashes when adding identical songs to the queue multiple times.",
+      "🏠 Reliable Home Tab Reset: Tapping Home on the bottom navigation bar always cleanly resets to the root Home screen from any nested screen (Settings, Equalizer, Profile, Albums, Artists) without interrupting playback.",
+      "⬇️ Real-Time Download Status: Seamlessly integrated TrackDownloadManager directly into song contextual sheets with live download progress."
     ]
   },
   "windows": {

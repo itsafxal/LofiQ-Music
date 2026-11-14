@@ -1,7 +1,9 @@
 package com.lofiq.feature.player
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -27,6 +29,7 @@ import com.lofiq.core.common.TimeFormatUtils
 import com.lofiq.core.model.Song
 import com.lofiq.data.repository.MusicRepository
 import com.lofiq.playback.engine.PlaybackEngine
+import com.lofiq.ui.components.LocalSongContextMenu
 import com.lofiq.ui.haptics.Haptic
 import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
@@ -45,6 +48,7 @@ fun AlbumSongsSheet(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val haptics = rememberHaptics()
+    val contextMenuTrigger = LocalSongContextMenu.current
     var albumSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -164,15 +168,22 @@ fun AlbumSongsSheet(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     itemsIndexed(albumSongs) { index, song ->
+                        @OptIn(ExperimentalFoundationApi::class)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .clickable {
-                                    haptics.play(Haptic.Tap)
-                                    playbackEngine.playQueue(albumSongs, index)
-                                    onDismiss()
-                                }
+                                .combinedClickable(
+                                    onClick = {
+                                        haptics.play(Haptic.Tap)
+                                        playbackEngine.playQueue(albumSongs, index)
+                                        onDismiss()
+                                    },
+                                    onLongClick = {
+                                        haptics.play(Haptic.Select)
+                                        contextMenuTrigger(song)
+                                    }
+                                )
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)

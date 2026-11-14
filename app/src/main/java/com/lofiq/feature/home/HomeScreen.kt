@@ -780,6 +780,8 @@ private fun HomeCarouselShelf(
     modifier: Modifier = Modifier
 ) {
     if (shelf.songs.isEmpty()) return
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
 
     Column(
         modifier = modifier
@@ -806,7 +808,11 @@ private fun HomeCarouselShelf(
                     artworkUrl = song.highResArtworkUrl.ifEmpty { song.artworkUrl },
                     isPlaying = isPlaying && isCurrent,
                     isCurrent = isCurrent,
-                    onClick = { onSongClick(song) }
+                    onClick = { onSongClick(song) },
+                    onLongClick = {
+                        haptics.play(Haptic.Select)
+                        contextMenuTrigger(song)
+                    }
                 )
             }
         }
@@ -824,6 +830,8 @@ private fun HomeCompactGridShelf(
     modifier: Modifier = Modifier
 ) {
     if (shelf.songs.isEmpty()) return
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
 
     val isQuickPicks = shelf.id == "shelf_quick_picks"
     // 4 items vertically stacked per section for Quick Picks or large shelves, 2 for others
@@ -869,7 +877,11 @@ private fun HomeCompactGridShelf(
                             isPlaying = isPlaying && isCurrent,
                             isCurrent = isCurrent,
                             rank = rank,
-                            onClick = { onSongClick(song) }
+                            onClick = { onSongClick(song) },
+                            onLongClick = {
+                                haptics.play(Haptic.Select)
+                                contextMenuTrigger(song)
+                            }
                         )
                     }
                 }
@@ -925,6 +937,8 @@ private fun HomeFeaturedLargeShelf(
     modifier: Modifier = Modifier
 ) {
     if (shelf.songs.isEmpty()) return
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
 
     Column(
         modifier = modifier
@@ -951,7 +965,11 @@ private fun HomeFeaturedLargeShelf(
                     artworkUrl = song.highResArtworkUrl.ifEmpty { song.artworkUrl },
                     isPlaying = isPlaying && isCurrent,
                     isCurrent = isCurrent,
-                    onClick = { onSongClick(song) }
+                    onClick = { onSongClick(song) },
+                    onLongClick = {
+                        haptics.play(Haptic.Select)
+                        contextMenuTrigger(song)
+                    }
                 )
             }
         }

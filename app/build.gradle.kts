@@ -27,8 +27,8 @@ android {
         applicationId = "com.sargamify.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 67
-        versionName = "1.0.4"
+        versionCode = 68
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
@@ -116,7 +116,8 @@ android {
         unitTests {
             isReturnDefaultValues = true
             all {
-                it.maxHeapSize = "2048m"
+                it.maxHeapSize = "4096m"
+                it.jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xmx4096m")
             }
         }
     }

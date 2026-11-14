@@ -154,10 +154,9 @@ class PlaybackEngine @Inject constructor(
     private val _isLyricsLoading = MutableStateFlow(false)
     val isLyricsLoading: StateFlow<Boolean> = _isLyricsLoading.asStateFlow()
 
-    private val currentQueue = mutableListOf<Song>()
+    private val currentQueue = mutableListOf<QueueItem>()
     private var currentIndex = -1
     private var isExplicitQueue = false
-    private var priorityQueueOffset = 0
     private var positionJob: Job? = null
     private var lyricsJob: Job? = null
     private var playbackJob: Job? = null
@@ -469,7 +468,7 @@ class PlaybackEngine @Inject constructor(
                             if (currentIndex < currentQueue.size - 1) {
                                 currentIndex++
                                 LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Advancing to next local track after error on '${current.title}'")
-                                startPlaybackInternal(currentQueue[currentIndex], retryCount = 0)
+                                startPlaybackInternal(currentQueue[currentIndex].song, retryCount = 0)
                             } else {
                                 _playerState.update {
                                     it.copy(
@@ -502,7 +501,7 @@ class PlaybackEngine @Inject constructor(
                         if (currentIndex < currentQueue.size - 1 && consecutiveFailures < 3) {
                             currentIndex++
                             LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Advancing to next track after player error on '${current?.title}'")
-                            startPlaybackInternal(currentQueue[currentIndex], retryCount = 0)
+                            startPlaybackInternal(currentQueue[currentIndex].song, retryCount = 0)
                             checkAndReplenishQueue()
                         } else if (_isSmartAutoplay.value && consecutiveFailures < 3) {
                             LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Fetching infinite track after player error")
@@ -966,11 +965,10 @@ class PlaybackEngine @Inject constructor(
             } else {
                 currentIndex = targetIdx
             }
-            updatedSong = currentQueue[currentIndex]
+            updatedSong = currentQueue[currentIndex].song
         } else {
             updatedSong = expectedIncomingSong
         }
-        if (priorityQueueOffset > 0) priorityQueueOffset--
 
         activePlaybackId = java.util.UUID.randomUUID().toString().take(8)
         currentSongRetryCount = 0
@@ -1018,7 +1016,8 @@ class PlaybackEngine @Inject constructor(
                 errorMessage = null,
                 currentPositionMs = actualPosMs,
                 durationMs = actualDurMs,
-                queue = currentQueue.toList(),
+                queue = currentQueue.map { it.song },
+                queueItems = currentQueue.mapIndexed { idx, it -> it.copy(originalIndex = idx, isCurrent = idx == currentIndex) },
                 currentQueueIndex = currentIndex,
                 activeAudioSessionId = sessionId
             )
@@ -1053,20 +1052,19 @@ class PlaybackEngine @Inject constructor(
     }
 
     private fun findTargetIndexForSong(songId: String): Int {
-        if (currentIndex in 0 until currentQueue.size - 1 && currentQueue[currentIndex + 1].id == songId) {
+        if (currentIndex in 0 until currentQueue.size - 1 && currentQueue[currentIndex + 1].song.id == songId) {
             return currentIndex + 1
         }
-        if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty() && currentQueue[0].id == songId) {
+        if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty() && currentQueue[0].song.id == songId) {
             return 0
         }
-        return currentQueue.indexOfFirst { it.id == songId }
+        return currentQueue.indexOfFirst { it.song.id == songId }
     }
 
     fun playSong(song: Song) {
         engineScope.launch {
             commandMutex.withLock {
                 consecutiveFailures = 0
-                priorityQueueOffset = 0
                 isExplicitQueue = false
                 if (currentSong?.id == song.id &&
                     !isTransitioning &&
@@ -1083,7 +1081,14 @@ class PlaybackEngine @Inject constructor(
                 cancelFadeAndRestoreVolume(clearPreload = true)
                 failedPreloadForTrackIds.clear()
                 currentQueue.clear()
-                currentQueue.add(song)
+                currentQueue.add(
+                    QueueItem(
+                        id = "${song.id}_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().take(6)}",
+                        song = song,
+                        originalIndex = 0,
+                        isCurrent = true
+                    )
+                )
                 currentIndex = 0
                 startPlaybackInternal(song)
                 fetchSmartRecommendations(song, autoAppend = true, targetCount = 10)
@@ -1096,7 +1101,6 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 consecutiveFailures = 0
-                priorityQueueOffset = 0
                 isExplicitQueue = songs.size > 1
                 val targetIndex = startIndex.coerceIn(0, songs.size - 1)
                 val targetSong = songs[targetIndex]
@@ -1104,6 +1108,7 @@ class PlaybackEngine @Inject constructor(
                 if (currentSong?.id == targetSong.id &&
                     !isTransitioning &&
                     currentQueue.size == songs.size &&
+                    currentQueue.map { it.song.id } == songs.map { it.id } &&
                     activePlayer.playbackState != Player.STATE_IDLE &&
                     activePlayer.playbackState != Player.STATE_ENDED
                 ) {
@@ -1118,9 +1123,16 @@ class PlaybackEngine @Inject constructor(
                 cancelFadeAndRestoreVolume(clearPreload = true)
                 failedPreloadForTrackIds.clear()
                 currentQueue.clear()
-                currentQueue.addAll(songs)
+                currentQueue.addAll(songs.mapIndexed { idx, s ->
+                    QueueItem(
+                        id = "${s.id}_${System.currentTimeMillis()}_${idx}_${java.util.UUID.randomUUID().toString().take(6)}",
+                        song = s,
+                        originalIndex = idx,
+                        isCurrent = idx == targetIndex
+                    )
+                })
                 currentIndex = targetIndex
-                startPlaybackInternal(currentQueue[currentIndex])
+                startPlaybackInternal(currentQueue[currentIndex].song)
                 triggerUpcomingPrefetch()
                 persistQueue()
             }
@@ -1132,13 +1144,12 @@ class PlaybackEngine @Inject constructor(
             commandMutex.withLock {
                 if (targetIndex !in currentQueue.indices) return@withLock
                 consecutiveFailures = 0
-                priorityQueueOffset = 0
                 cancelFadeAndRestoreVolume(clearPreload = true)
                 failedPreloadForTrackIds.clear()
                 if (!isExplicitQueue) {
                     // In single-track auto mode, drop preceding tracks so chosen song is at 0,
                     // and top up to 10 smart recommendations based on the newly selected track!
-                    val targetSong = currentQueue[targetIndex]
+                    val targetSong = currentQueue[targetIndex].song
                     val remaining = currentQueue.drop(targetIndex)
                     currentQueue.clear()
                     currentQueue.addAll(remaining)
@@ -1147,7 +1158,7 @@ class PlaybackEngine @Inject constructor(
                     fetchSmartRecommendations(targetSong, autoAppend = true, targetCount = 10)
                 } else {
                     currentIndex = targetIndex
-                    startPlaybackInternal(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex].song)
                 }
                 updateState()
                 triggerUpcomingPrefetch()
@@ -1185,7 +1196,14 @@ class PlaybackEngine @Inject constructor(
     fun addToQueue(song: Song) {
         engineScope.launch {
             commandMutex.withLock {
-                currentQueue.add(song)
+                val newItem = QueueItem(
+                    id = "${song.id}_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().take(6)}",
+                    song = song,
+                    originalIndex = currentQueue.size,
+                    isCurrent = false
+                )
+                currentQueue.add(newItem)
+                isExplicitQueue = true
                 updateState()
                 triggerUpcomingPrefetch()
                 maybePreloadAfterQueueChange()
@@ -1198,10 +1216,10 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 if (fromIndex !in currentQueue.indices || fromIndex <= currentIndex) return@withLock
-                val song = currentQueue.removeAt(fromIndex)
-                val targetPos = (currentIndex + 1 + priorityQueueOffset).coerceIn(currentIndex + 1, currentQueue.size)
-                currentQueue.add(targetPos, song)
-                priorityQueueOffset++
+                val item = currentQueue.removeAt(fromIndex)
+                val targetPos = (currentIndex + 1).coerceIn(0, currentQueue.size)
+                currentQueue.add(targetPos, item)
+                isExplicitQueue = true
                 updateState()
                 triggerUpcomingPrefetch()
                 maybePreloadAfterQueueChange()
@@ -1213,9 +1231,21 @@ class PlaybackEngine @Inject constructor(
     fun playNextInQueue(song: Song) {
         engineScope.launch {
             commandMutex.withLock {
-                val insertPos = (currentIndex + 1 + priorityQueueOffset).coerceIn(0, currentQueue.size)
-                currentQueue.add(insertPos, song)
-                priorityQueueOffset++
+                val insertPos = if (currentIndex in currentQueue.indices) {
+                    currentIndex + 1
+                } else if (currentQueue.isEmpty()) {
+                    0
+                } else {
+                    currentQueue.size
+                }
+                val newItem = QueueItem(
+                    id = "${song.id}_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().take(6)}",
+                    song = song,
+                    originalIndex = insertPos,
+                    isCurrent = false
+                )
+                currentQueue.add(insertPos, newItem)
+                isExplicitQueue = true
                 updateState()
                 triggerUpcomingPrefetch()
                 maybePreloadAfterQueueChange()
@@ -1337,7 +1367,6 @@ class PlaybackEngine @Inject constructor(
             commandMutex.withLock {
                 if (currentQueue.isEmpty()) return@withLock
                 consecutiveFailures = 0
-                if (priorityQueueOffset > 0) priorityQueueOffset--
 
                 val nextSong = getNextSong()
                 val sec = secondaryPlayer
@@ -1367,11 +1396,11 @@ class PlaybackEngine @Inject constructor(
 
                 if (currentIndex < currentQueue.size - 1) {
                     currentIndex++
-                    startPlaybackInternal(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex].song)
                     checkAndReplenishQueue()
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL) {
                     currentIndex = 0
-                    startPlaybackInternal(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex].song)
                 } else {
                     val currentSongIsLocal = currentSong?.providerId == "local" || (currentSong?.id?.startsWith("content://") == true)
                     if (currentSongIsLocal) {
@@ -1398,10 +1427,10 @@ class PlaybackEngine @Inject constructor(
                     active.play()
                 } else if (currentIndex > 0) {
                     currentIndex--
-                    startPlaybackInternal(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex].song)
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL) {
                     currentIndex = currentQueue.size - 1
-                    startPlaybackInternal(currentQueue[currentIndex])
+                    startPlaybackInternal(currentQueue[currentIndex].song)
                 } else {
                     active.seekTo(0L)
                 }
@@ -1459,7 +1488,7 @@ class PlaybackEngine @Inject constructor(
         if (enabled) {
             val remainingTracks = currentQueue.size - 1 - currentIndex
             if (remainingTracks <= 3) {
-                val seed = currentSong ?: currentQueue.lastOrNull()
+                val seed = currentSong ?: currentQueue.lastOrNull()?.song
                 if (seed != null) {
                     fetchSmartRecommendations(seed)
                 }
@@ -1489,16 +1518,16 @@ class PlaybackEngine @Inject constructor(
         }
     }
 
-    fun reorderUpcomingQueue(newUpcomingList: List<Song>) {
+    fun reorderUpcomingQueueItems(newUpcomingItems: List<QueueItem>) {
         engineScope.launch {
             commandMutex.withLock {
                 if (currentIndex in currentQueue.indices) {
                     val current = currentQueue[currentIndex]
                     val history = if (currentIndex > 0) currentQueue.subList(0, currentIndex) else emptyList()
-                    val newFullQueue = ArrayList<Song>(history.size + 1 + newUpcomingList.size).apply {
+                    val newFullQueue = ArrayList<QueueItem>(history.size + 1 + newUpcomingItems.size).apply {
                         addAll(history)
                         add(current)
-                        addAll(newUpcomingList)
+                        addAll(newUpcomingItems)
                     }
                     currentQueue.clear()
                     currentQueue.addAll(newFullQueue)
@@ -1507,13 +1536,23 @@ class PlaybackEngine @Inject constructor(
                     maybePreloadAfterQueueChange()
                     persistQueue()
                 } else if (currentQueue.isEmpty()) {
-                    currentQueue.addAll(newUpcomingList)
+                    currentQueue.addAll(newUpcomingItems)
                     currentIndex = 0
                     updateState()
                     persistQueue()
                 }
             }
         }
+    }
+
+    fun reorderUpcomingQueue(newUpcomingList: List<Song>) {
+        reorderUpcomingQueueItems(newUpcomingList.mapIndexed { idx, s ->
+            QueueItem(
+                id = "${s.id}_${System.currentTimeMillis()}_$idx",
+                song = s,
+                originalIndex = idx
+            )
+        })
     }
 
     fun clearUpcomingQueue() {
@@ -1548,10 +1587,10 @@ class PlaybackEngine @Inject constructor(
                         cancelFadeAndRestoreVolume(clearPreload = true)
                         failedPreloadForTrackIds.clear()
                         if (currentIndex < currentQueue.size) {
-                            startPlaybackInternal(currentQueue[currentIndex])
+                            startPlaybackInternal(currentQueue[currentIndex].song)
                         } else if (currentQueue.isNotEmpty()) {
                             currentIndex = 0
-                            startPlaybackInternal(currentQueue[0])
+                            startPlaybackInternal(currentQueue[0].song)
                         } else {
                             currentIndex = -1
                             activePlayer.stop()
@@ -1592,7 +1631,7 @@ class PlaybackEngine @Inject constructor(
         if (isExplicitQueue) {
             // Explicit playlist: only replenish when user reaches the very last track of the playlist
             if (currentIndex >= currentQueue.size - 1) {
-                val seedSong = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else currentQueue.lastOrNull()
+                val seedSong = if (currentIndex in currentQueue.indices) currentQueue[currentIndex].song else currentQueue.lastOrNull()?.song
                 if (seedSong != null) {
                     replenishInfiniteQueue(seedSong, count = 10)
                 }
@@ -1601,7 +1640,7 @@ class PlaybackEngine @Inject constructor(
             // Single-track auto queue: maintain 10 upcoming tracks
             val upcomingCount = currentQueue.size - 1 - currentIndex
             if (upcomingCount < 10) {
-                val seedSong = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else currentQueue.lastOrNull()
+                val seedSong = if (currentIndex in currentQueue.indices) currentQueue[currentIndex].song else currentQueue.lastOrNull()?.song
                 if (seedSong != null) {
                     replenishInfiniteQueue(seedSong, count = 10 - upcomingCount)
                 }
@@ -1653,14 +1692,16 @@ class PlaybackEngine @Inject constructor(
                 val distinctNew = ranked.filter { candidate ->
                     candidate.id != seedSong.id &&
                     currentQueue.none {
-                        it.id == candidate.id ||
-                        (it.title.equals(candidate.title, ignoreCase = true) && it.artist.equals(candidate.artist, ignoreCase = true))
+                        it.song.id == candidate.id ||
+                        (it.song.title.equals(candidate.title, ignoreCase = true) && it.song.artist.equals(candidate.artist, ignoreCase = true))
                     }
                 }.take(count)
 
                 if (distinctNew.isNotEmpty()) {
                     commandMutex.withLock {
-                        currentQueue.addAll(distinctNew)
+                        currentQueue.addAll(distinctNew.mapIndexed { idx, s ->
+                            QueueItem(id = java.util.UUID.randomUUID().toString(), song = s, originalIndex = currentQueue.size + idx)
+                        })
                         updateState()
                         triggerUpcomingPrefetch()
                         persistQueue()
@@ -1676,14 +1717,14 @@ class PlaybackEngine @Inject constructor(
     }
 
     private suspend fun fetchAndPlayNextInfiniteTrack(retryCount: Int = 0) {
-        val seedSong = currentSong ?: currentQueue.lastOrNull()
+        val seedSong = currentSong ?: currentQueue.lastOrNull()?.song
         val candidates = withContext(dispatchers.io) {
             try {
                 // 1. Check pre-fetched smart recommendations first
                 val cachedRecs = _smartRecommendations.value.filter { candidate ->
                     currentQueue.none {
-                        it.id == candidate.id ||
-                        (it.title.equals(candidate.title, ignoreCase = true) && it.artist.equals(candidate.artist, ignoreCase = true))
+                        it.song.id == candidate.id ||
+                        (it.song.title.equals(candidate.title, ignoreCase = true) && it.song.artist.equals(candidate.artist, ignoreCase = true))
                     }
                 }
                 if (cachedRecs.isNotEmpty()) {
@@ -1703,7 +1744,7 @@ class PlaybackEngine @Inject constructor(
                         youTubeMetadataProvider?.searchSongs(q, limit = 15) ?: emptyList()
                     }
                     val ranked = MusicVibeEngine.rankAndFilterRecommendations(pool, seedSong, vibe, limit = 15)
-                        .filter { candidate -> currentQueue.none { it.id == candidate.id } }
+                        .filter { candidate -> currentQueue.none { it.song.id == candidate.id } }
                     if (ranked.isNotEmpty()) {
                         ranked
                     } else {
@@ -1718,7 +1759,7 @@ class PlaybackEngine @Inject constructor(
                         }
                         val fallbackBatch = youTubeMetadataProvider?.searchSongs(fallbackQuery, limit = 15) ?: emptyList()
                         MusicVibeEngine.rankAndFilterRecommendations(fallbackBatch, seedSong, vibe, limit = 15)
-                            .filter { candidate -> currentQueue.none { it.id == candidate.id } }
+                            .filter { candidate -> currentQueue.none { it.song.id == candidate.id } }
                     }
                 } else {
                     val lang = _currentVibe.value?.language
@@ -1729,7 +1770,7 @@ class PlaybackEngine @Inject constructor(
                         else -> "Top Trending Hits"
                     }
                     youTubeMetadataProvider?.searchSongs(genericQuery, limit = 15)
-                        ?.filter { candidate -> currentQueue.none { it.id == candidate.id } }
+                        ?.filter { candidate -> currentQueue.none { it.song.id == candidate.id } }
                         ?: emptyList()
                 }
             } catch (e: Exception) {
@@ -1738,15 +1779,17 @@ class PlaybackEngine @Inject constructor(
             }
         }
         if (candidates.isNotEmpty()) {
-            currentQueue.addAll(candidates)
+            currentQueue.addAll(candidates.mapIndexed { idx, s ->
+                QueueItem(id = java.util.UUID.randomUUID().toString(), song = s, originalIndex = currentQueue.size + idx)
+            })
             currentIndex++
-            startPlayback(currentQueue[currentIndex], retryCount)
+            startPlayback(currentQueue[currentIndex].song, retryCount)
             triggerUpcomingPrefetch()
             persistQueue()
         } else if (currentQueue.isNotEmpty()) {
             // Never stop silently: repeat queue from start
             currentIndex = 0
-            startPlayback(currentQueue[0], retryCount)
+            startPlayback(currentQueue[0].song, retryCount)
         }
     }
 
@@ -1800,12 +1843,14 @@ class PlaybackEngine @Inject constructor(
                             val toAdd = ranked.filter { candidate ->
                                 candidate.id != song.id &&
                                 currentQueue.none {
-                                    it.id == candidate.id ||
-                                    (it.title.equals(candidate.title, ignoreCase = true) && it.artist.equals(candidate.artist, ignoreCase = true))
+                                    it.song.id == candidate.id ||
+                                    (it.song.title.equals(candidate.title, ignoreCase = true) && it.song.artist.equals(candidate.artist, ignoreCase = true))
                                 }
                             }.take(needed)
                             if (toAdd.isNotEmpty()) {
-                                currentQueue.addAll(toAdd)
+                                currentQueue.addAll(toAdd.mapIndexed { idx, s ->
+                                    QueueItem(id = java.util.UUID.randomUUID().toString(), song = s, originalIndex = currentQueue.size + idx)
+                                })
                                 updateState()
                                 triggerUpcomingPrefetch()
                                 persistQueue()
@@ -1814,10 +1859,12 @@ class PlaybackEngine @Inject constructor(
                         }
                     } else if (isExplicitQueue && currentIndex >= currentQueue.size - 1) {
                         val toAdd = ranked.filter { candidate ->
-                            candidate.id != song.id && currentQueue.none { it.id == candidate.id }
+                            candidate.id != song.id && currentQueue.none { it.song.id == candidate.id }
                         }.take(targetCount)
                         if (toAdd.isNotEmpty()) {
-                            currentQueue.addAll(toAdd)
+                            currentQueue.addAll(toAdd.mapIndexed { idx, s ->
+                                QueueItem(id = java.util.UUID.randomUUID().toString(), song = s, originalIndex = currentQueue.size + idx)
+                            })
                             updateState()
                             triggerUpcomingPrefetch()
                             persistQueue()
@@ -1858,7 +1905,7 @@ class PlaybackEngine @Inject constructor(
 
     private fun triggerUpcomingPrefetch() {
         if (currentIndex < 0 || currentIndex >= currentQueue.size) return
-        val upcoming = currentQueue.drop(currentIndex + 1).take(3).filter {
+        val upcoming = currentQueue.drop(currentIndex + 1).take(3).map { it.song }.filter {
             it.providerId != "local" && it.providerId != "local_download" && !it.id.startsWith("content://")
         }
         if (upcoming.isNotEmpty()) {
@@ -1886,10 +1933,10 @@ class PlaybackEngine @Inject constructor(
         if (currentQueue.isEmpty()) return null
         if (_playerState.value.repeatMode == PlaybackRepeatMode.ONE) return null
         if (currentIndex < currentQueue.size - 1) {
-            return currentQueue[currentIndex + 1]
+            return currentQueue[currentIndex + 1].song
         }
         if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL) {
-            return currentQueue.firstOrNull()
+            return currentQueue.firstOrNull()?.song
         }
         return null
     }
@@ -2085,8 +2132,10 @@ class PlaybackEngine @Inject constructor(
                         return@withContext
                     }
                     val nextSongIndex = findTargetIndexForSong(nextSong.id)
-                    if (nextSongIndex in currentQueue.indices && currentQueue[nextSongIndex].id == nextSong.id) {
-                        currentQueue[nextSongIndex] = currentQueue[nextSongIndex].copy(providerId = resolvedProvider)
+                    if (nextSongIndex in currentQueue.indices && currentQueue[nextSongIndex].song.id == nextSong.id) {
+                        currentQueue[nextSongIndex] = currentQueue[nextSongIndex].copy(
+                            song = currentQueue[nextSongIndex].song.copy(providerId = resolvedProvider)
+                        )
                     }
 
                     val sec = secondaryPlayer
@@ -2182,7 +2231,9 @@ class PlaybackEngine @Inject constructor(
             val (mediaItem, activeProvider) = resolveMediaItemForSong(song, reqId, retryCount)
 
             if (currentIndex in currentQueue.indices) {
-                currentQueue[currentIndex] = song.copy(providerId = activeProvider)
+                currentQueue[currentIndex] = currentQueue[currentIndex].copy(
+                    song = song.copy(providerId = activeProvider)
+                )
             }
 
             _playerState.update {
@@ -2320,7 +2371,7 @@ class PlaybackEngine @Inject constructor(
             if (retryCount < 3 && currentIndex < currentQueue.size - 1) {
                 LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[AUTO-SKIP] Skipping unplayable track '${song.title}' to next track")
                 currentIndex++
-                loadAndPlaySong(currentQueue[currentIndex], retryCount + 1)
+                loadAndPlaySong(currentQueue[currentIndex].song, retryCount + 1)
                 checkAndReplenishQueue()
                 return
             } else if (retryCount < 3 && _isSmartAutoplay.value) {
@@ -2396,10 +2447,9 @@ class PlaybackEngine @Inject constructor(
                     return@withLock
                 }
 
-                if (priorityQueueOffset > 0) priorityQueueOffset--
                 if (currentIndex < currentQueue.size - 1) {
                     if (!isExplicitQueue) {
-                        val upcoming = currentQueue[currentIndex + 1]
+                        val upcoming = currentQueue[currentIndex + 1].song
                         val remaining = currentQueue.drop(currentIndex + 1)
                         currentQueue.clear()
                         currentQueue.addAll(remaining)
@@ -2408,12 +2458,12 @@ class PlaybackEngine @Inject constructor(
                         checkAndReplenishQueue()
                     } else {
                         currentIndex++
-                        startPlaybackInternal(currentQueue[currentIndex])
+                        startPlaybackInternal(currentQueue[currentIndex].song)
                         checkAndReplenishQueue()
                     }
                 } else if (_playerState.value.repeatMode == PlaybackRepeatMode.ALL && currentQueue.isNotEmpty()) {
                     currentIndex = 0
-                    startPlaybackInternal(currentQueue[0])
+                    startPlaybackInternal(currentQueue[0].song)
                 } else {
                     val currentSongIsLocal = currentSong?.providerId == "local" || (currentSong?.id?.startsWith("content://") == true)
                     if (currentSongIsLocal) {
@@ -2441,7 +2491,7 @@ class PlaybackEngine @Inject constructor(
         val isExoPlaying = active.isPlaying
         val isBuffering = active.playbackState == Player.STATE_BUFFERING || playbackJob?.isActive == true
         val isReady = active.playbackState == Player.STATE_READY
-        val current = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else null
+        val current = if (currentIndex in currentQueue.indices) currentQueue[currentIndex].song else null
         val isCurrentInPlayer = active.currentMediaItem?.mediaId == current?.id
         val pos = if (isCurrentInPlayer) active.currentPosition.coerceAtLeast(0L) else 0L
         val dur = if (isCurrentInPlayer && active.duration > 0) active.duration else current?.durationMs ?: 0L
@@ -2457,7 +2507,8 @@ class PlaybackEngine @Inject constructor(
                 isCrossfading = isTransitioning,
                 currentPositionMs = pos,
                 durationMs = if (dur > 0) dur else current?.durationMs ?: it.durationMs,
-                queue = currentQueue.toList(),
+                queue = currentQueue.map { it.song },
+                queueItems = currentQueue.mapIndexed { idx, it -> it.copy(originalIndex = idx, isCurrent = idx == currentIndex) },
                 currentQueueIndex = currentIndex,
                 activeAudioSessionId = if (sessionId != 0) sessionId else it.activeAudioSessionId
             )
@@ -2468,9 +2519,9 @@ class PlaybackEngine @Inject constructor(
     }
 
     private suspend fun persistQueue() = withContext(dispatchers.io) {
-        val snapshot = currentQueue.mapIndexed { index, song ->
+        val snapshot = currentQueue.mapIndexed { index, item ->
             QueueSnapshotEntity(
-                songId = song.id,
+                songId = item.song.id,
                 orderIndex = index,
                 isCurrent = index == currentIndex
             )
@@ -2479,7 +2530,7 @@ class PlaybackEngine @Inject constructor(
     }
 
     val currentSong: Song?
-        get() = if (currentIndex in currentQueue.indices) currentQueue[currentIndex] else null
+        get() = if (currentIndex in currentQueue.indices) currentQueue[currentIndex].song else null
 
     fun release() {
         screenStateMonitor.stopMonitoring()

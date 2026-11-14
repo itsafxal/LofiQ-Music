@@ -10,6 +10,7 @@ data class LofiQPlayerState(
     val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.OFF,
     val isShuffleEnabled: Boolean = false,
     val queue: List<Song> = emptyList(),
+    val queueItems: List<QueueItem> = emptyList(),
     val currentQueueIndex: Int = -1,
     val playbackSpeed: Float = 1.0f,
     val errorMessage: String? = null,

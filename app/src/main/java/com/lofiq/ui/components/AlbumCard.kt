@@ -1,8 +1,10 @@
 package com.lofiq.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +25,7 @@ import com.lofiq.ui.theme.SurfaceElevated
 import com.lofiq.ui.theme.TextPrimary
 import com.lofiq.ui.theme.TextSecondary
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlbumCard(
     title: String,
@@ -31,13 +34,20 @@ fun AlbumCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPlaying: Boolean = false,
-    isCurrent: Boolean = false
+    isCurrent: Boolean = false,
+    onLongClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
             .width(148.dp)
             .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            )
             .padding(4.dp)
     ) {
         Box(
@@ -245,6 +255,7 @@ fun ArtistCardSkeleton(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CompactSongRowCard(
     title: String,
@@ -254,14 +265,21 @@ fun CompactSongRowCard(
     modifier: Modifier = Modifier,
     isPlaying: Boolean = false,
     isCurrent: Boolean = false,
-    rank: Int? = null
+    rank: Int? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
             .width(280.dp)
             .height(58.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            )
             .padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -402,6 +420,7 @@ fun WaveformIndicator(
  * Large Featured Album Card (220dp x 220dp) with bottom gradient overlay & metadata
  * Designed for "Albums & singles" / "New Releases" shelves as shown in Image 2.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FeaturedLargeAlbumCard(
     title: String,
@@ -410,14 +429,21 @@ fun FeaturedLargeAlbumCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPlaying: Boolean = false,
-    isCurrent: Boolean = false
+    isCurrent: Boolean = false,
+    onLongClick: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier
             .width(215.dp)
             .height(215.dp)
             .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            )
     ) {
         ArtworkImage(
             artworkUrl = artworkUrl,

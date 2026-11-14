@@ -4,6 +4,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,8 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lofiq.core.common.TimeFormatUtils
 import com.lofiq.core.model.Song
+import com.lofiq.ui.haptics.Haptic
+import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongRow(
     song: Song,
@@ -33,10 +38,18 @@ fun SongRow(
     onClick: () -> Unit,
     onFavoriteClick: (() -> Unit)? = null,
     onMoreClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
     val isLiquidGlass = isLiquidGlassActive()
     val brandColor = LocalBrandColor.current
+
+    val effectiveLongClick = onLongClick ?: {
+        haptics.play(Haptic.Select)
+        contextMenuTrigger(song)
+    }
 
     val animatedBg by animateColorAsState(
         targetValue = if (isCurrent) {
@@ -50,7 +63,10 @@ fun SongRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(animatedBg)
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = effectiveLongClick
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -109,19 +125,21 @@ fun SongRow(
             }
         }
 
-        // Overflow More Button
-        if (onMoreClick != null) {
-            IconButton(
-                onClick = onMoreClick,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "More options",
-                    tint = Color.White.copy(alpha = 0.78f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+        // Overflow More Button (triggers contextual menu)
+        val effectiveMoreClick = onMoreClick ?: {
+            haptics.play(Haptic.Select)
+            contextMenuTrigger(song)
+        }
+        IconButton(
+            onClick = effectiveMoreClick,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.MoreVert,
+                contentDescription = "More options",
+                tint = Color.White.copy(alpha = 0.78f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

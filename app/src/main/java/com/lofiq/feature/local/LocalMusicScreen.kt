@@ -10,9 +10,11 @@ import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,6 +42,9 @@ import com.lofiq.core.common.TimeFormatUtils
 import com.lofiq.core.model.AudioQuality
 import com.lofiq.core.model.Song
 import com.lofiq.playback.engine.PlaybackEngine
+import com.lofiq.ui.components.LocalSongContextMenu
+import com.lofiq.ui.haptics.Haptic
+import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,6 +60,8 @@ fun LocalMusicScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
 
     val audioPermission = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -409,10 +416,17 @@ fun LocalMusicScreen(
                     ) {
                         itemsIndexed(filteredSongs) { index, song ->
                             val isCurrent = song.id == currentPlayingId
+                            @OptIn(ExperimentalFoundationApi::class)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { playbackEngine.playQueue(filteredSongs, index) }
+                                    .combinedClickable(
+                                        onClick = { playbackEngine.playQueue(filteredSongs, index) },
+                                        onLongClick = {
+                                            haptics.play(Haptic.Select)
+                                            contextMenuTrigger(song)
+                                        }
+                                    )
                                     .padding(horizontal = 20.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

@@ -1,8 +1,10 @@
 package com.lofiq.feature.search
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lofiq.core.common.TimeFormatUtils
 import com.lofiq.core.model.Song
 import com.lofiq.ui.components.ArtworkImage
+import com.lofiq.ui.components.LocalSongContextMenu
 import com.lofiq.ui.components.SongRow
 import com.lofiq.ui.components.WaveformIndicator
 import com.lofiq.ui.components.glass.*
@@ -422,6 +425,7 @@ fun SearchScreen(
 }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BestMatchCard(
     song: Song,
@@ -430,6 +434,9 @@ private fun BestMatchCard(
     isLiquidGlass: Boolean,
     onPlayClick: () -> Unit
 ) {
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -444,7 +451,13 @@ private fun BestMatchCard(
                     )
                 } else Modifier
             )
-            .clickable(onClick = onPlayClick)
+            .combinedClickable(
+                onClick = onPlayClick,
+                onLongClick = {
+                    haptics.play(Haptic.Select)
+                    contextMenuTrigger(song)
+                }
+            )
             .padding(16.dp)
     ) {
         Row(

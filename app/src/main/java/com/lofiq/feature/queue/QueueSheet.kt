@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lofiq.core.model.QueueItem
 import com.lofiq.core.model.Song
 import com.lofiq.playback.engine.PlaybackEngine
 import com.lofiq.ui.components.ArtworkImage
@@ -63,6 +64,7 @@ fun QueueSheet(
 
     val currentSong = playerState.currentSong
     val queue = playerState.queue
+    val queueItems = playerState.queueItems
     val currentIndex = playerState.currentQueueIndex
 
     val haptics = rememberHaptics()
@@ -72,39 +74,39 @@ fun QueueSheet(
     val isLiquidGlass = isLiquidGlassActive()
     val isPerfMode = LocalPerformanceModeEnabled.current
 
-    // Authoritative upcoming songs extracted from queue
-    val upcomingSongs = remember(queue, currentIndex) {
-        if (currentIndex in queue.indices) {
-            queue.subList((currentIndex + 1).coerceAtMost(queue.size), queue.size)
+    // Authoritative upcoming queue items extracted from queueItems
+    val upcomingItems = remember(queueItems, currentIndex) {
+        if (currentIndex in queueItems.indices) {
+            queueItems.subList((currentIndex + 1).coerceAtMost(queueItems.size), queueItems.size)
         } else {
-            queue
+            queueItems
         }
     }
 
     // Local mutable list for real-time interactive drag reordering
-    var localUpcomingSongs by remember(upcomingSongs) { mutableStateOf(upcomingSongs) }
+    var localUpcomingItems by remember(upcomingItems) { mutableStateOf(upcomingItems) }
 
     val density = LocalDensity.current
     val defaultRowHeightPx = with(density) { 68.dp.toPx() }
 
     // Active drag-and-drop state
-    var draggedSongId by remember { mutableStateOf<String?>(null) }
+    var draggedItemId by remember { mutableStateOf<String?>(null) }
     var dragStartRelIndex by remember { mutableIntStateOf(-1) }
     var draggedCurrentIndex by remember { mutableIntStateOf(-1) }
     var accumulatedDragY by remember { mutableFloatStateOf(0f) }
     var rowHeightPx by remember { mutableFloatStateOf(0f) }
     var autoScrollJob by remember { mutableStateOf<Job?>(null) }
 
-    // Synchronize local list whenever upcomingSongs changes externally, unless user is actively dragging
-    LaunchedEffect(upcomingSongs) {
-        if (draggedSongId == null) {
-            localUpcomingSongs = upcomingSongs
+    // Synchronize local list whenever upcomingItems changes externally, unless user is actively dragging
+    LaunchedEffect(upcomingItems) {
+        if (draggedItemId == null) {
+            localUpcomingItems = upcomingItems
         }
     }
 
     // Drag handlers
-    val onStartDrag: (index: Int, songId: String) -> Unit = { index, songId ->
-        draggedSongId = songId
+    val onStartDrag: (index: Int, itemId: String) -> Unit = { index, itemId ->
+        draggedItemId = itemId
         dragStartRelIndex = index
         draggedCurrentIndex = index
         accumulatedDragY = 0f
@@ -115,7 +117,7 @@ fun QueueSheet(
         accumulatedDragY += dragAmountY
 
         val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
-        val measuredItemHeight = visibleItems.firstOrNull { it.key == draggedSongId }?.size?.toFloat()
+        val measuredItemHeight = visibleItems.firstOrNull { it.key == draggedItemId }?.size?.toFloat()
         val effectiveRowHeight = measuredItemHeight ?: (if (rowHeightPx > 0f) rowHeightPx else defaultRowHeightPx)
 
         // Auto-scroll when dragging near viewport bounds
@@ -140,14 +142,14 @@ fun QueueSheet(
             }
         }
 
-        if (effectiveRowHeight > 0f && localUpcomingSongs.isNotEmpty() && dragStartRelIndex >= 0) {
+        if (effectiveRowHeight > 0f && localUpcomingItems.isNotEmpty() && dragStartRelIndex >= 0) {
             val slotDelta = (accumulatedDragY / effectiveRowHeight).roundToInt()
-            val targetIndex = (dragStartRelIndex + slotDelta).coerceIn(0, localUpcomingSongs.lastIndex)
-            if (targetIndex != draggedCurrentIndex && targetIndex in localUpcomingSongs.indices) {
-                val mutable = localUpcomingSongs.toMutableList()
+            val targetIndex = (dragStartRelIndex + slotDelta).coerceIn(0, localUpcomingItems.lastIndex)
+            if (targetIndex != draggedCurrentIndex && targetIndex in localUpcomingItems.indices) {
+                val mutable = localUpcomingItems.toMutableList()
                 val item = mutable.removeAt(draggedCurrentIndex)
                 mutable.add(targetIndex, item)
-                localUpcomingSongs = mutable
+                localUpcomingItems = mutable
                 draggedCurrentIndex = targetIndex
                 haptics.play(Haptic.Tick)
             }
@@ -156,24 +158,24 @@ fun QueueSheet(
 
     val onEndDrag: () -> Unit = {
         autoScrollJob?.cancel()
-        if (draggedSongId != null) {
+        if (draggedItemId != null) {
             haptics.play(Haptic.ToggleOn)
-            draggedSongId = null
+            draggedItemId = null
             draggedCurrentIndex = -1
             dragStartRelIndex = -1
             accumulatedDragY = 0f
-            // Commit authoritative reordered queue to playback engine
-            playbackEngine.reorderUpcomingQueue(localUpcomingSongs)
+            // Commit authoritative reordered queue to playback engine using QueueItem to support duplicates safely!
+            playbackEngine.reorderUpcomingQueueItems(localUpcomingItems)
         }
     }
 
     val onCancelDrag: () -> Unit = {
         autoScrollJob?.cancel()
-        draggedSongId = null
+        draggedItemId = null
         draggedCurrentIndex = -1
         dragStartRelIndex = -1
         accumulatedDragY = 0f
-        localUpcomingSongs = upcomingSongs
+        localUpcomingItems = upcomingItems
     }
 
     ModalBottomSheet(
@@ -355,7 +357,7 @@ fun QueueSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "UP NEXT (${localUpcomingSongs.size})",
+                        text = "UP NEXT (${localUpcomingItems.size})",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = TextSecondary,
                             fontWeight = FontWeight.Bold,
@@ -364,7 +366,7 @@ fun QueueSheet(
                         )
                     )
 
-                    if (localUpcomingSongs.isNotEmpty()) {
+                    if (localUpcomingItems.isNotEmpty()) {
                         Text(
                             text = "Clear Upcoming",
                             style = MaterialTheme.typography.labelSmall.copy(
@@ -382,7 +384,7 @@ fun QueueSheet(
             }
 
             // 3. Upcoming Queue Items with Long-Press Drag & Drop Reorder
-            if (localUpcomingSongs.isEmpty()) {
+            if (localUpcomingItems.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -401,11 +403,11 @@ fun QueueSheet(
                 }
             } else {
                 itemsIndexed(
-                    items = localUpcomingSongs,
-                    key = { _, song -> song.id }
-                ) { relIndex, song ->
+                    items = localUpcomingItems,
+                    key = { _, item -> item.id }
+                ) { relIndex, queueItem ->
                     val actualIndex = currentIndex + 1 + relIndex
-                    val isDragging = (draggedSongId == song.id)
+                    val isDragging = (draggedItemId == queueItem.id)
                     val effectiveRowHeight = if (rowHeightPx > 0f) rowHeightPx else defaultRowHeightPx
                     val currentDragOffsetY = if (isDragging && effectiveRowHeight > 0f && dragStartRelIndex >= 0) {
                         (dragStartRelIndex - draggedCurrentIndex) * effectiveRowHeight + accumulatedDragY
@@ -414,18 +416,18 @@ fun QueueSheet(
                     }
 
                     UpcomingQueueRow(
-                        song = song,
+                        queueItem = queueItem,
                         relIndex = relIndex,
                         isDragging = isDragging,
-                        isAnyDragging = (draggedSongId != null),
+                        isAnyDragging = (draggedItemId != null),
                         dragOffsetY = currentDragOffsetY,
                         onRowHeightMeasured = { h -> if (h > 0f) rowHeightPx = h },
-                        onStartDrag = { onStartDrag(relIndex, song.id) },
+                        onStartDrag = { onStartDrag(relIndex, queueItem.id) },
                         onDrag = onDrag,
                         onEndDrag = onEndDrag,
                         onCancelDrag = onCancelDrag,
                         onPlay = {
-                            if (draggedSongId == null) {
+                            if (draggedItemId == null) {
                                 playbackEngine.playQueueItem(actualIndex)
                             }
                         },
@@ -527,7 +529,7 @@ fun QueueSheet(
 
 @Composable
 private fun LazyItemScope.UpcomingQueueRow(
-    song: Song,
+    queueItem: QueueItem,
     relIndex: Int,
     isDragging: Boolean,
     isAnyDragging: Boolean,
@@ -541,6 +543,7 @@ private fun LazyItemScope.UpcomingQueueRow(
     onPlayNext: () -> Unit,
     onRemove: () -> Unit
 ) {
+    val song = queueItem.song
     var showMenu by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
@@ -680,7 +683,7 @@ private fun LazyItemScope.UpcomingQueueRow(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .pointerInput(song.id) {
+                    .pointerInput(queueItem.id) {
                         detectVerticalDragGestures(
                             onDragStart = { onStartDrag() },
                             onDragEnd = { onEndDrag() },

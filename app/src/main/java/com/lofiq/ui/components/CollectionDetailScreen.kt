@@ -3,9 +3,11 @@ package com.lofiq.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,10 +34,13 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lofiq.core.common.TimeFormatUtils
 import com.lofiq.core.model.Song
+import com.lofiq.ui.haptics.Haptic
+import com.lofiq.ui.haptics.rememberHaptics
 import com.lofiq.ui.theme.*
 
 private val AccentGold = Color(0xFFE8C857)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CollectionDetailScreen(
     title: String,
@@ -57,6 +62,8 @@ fun CollectionDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val brandColor = LocalBrandColor.current
+    val contextMenuTrigger = LocalSongContextMenu.current
+    val haptics = rememberHaptics()
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
 
@@ -468,7 +475,13 @@ fun CollectionDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { onPlaySong(song, filteredTracks) }
+                            .combinedClickable(
+                                onClick = { onPlaySong(song, filteredTracks) },
+                                onLongClick = {
+                                    haptics.play(Haptic.Select)
+                                    contextMenuTrigger(song)
+                                }
+                            )
                             .then(
                                 if (isCurrent) Modifier.background(brandColor.copy(alpha = 0.14f))
                                 else Modifier
@@ -561,7 +574,14 @@ fun CollectionDetailScreen(
 
                         // Three-dot options menu
                         IconButton(
-                            onClick = { onSongMoreClick?.invoke(song) },
+                            onClick = {
+                                if (onSongMoreClick != null) {
+                                    onSongMoreClick(song)
+                                } else {
+                                    haptics.play(Haptic.Select)
+                                    contextMenuTrigger(song)
+                                }
+                            },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(

@@ -188,10 +188,8 @@ fun BottomNavBar(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
-                                    if (!isSelected) {
-                                        haptics.play(Haptic.Select)
-                                        onNavigate(screen)
-                                    }
+                                    haptics.play(Haptic.Select)
+                                    onNavigate(screen)
                                 },
                             contentAlignment = Alignment.Center
                         ) {
