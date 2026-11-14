@@ -26,6 +26,7 @@ firestore-debug.log
 firebase-debug.log
 
 # Security & Private Credentials
+keystore/
 app/google-services.json
 !app/google-services.json.example
 *firebase-adminsdk*.json

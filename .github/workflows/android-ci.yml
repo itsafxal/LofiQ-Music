@@ -50,11 +50,11 @@ jobs:
       - name: Validate Release Artifacts Integrity
         run: node scripts/validate_release_artifacts.mjs
 
-      - name: Run Android Release Unit Tests
-        run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
+      - name: Run Android Debug Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
 
-      - name: Assemble Release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Assemble Debug APK (Development Build Verification)
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Secret Scan Verification
         run: |

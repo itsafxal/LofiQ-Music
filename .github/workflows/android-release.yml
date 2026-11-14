@@ -1,0 +1,194 @@
+name: LofiQ Android Production Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Create draft release'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  production-release:
+    name: Build, Sign, Verify & Publish Production Android Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Node.js for Tooling & Pre-flight Checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify Required Production Signing Secrets
+        run: |
+          echo "Validating required GitHub Actions release signing secrets..."
+          MISSING_SECRETS=()
+          [ -z "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ] && MISSING_SECRETS+=("RELEASE_KEYSTORE_BASE64")
+          [ -z "${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" ] && MISSING_SECRETS+=("RELEASE_KEYSTORE_PASSWORD")
+          [ -z "${{ secrets.RELEASE_KEY_ALIAS }}" ] && MISSING_SECRETS+=("RELEASE_KEY_ALIAS")
+          [ -z "${{ secrets.RELEASE_KEY_PASSWORD }}" ] && MISSING_SECRETS+=("RELEASE_KEY_PASSWORD")
+
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo "::error::Strict Signing Error: The following required release secrets are missing:"
+            for s in "${MISSING_SECRETS[@]}"; do
+              echo "  - $s"
+            done
+            echo "Production release builds strictly prohibit falling back to debug keys."
+            exit 1
+          fi
+          echo "All required production signing secrets are present."
+
+      - name: Restore Production Signing Keystore
+        run: |
+          mkdir -p keystore
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > keystore/lofiq-release.jks
+          if [ ! -s keystore/lofiq-release.jks ]; then
+            echo "::error::Decoded keystore is empty or invalid!"
+            exit 1
+          fi
+          echo "Production keystore successfully restored."
+
+      - name: Prepare Local Properties & Dummy Firebase Config (for CI)
+        run: |
+          cp local.properties.example local.properties
+          sed -i 's|RELEASE_KEYSTORE_PATH=.*|RELEASE_KEYSTORE_PATH=keystore/lofiq-release.jks|' local.properties
+          if [ ! -f app/google-services.json ]; then
+            echo "Copying example google-services.json for CI compilation"
+            cp app/google-services.json.example app/google-services.json
+          fi
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Run Firestore Security Rules Unit Tests
+        run: node test/firestore_rules_test.js
+
+      - name: Run Android Release Unit Tests
+        run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
+
+      - name: Assemble Signed Production Release APK
+        env:
+          RELEASE_KEYSTORE_PATH: keystore/lofiq-release.jks
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Find and Set Android Build-Tools Path
+        id: build-tools
+        run: |
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using Android Build-Tools: $BUILD_TOOLS_DIR"
+          echo "path=$BUILD_TOOLS_DIR" >> $GITHUB_OUTPUT
+
+      - name: Cryptographically Verify APK Signatures (V1, V2, V3)
+        run: |
+          APK_FILE="app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER="${{ steps.build-tools.outputs.path }}/apksigner"
+          
+          echo "Verifying APK with apksigner..."
+          $APKSIGNER verify --verbose --print-certs "$APK_FILE" > apksigner_report.txt
+          cat apksigner_report.txt
+
+          # Check for V2 and V3 signature schemes
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" apksigner_report.txt || {
+            echo "::error::APK failed V2 signature verification!"
+            exit 1
+          }
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" apksigner_report.txt || {
+            echo "::error::APK failed V3 signature verification!"
+            exit 1
+          }
+
+          # Check Certificate SHA-256 fingerprint matches verified production identity
+          EXPECTED_SHA256="6231bd272c05446d273eb041a20d46cba0e908848c9bbab34f3c1542cedc0a11"
+          grep -qi "$EXPECTED_SHA256" apksigner_report.txt || {
+            echo "::error::APK certificate fingerprint does NOT match expected production certificate!"
+            exit 1
+          }
+          echo "Cryptographic signature and production certificate match verified successfully."
+
+      - name: Sync Release Artifact & Run Pre-flight Integrity Validation
+        run: |
+          mkdir -p web/downloads
+          cp app/build/outputs/apk/release/app-release.apk web/downloads/LofiQ.apk
+          node scripts/validate_release_artifacts.mjs
+
+      - name: Prepare Package Release Artifacts
+        id: artifacts
+        run: |
+          VERSION_NAME=$(node -p 'require("./web/version.json").versionName')
+          VERSION_CODE=$(node -p 'require("./web/version.json").versionCode')
+          TAG="v${VERSION_NAME}"
+          
+          echo "Preparing release artifacts for $TAG (versionCode: $VERSION_CODE)..."
+          cp app/build/outputs/apk/release/app-release.apk "LofiQ-${TAG}.apk"
+          cp app/build/outputs/apk/release/app-release.apk LofiQ.apk
+          sha256sum "LofiQ-${TAG}.apk" > "LofiQ-${TAG}.apk.sha256"
+          sha256sum LofiQ.apk > LofiQ.apk.sha256
+
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload Release Artifacts to Workflow Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: lofiq-production-android-apk
+          path: |
+            LofiQ-*.apk
+            LofiQ.apk
+            *.sha256
+            apksigner_report.txt
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ steps.artifacts.outputs.tag_name }}
+          name: "LofiQ Android ${{ steps.artifacts.outputs.tag_name }} Production Release"
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          files: |
+            LofiQ-*.apk
+            LofiQ.apk
+            *.sha256
+          body: |
+            ## LofiQ Android Production Release (${{ steps.artifacts.outputs.tag_name }})
+            
+            Strictly signed production APK with verified cryptographic identity and APK Signature Scheme V1, V2, and V3.
+            
+            ### Artifacts & Checksums
+            - **Package**: `LofiQ-${{ steps.artifacts.outputs.tag_name }}.apk`
+            - **Universal Download**: `LofiQ.apk`
+            - **Certificate SHA-256**: `62:31:BD:27:2C:05:44:6D:27:3E:B0:41:A2:0D:46:CB:A0:E9:08:84:8C:9B:BA:B3:4F:3C:15:42:CE:DC:0A:11`
+            - **Signature Schemes**: V1 (JAR), V2 (APK v2), V3 (APK v3)
+            - **Android TV / Leanback**: Supported
+            - **Application ID**: `com.sargamify.app`

@@ -41,19 +41,26 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = localProperties.getProperty("RELEASE_KEYSTORE_PATH") ?: System.getenv("RELEASE_KEYSTORE_PATH")
-            val keystorePassword = localProperties.getProperty("RELEASE_KEYSTORE_PASSWORD") ?: System.getenv("RELEASE_KEYSTORE_PASSWORD")
-            val keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS")
-            val keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD")
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: localProperties.getProperty("RELEASE_KEYSTORE_PATH")
+            val keystorePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: localProperties.getProperty("RELEASE_KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: localProperties.getProperty("RELEASE_KEY_ALIAS")
+            val keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: localProperties.getProperty("RELEASE_KEY_PASSWORD")
 
-            if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
-                storeFile = file(keystorePath)
+            val resolvedStoreFile = if (!keystorePath.isNullOrBlank()) {
+                val f = file(keystorePath)
+                if (f.exists()) f else rootProject.file(keystorePath)
+            } else null
+
+            if (resolvedStoreFile != null && resolvedStoreFile.exists()) {
+                storeFile = resolvedStoreFile
                 storePassword = keystorePassword
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
             }
             enableV1Signing = true
             enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
         }
         getByName("debug") {
             enableV1Signing = true
@@ -64,12 +71,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            val releaseSigning = signingConfigs.findByName("release")
-            signingConfig = if (releaseSigning?.storeFile != null) {
-                releaseSigning
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -204,4 +206,23 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+}
+
+// Strict Release Signing Enforcement: Fail build if a release artifact is requested without a valid production keystore
+gradle.taskGraph.whenReady {
+    val isReleaseBuild = allTasks.any { task ->
+        task.name.contains("Release", ignoreCase = true) &&
+        (task.name.startsWith("assemble") || task.name.startsWith("bundle") || task.name.startsWith("package"))
+    }
+    if (isReleaseBuild) {
+        val releaseConfig = android.signingConfigs.findByName("release")
+        val storeFile = releaseConfig?.storeFile
+        if (storeFile == null || !storeFile.exists()) {
+            throw GradleException(
+                "STRICT SIGNING FAILURE: Production release keystore is missing or not configured at '${storeFile?.absolutePath}'. " +
+                "Refusing to produce an unsigned or incorrectly signed production release. Fallback to debug signing has been permanently removed. " +
+                "Please configure RELEASE_KEYSTORE_PATH, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, and RELEASE_KEY_PASSWORD in local.properties or CI secrets."
+            )
+        }
+    }
 }

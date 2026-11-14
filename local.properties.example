@@ -1,6 +1,6 @@
 ## LofiQ Local Configuration Example
 # Copy this file to 'local.properties' and fill in your local Android SDK location and API credentials.
-# NOTE: Never commit 'local.properties' to version control.
+# NOTE: Never commit 'local.properties' or keystores to version control.
 
 # Location of the Android SDK on your local machine
 sdk.dir=/path/to/your/Android/Sdk
@@ -10,12 +10,10 @@ sdk.dir=/path/to/your/Android/Sdk
 LASTFM_API_KEY=
 LASTFM_API_SECRET=
 
-# Optional: Production Android Release Signing
-# Never commit your production keystore or passwords to version control.
-# These can also be passed via environment variables (e.g., in CI/CD).
-# RELEASE_KEYSTORE_PATH=/path/to/your/release-keystore.jks
-# RELEASE_KEYSTORE_PASSWORD=your_store_password
-# RELEASE_KEY_ALIAS=your_key_alias
-# RELEASE_KEY_PASSWORD=your_key_password
-
-
+# Production Android Release Signing (STRICT REQUIREMENT)
+# Release builds strictly require a verified release keystore. Fallback to debug signing has been permanently removed.
+# Configure your production keystore path and credentials below or through environment variables.
+RELEASE_KEYSTORE_PATH=keystore/lofiq-release.jks
+RELEASE_KEYSTORE_PASSWORD=your_store_password
+RELEASE_KEY_ALIAS=your_key_alias
+RELEASE_KEY_PASSWORD=your_key_password
