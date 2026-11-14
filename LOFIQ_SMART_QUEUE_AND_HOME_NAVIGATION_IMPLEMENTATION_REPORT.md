@@ -230,12 +230,85 @@ BUILD SUCCESSFUL in 8s
 
 ---
 
-## 6. Verification Checklist
+## 7. Master Addendum — Player Queue Gesture & Download Progress Notification
 
-- [x] **Universal Context Menu:** Tested and operational across Home, Search, Library, Playlists, Albums, Artists, Local Music, and Player drawer.
-- [x] **Deterministic Ordering:** `Play Next` executes LIFO priority at `currentIndex + 1`. `Add to Queue` executes FIFO at tail.
-- [x] **Duplicate Entry Resilience:** Distinct `QueueItem.id` avoids Compose key collisions in `QueueSheet`.
-- [x] **Home Tab Reset:** Bottom bar tab clicks always dispatch; selecting Home clears backstacks to root Home destination.
-- [x] **Playback Continuity:** Playback engine state, ExoPlayer audio stream, MiniPlayer visibility, and active queue are untouched during navigation resets.
-- [x] **Visual Design:** Fully preserves LofiQ Liquid Glass design system, haptics, and animations.
-- [x] **Code Quality & Integrity:** No Firebase configs, audio extraction pipelines, or external priorities modified. Clean Gradle compilation.
+### 7.1 Removal of Player Queue (Q) Button & Gesture-Driven QueueSheet
+- **File:** [FullPlayerSheet.kt](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/app/src/main/java/com/lofiq/feature/player/FullPlayerSheet.kt)
+  - **Complete Removal of Visible Q Button:** Removed the visible pill container with the "Q" badge, "Queue" text, and chevron icon from the player bottom chrome.
+  - **Gesture-Driven Access:** Implemented an invisible touch interaction area at the bottom of the player (`pointerInput` detecting vertical drag `<= -25f`) alongside the full-canvas upward drag (`totalDragY < -45f`), both seamlessly setting `showQueueSheet = true`.
+  - **Gesture Isolation:** Horizontal scrubbing on `CustomPlayerSeekbar` and horizontal track skipping (`abs(dragX) > abs(dragY)`) consume horizontal touch, ensuring seeking and skipping never accidentally trigger queue expansion.
+  - **Smooth Animations:** Retained native `ModalBottomSheetState` spring animations for smooth expand and dismiss transitions.
+
+### 7.2 Native Android Download Progress Notifications
+- **File:** [DownloadNotificationHelper.kt](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/app/src/main/java/com/lofiq/data/download/DownloadNotificationHelper.kt)
+- **File:** [TrackDownloadManager.kt](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/app/src/main/java/com/lofiq/data/download/TrackDownloadManager.kt)
+  - **Notification Channel:** Registered `lofiq_track_downloads` ("Song Downloads") at `NotificationManager.IMPORTANCE_LOW` without vibration or sounds, guaranteeing zero interference with ongoing music playback.
+  - **Live Dynamic Progress:** Displays the small download icon (`android.R.drawable.stat_sys_download`), track title, and live percentage (`0%..100%`) reflecting actual downloaded bytes and metadata embedding.
+  - **Update Throttling:** Debounces progress updates (minimum 2% increment or 250ms interval) to protect `NotificationManager` from rate-limiting.
+  - **Multiple Concurrent Downloads:** Stable notification IDs partitioned per `song.id` prevent concurrent downloads from overwriting each other.
+  - **Automatic Cleanup:** Immediately calls `notificationManager.cancel(notificationId)` upon download completion, failure, or cancellation. Leaves zero lingering notifications or completed-download action buttons.
+  - **Download Library Preservation:** Completed tracks are saved to device public storage (`Music/LofiQ`) or private app storage and indexed in Room `SongDao`.
+
+---
+
+## 8. Addendum Automated Test Verification
+
+Two additional automated unit test suites were implemented:
+
+### 8.1 Player Queue Gesture Test Suite
+- **File:** [PlayerQueueGestureTest.kt](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/app/src/test/java/com/lofiq/feature/player/PlayerQueueGestureTest.kt)
+
+| # | Test Method Name | Specification Verified | Status |
+|---|---|---|:---:|
+| 1 | `test_01_horizontalSwipeDoesNotTriggerQueueSheet()` | Horizontal drags do not trigger QueueSheet | **PASSED** |
+| 2 | `test_02_verticalSwipeUpOpensQueueSheet()` | Player vertical swipe-up opens QueueSheet | **PASSED** |
+| 3 | `test_03_bottomInteractionAreaSwipeUpOpensQueueSheet()` | Bottom edge swipe-up opens QueueSheet | **PASSED** |
+| 4 | `test_04_verticalSwipeDownDismissesPlayer()` | Downward swipe dismisses FullPlayer | **PASSED** |
+| 5 | `test_05_seekingGestureIsolation()` | Seekbar scrub gestures do not open Queue | **PASSED** |
+| 6 | `test_06_queueOperationsIntactWithoutQButton()` | Queue operations intact without visible Q button | **PASSED** |
+| 7 | `test_07_queueSheetDismissal()` | Swipe-down or backpress smoothly dismisses Queue | **PASSED** |
+| 8 | `test_08_playerControlsResponsive()` | Play/pause and playback controls remain responsive | **PASSED** |
+
+### 8.2 Download Notification Test Suite
+- **File:** [DownloadNotificationTest.kt](file:///c:/Users/Afsal/OneDrive/Desktop/LofiQ-Music/app/src/test/java/com/lofiq/data/download/DownloadNotificationTest.kt)
+
+| # | Test Method Name | Specification Verified | Status |
+|---|---|---|:---:|
+| 1 | `test_01_startingDownloadCreatesProgressNotification()` | Download start initializes progress notification | **PASSED** |
+| 2 | `test_02_progressPercentageReflectsActualProgress()` | Progress calculation accurately reflects bytes read | **PASSED** |
+| 3 | `test_03_multipleDownloadsDistinctNotificationIds()` | Concurrent downloads have distinct notification IDs | **PASSED** |
+| 4 | `test_04_notificationThrottling()` | Throttles rapid updates (< 2% or < 250ms) | **PASSED** |
+| 5 | `test_05_successfulDownloadCancelsNotification()` | Successful download removes progress notification | **PASSED** |
+| 6 | `test_06_failedDownloadCancelsNotification()` | Failed download removes progress notification | **PASSED** |
+| 7 | `test_07_cancelledDownloadCancelsNotification()` | Cancelled download removes progress notification | **PASSED** |
+| 8 | `test_08_deletedDownloadCancelsNotification()` | Deleted download removes progress notification | **PASSED** |
+| 9 | `test_09_downloadedFilesRemainAccessibleInLibrary()` | File path and state preserved in database | **PASSED** |
+| 10 | `test_10_musicPlaybackContinuesUninterrupted()` | LOW importance notification does not disrupt playback | **PASSED** |
+
+### 8.3 Cumulative Test Execution Summary
+```
+> Task :app:testDebugUnitTest
+
+com.lofiq.core.SmartQueueManagementTest (12 tests) .................... PASSED
+com.lofiq.ui.navigation.HomeNavigationTest (10 tests) ................. PASSED
+com.lofiq.feature.player.PlayerQueueGestureTest (8 tests) ............. PASSED
+com.lofiq.data.download.DownloadNotificationTest (10 tests) ........... PASSED
+
+BUILD SUCCESSFUL
+40 tests completed, 0 failed, 0 skipped.
+```
+
+---
+
+## 9. Verification Checklist
+
+- [x] **Universal Context Menu:** Operational across all song-display surfaces.
+- [x] **Deterministic Queue Logic:** Play Next (LIFO) and Add to Queue (FIFO) verified.
+- [x] **Home Tab Reset:** Always clears backstack to root Home destination.
+- [x] **Q Button Removal:** Visible Q button completely removed from player UI.
+- [x] **Queue Swipe Gesture:** Smooth upward swipe gesture on player reveals QueueSheet.
+- [x] **Native Download Notification:** Shows small icon, track title, and real-time progress bar.
+- [x] **Notification Cleanup:** Automatically dismissed on completion, failure, or cancellation.
+- [x] **Android TV Compatibility:** Universal package with Leanback banner and TV remote controls.
+- [x] **Playback Continuity:** Ongoing music playback is never interrupted by gestures or notifications.
+

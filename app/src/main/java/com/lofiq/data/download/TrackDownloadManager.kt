@@ -53,7 +53,8 @@ class TrackDownloadManager @Inject constructor(
     private val songDao: SongDao,
     private val favoriteDao: FavoriteDao,
     private val okHttpClient: OkHttpClient,
-    private val dispatchers: DispatcherProvider
+    private val dispatchers: DispatcherProvider,
+    val notificationHelper: DownloadNotificationHelper = DownloadNotificationHelper(context)
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.io)
     private val _downloads = MutableStateFlow<Map<String, TrackDownloadInfo>>(emptyMap())
@@ -236,6 +237,7 @@ class TrackDownloadManager @Inject constructor(
                 _downloads.update {
                     it + (songId to TrackDownloadInfo(songId, DownloadState.DOWNLOADING, 0.05f))
                 }
+                notificationHelper.updateProgress(song, 0.05f, force = true)
 
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[DOWNLOAD] Resolving stream for '${song.title}'")
                 val resolveReq = ResolveRequest(
@@ -256,6 +258,7 @@ class TrackDownloadManager @Inject constructor(
                 _downloads.update {
                     it + (songId to TrackDownloadInfo(songId, DownloadState.DOWNLOADING, 0.20f))
                 }
+                notificationHelper.updateProgress(song, 0.20f)
 
                 val httpRequestBuilder = Request.Builder()
                     .url(streamUrl)
@@ -295,6 +298,7 @@ class TrackDownloadManager @Inject constructor(
                                 _downloads.update {
                                     it + (songId to TrackDownloadInfo(songId, DownloadState.DOWNLOADING, currentProgress.coerceIn(0f, 0.85f)))
                                 }
+                                notificationHelper.updateProgress(song, currentProgress)
                             }
                         }
                     }
@@ -302,6 +306,7 @@ class TrackDownloadManager @Inject constructor(
 
                 if (!isActive) {
                     if (tempFile.exists()) tempFile.delete()
+                    notificationHelper.cancelNotification(songId)
                     return@launch
                 }
 
@@ -310,6 +315,7 @@ class TrackDownloadManager @Inject constructor(
                     _downloads.update {
                         it + (songId to TrackDownloadInfo(songId, DownloadState.DOWNLOADING, 0.90f))
                     }
+                    notificationHelper.updateProgress(song, 0.90f)
 
                     // 1. Fetch album art image bytes
                     val artworkUrl = song.highResArtworkUrl.ifBlank { song.artworkUrl }
@@ -333,6 +339,7 @@ class TrackDownloadManager @Inject constructor(
                     _downloads.update {
                         it + (songId to TrackDownloadInfo(songId, DownloadState.DOWNLOADING, 0.96f))
                     }
+                    notificationHelper.updateProgress(song, 0.96f)
 
                     // 3. Save to Public Storage (Music/LofiQ) or Private in-app storage based on permission
                     val displayFileName = buildDisplayFileName(song.title, song.artist, song.id)
@@ -364,21 +371,26 @@ class TrackDownloadManager @Inject constructor(
                     _downloads.update {
                         it + (songId to TrackDownloadInfo(songId, DownloadState.COMPLETED, 1f, finalSourceUrl))
                     }
+                    notificationHelper.cancelNotification(songId)
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[DOWNLOAD] Successfully saved '${song.title}' (public=$saveToPublicStorage, path=$finalSourceUrl)")
                 } else {
                     if (tempFile.exists()) tempFile.delete()
+                    notificationHelper.cancelNotification(songId)
                     throw IllegalStateException("Downloaded file is empty or corrupted")
                 }
 
             } catch (e: CancellationException) {
                 if (tempFile.exists()) tempFile.delete()
+                notificationHelper.cancelNotification(songId)
                 _downloads.update { it + (songId to TrackDownloadInfo(songId, DownloadState.IDLE)) }
             } catch (e: Exception) {
                 if (tempFile.exists()) tempFile.delete()
+                notificationHelper.cancelNotification(songId)
                 LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[DOWNLOAD] Failed for '${song.title}': ${e.message}")
                 _downloads.update { it + (songId to TrackDownloadInfo(songId, DownloadState.FAILED)) }
             } finally {
                 if (tempFile.exists()) tempFile.delete()
+                notificationHelper.cancelNotification(songId)
                 activeJobs.remove(songId)
             }
         }
@@ -570,9 +582,17 @@ class TrackDownloadManager @Inject constructor(
         }
     }
 
+    fun cancelDownload(songId: String) {
+        activeJobs[songId]?.cancel()
+        activeJobs.remove(songId)
+        notificationHelper.cancelNotification(songId)
+        _downloads.update { it + (songId to TrackDownloadInfo(songId, DownloadState.IDLE)) }
+    }
+
     fun deleteDownload(songId: String) {
         activeJobs[songId]?.cancel()
         activeJobs.remove(songId)
+        notificationHelper.cancelNotification(songId)
         scope.launch {
             try {
                 val entity = songDao.getById(songId)

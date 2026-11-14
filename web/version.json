@@ -5,14 +5,14 @@
   "releaseDate": "2026-11-14",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.8 MB",
-  "checksum": "0e0c8acf6797bf30af157fce937e58c8b9e052d708e727083d08b7394a5cc55e",
+  "checksum": "7ea4f8fc130160ae1bd2b468c1d5f1ab6626767551c539bc795b0336fa1612bb",
   "releaseNotes": [
     "🚀 Official Production Release (V1.0.6 - Build 69)",
+    "✨ Player Queue Gesture: Removed visible 'Q' button; queue is now seamlessly revealed via an intuitive swipe-up gesture on the player with smooth Compose transitions.",
+    "⬇️ Real-Time Download Notification: Native Android notification progress bar displays live download percentage and automatically clears upon completion, cancellation, or failure.",
     "📺 Android TV & Google TV Universal Support: Full Leanback launcher banner and touch-free remote control compatibility on Android TV, Google TV, and Fire TV devices.",
-    "🎮 TV Remote Media Keys: Instantaneous hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
-    "✨ Sleek D-Pad Focus Indicators: High-contrast focus borders and scale animations for seamless TV remote directional navigation across shelves, cards, and songs.",
-    "📋 Smart Queue Management: Universal long-press song context menu with deterministic Play Next (LIFO) and Add to Queue (FIFO) semantics.",
-    "🏠 Reliable Home Tab Reset: Cleanly resets nested navigation backstack to root Home without disturbing active playback."
+    "🎮 TV Remote Media Keys: Native hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
+    "📋 Smart Queue Management & Home Tab Reset: Universal long-press song context menu (Play Next, Add to Queue) and deterministic Home tab reset without playback interruption."
   ],
   "android": {
     "versionCode": 69,
@@ -21,14 +21,14 @@
     "releaseDate": "2026-11-14",
     "apkUrl": "/downloads/LofiQ.apk",
     "apkSize": "21.8 MB",
-    "checksum": "0e0c8acf6797bf30af157fce937e58c8b9e052d708e727083d08b7394a5cc55e",
+    "checksum": "7ea4f8fc130160ae1bd2b468c1d5f1ab6626767551c539bc795b0336fa1612bb",
     "releaseNotes": [
       "🚀 Official Production Release (V1.0.6 - Build 69)",
+      "✨ Player Queue Gesture: Removed visible 'Q' button; queue is now seamlessly revealed via an intuitive swipe-up gesture on the player with smooth Compose transitions.",
+      "⬇️ Real-Time Download Notification: Native Android notification progress bar displays live download percentage and automatically clears upon completion, cancellation, or failure.",
       "📺 Android TV & Google TV Universal Support: Full Leanback launcher banner and touch-free remote control compatibility on Android TV, Google TV, and Fire TV devices.",
-      "🎮 TV Remote Media Keys: Instantaneous hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
-      "✨ Sleek D-Pad Focus Indicators: High-contrast focus borders and scale animations for seamless TV remote directional navigation across shelves, cards, and songs.",
-      "📋 Smart Queue Management: Universal long-press song context menu with deterministic Play Next (LIFO) and Add to Queue (FIFO) semantics.",
-      "🏠 Reliable Home Tab Reset: Cleanly resets nested navigation backstack to root Home without disturbing active playback."
+      "🎮 TV Remote Media Keys: Native hardware remote Play/Pause, Next, Previous, Fast-Forward, and Rewind media key responsiveness.",
+      "📋 Smart Queue Management & Home Tab Reset: Universal long-press song context menu (Play Next, Add to Queue) and deterministic Home tab reset without playback interruption."
     ]
   },
   "windows": {

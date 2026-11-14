@@ -1115,104 +1115,29 @@ fun FullPlayerSheet(
                     }
                 }
 
-                // Dedicated Bottom Liquid Glass Q (Queue) Button & Swipe-Up Affordance
-                val queueTracks = playerState.queue
-                val queueSize = queueTracks.size
+                // Swipe-up gesture interaction area at bottom of player to reveal QueueSheet (Zero visible buttons/icons)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 6.dp, bottom = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .pointerInput(Unit) {
-                                var swipeUpDrag = 0f
-                                detectVerticalDragGestures(
-                                    onDragStart = { swipeUpDrag = 0f },
-                                    onDragEnd = { swipeUpDrag = 0f },
-                                    onDragCancel = { swipeUpDrag = 0f },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        swipeUpDrag += dragAmount
-                                        if (swipeUpDrag < -25f) {
-                                            change.consume()
-                                            haptics.play(Haptic.Expand)
-                                            showQueueSheet = true
-                                            swipeUpDrag = 0f
-                                        }
+                        .height(32.dp)
+                        .pointerInput(Unit) {
+                            var swipeUpDrag = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { swipeUpDrag = 0f },
+                                onDragEnd = { swipeUpDrag = 0f },
+                                onDragCancel = { swipeUpDrag = 0f },
+                                onVerticalDrag = { change, dragAmount ->
+                                    swipeUpDrag += dragAmount
+                                    if (swipeUpDrag < -25f) {
+                                        change.consume()
+                                        haptics.play(Haptic.Expand)
+                                        showQueueSheet = true
+                                        swipeUpDrag = 0f
                                     }
-                                )
-                            }
-                            .clip(RoundedCornerShape(20.dp))
-                            .liquidPressEffect(onClick = {
-                                haptics.play(Haptic.Select)
-                                showQueueSheet = true
-                            })
-                            .then(
-                                if (isLiquidGlass) {
-                                    Modifier
-                                        .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = activeGlowColor.copy(alpha = 0.35f))
-                                        .background(Color(0xFF14141E).copy(alpha = 0.55f))
-                                        .border(1.dp, LiquidGlassTokens.specularBorder(0.35f), RoundedCornerShape(20.dp))
-                                } else {
-                                    Modifier
-                                        .background(Color.White.copy(alpha = 0.10f))
-                                        .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
                                 }
-                            ),
-                        color = Color.Transparent,
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            // Glowing Q Emblem Badge
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isLiquidGlass) activeGlowColor.copy(alpha = 0.25f)
-                                        else Color.White.copy(alpha = 0.20f)
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isLiquidGlass) activeGlowColor.copy(alpha = 0.50f)
-                                        else Color.White.copy(alpha = 0.35f),
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Q",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isLiquidGlass) activeGlowColor else AccentWhite,
-                                        fontSize = 11.sp
-                                    )
-                                )
-                            }
-
-                            Text(
-                                text = if (queueSize > 1) "Queue • $queueSize tracks" else "Queue",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = AccentWhite,
-                                    fontSize = 12.sp
-                                )
-                            )
-
-                            Icon(
-                                imageVector = Icons.Rounded.KeyboardArrowUp,
-                                contentDescription = "Swipe up for Queue",
-                                tint = Color.White.copy(alpha = 0.70f),
-                                modifier = Modifier.size(16.dp)
                             )
                         }
-                    }
-                }
+                )
             }
         }
 
