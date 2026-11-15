@@ -48,11 +48,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const winCode = win.versionCode || 68;
         const winInstallerSize = win.installerSize || '16.8 MB';
         const winPortableSize = win.portableSize || '19.8 MB';
-        const winInstallerUrl = win.installerUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/LofiQ-v1.0.5-Windows-Setup.exe';
-        const winPortableUrl = win.portableUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/LofiQ-v1.0.5-Windows-Portable.zip';
-        const winChecksumUrl = win.checksumUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/SHA256SUMS.txt';
-        const winInstallerCs = win.installerChecksum || '50eabc47418f505a226fe9322f967f6e753456b52868b4f5442a165b6da277e7';
-        const winPortableCs = win.portableChecksum || 'a26602ee8cb258e7b9e5f9b707885a257e068cabfc151b677847bbdbed991ad8';
+        const winInstallerUrl = win.installerUrl || '/downloads/LofiQ-Windows-Setup.exe';
+        const winPortableUrl = win.portableUrl || '/downloads/LofiQ-Windows-Portable.zip';
+        const winChecksumUrl = win.checksumUrl || '/downloads/SHA256SUMS.txt';
+        const winInstallerCs = win.installerChecksum || '9afea3ae6c38b315a521fe6ddd42698614896b24530c555f6eb12e05950298e4';
+        const winPortableCs = win.portableChecksum || 'db5a2aacba093f4bc4da0b15fdadde4abb8e46fa9a7db771c00abde05f39764b';
 
         document.querySelectorAll('.dynamic-windows-version').forEach(el => el.textContent = `v${winVer}`);
         document.querySelectorAll('.dynamic-windows-build').forEach(el => el.textContent = `Build ${winCode}`);
@@ -62,11 +62,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const winInstallerBtn = document.getElementById('win-installer-btn');
         if (winInstallerBtn && winInstallerUrl) {
           winInstallerBtn.setAttribute('href', winInstallerUrl);
+          winInstallerBtn.setAttribute('download', `LofiQ-v${winVer}-Windows-Setup.exe`);
         }
 
         const winPortableBtn = document.getElementById('win-portable-btn');
         if (winPortableBtn && winPortableUrl) {
           winPortableBtn.setAttribute('href', winPortableUrl);
+          winPortableBtn.setAttribute('download', `LofiQ-v${winVer}-Windows-Portable.zip`);
         }
 
         const winChecksumLink = document.getElementById('win-checksum-link');

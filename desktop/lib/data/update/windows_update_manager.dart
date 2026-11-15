@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../core/utils/logger.dart';
 
@@ -6,19 +7,27 @@ class WindowsUpdateInfo {
   final int versionCode;
   final String versionName;
   final String releaseDate;
-  final String apkUrl;
-  final String apkSize;
+  final String installerUrl;
+  final String portableUrl;
+  final String installerSize;
+  final String portableSize;
   final List<String> releaseNotes;
   final bool hasUpdate;
   final String checksum;
   final String source;
 
+  // Backward compatibility aliases
+  String get apkUrl => installerUrl;
+  String get apkSize => installerSize;
+
   const WindowsUpdateInfo({
     required this.versionCode,
     required this.versionName,
     required this.releaseDate,
-    required this.apkUrl,
-    required this.apkSize,
+    required this.installerUrl,
+    required this.portableUrl,
+    required this.installerSize,
+    required this.portableSize,
     required this.releaseNotes,
     required this.hasUpdate,
     required this.checksum,
@@ -66,13 +75,31 @@ class WindowsUpdateManager {
     if (res.statusCode != 200) return null;
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final vCode = (data['versionCode'] as num?)?.toInt() ?? 0;
-    final vName = data['versionName']?.toString() ?? '';
-    final rDate = data['releaseDate']?.toString() ?? '';
-    final apk = data['apkUrl']?.toString() ?? '';
-    final size = data['apkSize']?.toString() ?? '';
-    final notes = (data['releaseNotes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
-    final sha = data['checksumSha256']?.toString() ?? '';
+
+    // Target windows-specific release block first
+    final Map<String, dynamic> winData = data['windows'] is Map<String, dynamic>
+        ? data['windows'] as Map<String, dynamic>
+        : data;
+
+    final vCode = (winData['versionCode'] as num?)?.toInt() ?? 0;
+    final vName = winData['versionName']?.toString() ?? '';
+    final rDate = winData['releaseDate']?.toString() ?? '';
+
+    final baseUrl = url.replaceAll('/version.json', '');
+    String rawInstaller = winData['installerUrl']?.toString() ?? winData['apkUrl']?.toString() ?? '';
+    if (rawInstaller.startsWith('/')) {
+      rawInstaller = '$baseUrl$rawInstaller';
+    }
+
+    String rawPortable = winData['portableUrl']?.toString() ?? '';
+    if (rawPortable.startsWith('/')) {
+      rawPortable = '$baseUrl$rawPortable';
+    }
+
+    final installerSize = winData['installerSize']?.toString() ?? winData['apkSize']?.toString() ?? '';
+    final portableSize = winData['portableSize']?.toString() ?? '';
+    final notes = (winData['releaseNotes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final sha = winData['installerChecksum']?.toString() ?? winData['checksum']?.toString() ?? '';
 
     final hasUpdate = vCode > currentVersionCode;
 
@@ -80,12 +107,28 @@ class WindowsUpdateManager {
       versionCode: vCode,
       versionName: vName,
       releaseDate: rDate,
-      apkUrl: apk,
-      apkSize: size,
+      installerUrl: rawInstaller,
+      portableUrl: rawPortable,
+      installerSize: installerSize,
+      portableSize: portableSize,
       releaseNotes: notes,
       hasUpdate: hasUpdate,
       checksum: sha,
       source: sourceName,
     );
+  }
+
+  /// Launch the installer download or trigger direct update execution
+  Future<bool> launchUpdate(String url) async {
+    if (url.isEmpty) return false;
+    try {
+      if (Platform.isWindows) {
+        await Process.start('explorer.exe', [url]);
+        return true;
+      }
+    } catch (e) {
+      LofiQLogger.e(LogCategory.app, 'Failed to launch update URL: $e');
+    }
+    return false;
   }
 }

@@ -422,6 +422,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ),
+                          if (_availableUpdate != null && _availableUpdate!.hasUpdate) ...[
+                            const SizedBox(width: 12),
+                            GlassButton(
+                              onPressed: () => _updateManager.launchUpdate(_availableUpdate!.installerUrl),
+                              isPrimary: true,
+                              accentColor: LofiQColors.brandTangerine,
+                              child: const Text(
+                                'Download Update',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

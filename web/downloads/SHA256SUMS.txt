@@ -1,0 +1,3 @@
+9afea3ae6c38b315a521fe6ddd42698614896b24530c555f6eb12e05950298e4 *LofiQ-Windows-Setup.exe
+db5a2aacba093f4bc4da0b15fdadde4abb8e46fa9a7db771c00abde05f39764b *LofiQ-Windows-Portable.zip
+0d99ea073cce8b14e56a1a8ae91e3dd3ba04ef6972c7a7124364c0d21ddc0e8d *LofiQ.apk

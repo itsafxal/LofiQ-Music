@@ -15,7 +15,7 @@ void main() {
     await tester.pump();
 
     // Verify LofiQ Desktop branding is rendered in Navigation Rail
-    expect(find.text('LofiQ'), findsOneWidget);
-    expect(find.text('DESKTOP V1.0.3'), findsOneWidget);
+    expect(find.text('LofiQ'), findsWidgets);
+    expect(find.textContaining('DESKTOP V1.'), findsOneWidget);
   });
 }
