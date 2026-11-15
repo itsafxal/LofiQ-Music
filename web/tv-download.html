@@ -110,10 +110,11 @@
         <span style="color: #ffffff;">Smart TV Experience</span>
       </div>
 
-      <!-- Critical Official Preview Status Badge -->
-      <div class="preview-status-pill">
+      <!-- Official Android TV Release Status Badge -->
+      <div class="liquid-pill-badge" style="margin-bottom: 20px;">
         <span class="pulse-dot"></span>
-        <span>TV Experience Preview • Coming Soon</span>
+        <span class="badge-text">Official Android TV Release <strong class="dynamic-version">v1.0.6</strong></span>
+        <span class="badge-tag dynamic-build-code">Build 69</span>
       </div>
 
       <h1 class="page-hero-title">
@@ -126,17 +127,17 @@
       </p>
     </section>
 
-    <!-- TV PREVIEW & NOTIFICATION STATION -->
+    <!-- TV DOWNLOAD STATION -->
     <section style="max-width: 1200px; margin: 0 auto; padding: 0 24px 60px 24px;">
       <div class="download-container liquid-glass-card">
         <div class="download-glass-glow"></div>
 
         <div class="download-grid">
-          <!-- Left Info & Waitlist Form -->
+          <!-- Left Info & Download CTA -->
           <div class="download-info">
             <div class="download-badge">
-              <span class="download-shield">★</span>
-              <span>Next-Gen Living Room Platform • Preview Edition</span>
+              <span class="download-shield">✓</span>
+              <span>Official Release • Android TV &amp; Google TV Universal APK</span>
             </div>
 
             <h2 class="download-title">
@@ -145,13 +146,53 @@
             </h2>
 
             <p class="download-subtitle">
-              Enjoy high-contrast typography, large 500x500 album artwork, and seamless browsing from across the room using your standard TV remote.
+              Enjoy high-contrast typography, large album artwork tiles, and seamless browsing from across the room using your standard TV remote. Universal package with native Leanback Launcher and banner support.
             </p>
 
-            <!-- Priority Email Notification Card -->
-            <div class="tv-notify-card">
-              <h4>Get Notified on Full TV Store Launch</h4>
-              <p>Be the first to know when the dedicated Android TV &amp; Fire TV store builds are published.</p>
+            <!-- Prominent Direct TV Download CTA -->
+            <div class="download-button-wrapper" style="margin-bottom: 20px;">
+              <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-download-mega dynamic-download-btn">
+                <div class="mega-btn-shine"></div>
+                <div class="mega-btn-icon-wrap">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <div class="mega-btn-text">
+                  <span class="mega-btn-subtitle">Direct TV APK Download • Universal Package</span>
+                  <span class="mega-btn-title">Download Android TV APK <span class="dynamic-version">v1.0.6</span></span>
+                </div>
+                <div class="mega-btn-arrow">&rarr;</div>
+              </a>
+            </div>
+
+            <div class="download-meta-tags">
+              <span class="meta-tag">📺 10-Foot Leanback UI</span>
+              <span class="meta-tag">🎮 D-Pad Navigation</span>
+              <span class="meta-tag">🔊 HDMI ARC Lossless</span>
+              <span class="meta-tag">📻 Leanback Banner Included</span>
+              <span class="meta-tag">📦 APK: <strong class="dynamic-size">21.8 MB</strong></span>
+            </div>
+
+            <!-- TV Sideload & Installation Guide -->
+            <div class="tv-sideload-guide" style="margin-top: 24px; padding: 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px;">
+              <h4 style="color: #ffffff; font-size: 0.95rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                How to Install on Android TV / Google TV / Fire TV
+              </h4>
+              <ol style="color: var(--text-silver); font-size: 0.85rem; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 6px;"><strong>Via "Downloader" App (Easiest):</strong> Open Downloader on your TV and enter URL <code>https://lofiq-web.vercel.app/downloads/LofiQ.apk</code> to download &amp; install directly.</li>
+                <li style="margin-bottom: 6px;"><strong>Via "Send Files to TV":</strong> Download the APK on your phone, send to TV via the free app, and open with any TV file manager.</li>
+                <li><strong>Via USB Drive:</strong> Copy <code>LofiQ.apk</code> to a USB stick, plug into TV, and click to install.</li>
+              </ol>
+            </div>
+
+            <!-- Optional Store Notification Card -->
+            <div class="tv-notify-card" style="margin-top: 20px;">
+              <h4>Google Play &amp; Fire TV Appstore Notifications</h4>
+              <p>Want to be notified when the TV build is published directly to official TV app stores?</p>
               
               <form class="notify-form">
                 <input type="email" class="notify-input" placeholder="Enter your email address" required />
@@ -161,25 +202,6 @@
                 </button>
               </form>
               <div class="notify-success-msg"></div>
-            </div>
-
-            <!-- Existing Sideloading Pathway for Android TV Users -->
-            <div class="tv-sideload-hint">
-              <p style="margin-bottom: 10px;">
-                <strong>Want to use LofiQ on your Android TV today?</strong><br />
-                Our production Android APK (<strong class="dynamic-version">v1.0.6</strong>) already includes universal <code>LEANBACK_LAUNCHER</code> support, official 640x360 TV banner, and hardware media keys!
-              </p>
-              <a href="/android-download" class="liquid-btn-primary" style="display: inline-flex; text-decoration: none; padding: 10px 20px; font-size: 0.86rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.59-2.94-.92-4.47-.92s-3.07.33-4.47.92L5.65 5.67c-.19-.28-.55-.37-.84-.22-.3.16-.42.54-.26.85l1.85 3.18C3.81 10.97 2 13.58 2 16.5h20c0-2.92-1.81-5.53-4.4-7.02zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
-                <span>Get Universal Android &amp; TV APK</span>
-              </a>
-            </div>
-
-            <div class="download-meta-tags">
-              <span class="meta-tag">📺 10-Foot Leanback UI</span>
-              <span class="meta-tag">🎮 D-Pad Navigation</span>
-              <span class="meta-tag">🔊 HDMI ARC Lossless</span>
-              <span class="meta-tag">📻 Leanback Banner Included</span>
             </div>
           </div>
 

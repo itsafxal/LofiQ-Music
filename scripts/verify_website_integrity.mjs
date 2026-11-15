@@ -90,13 +90,13 @@ for (const htmlFile of htmlFiles) {
     errors++;
   }
 
-  // 5. TV Page Constraint: Check that tv-download.html DOES NOT have fake direct download button
+  // 5. TV Page Constraint: Check that tv-download.html links to production universal APK
   if (htmlFile === 'tv-download.html') {
-    if (content.includes('download="LofiQ-TV.apk"') || content.includes('Download TV APK')) {
-      console.error(`❌ tv-download.html contains prohibited fake APK download button!`);
+    if (!content.includes('/downloads/LofiQ.apk')) {
+      console.error(`❌ tv-download.html missing link to production APK (/downloads/LofiQ.apk)!`);
       errors++;
     } else {
-      console.log(`✅ tv-download.html correctly honors "Preview / Coming Soon" requirement without fake download!`);
+      console.log(`✅ tv-download.html correctly links to verified production universal APK!`);
     }
   }
 

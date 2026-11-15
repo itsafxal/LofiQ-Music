@@ -2839,10 +2839,19 @@ footer {
   color: #ffffff;
 }
 
-.tv-sideload-hint a {
+.tv-sideload-hint a:not(.liquid-btn-primary):not(.liquid-download-mega) {
   color: #ffffff;
   text-decoration: underline;
   font-weight: 600;
+}
+
+.tv-sideload-hint a.liquid-btn-primary {
+  color: #000000 !important;
+  text-decoration: none !important;
+}
+
+.tv-sideload-hint a.liquid-btn-primary svg {
+  fill: #000000 !important;
 }
 
 /* System Specifications Table */

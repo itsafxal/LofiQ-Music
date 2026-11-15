@@ -39,3 +39,10 @@ secrets.properties
 *.p8
 *.p12
 *.pem
+
+# Agent internal reports & logs
+LOFIQ_*.md
+*_REPORT.md
+*_AUDIT.md
+*_IMPLEMENTATION*.md
+*_ROOT_CAUSE*.md
