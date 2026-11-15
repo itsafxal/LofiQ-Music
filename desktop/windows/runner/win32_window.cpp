@@ -146,6 +146,10 @@ bool Win32Window::Create(const std::wstring& title,
 
   UpdateTheme(window);
 
+  // Extend frame into client area to preserve DWM drop shadow and rounded corners
+  MARGINS margins = {0, 0, 1, 0};
+  DwmExtendFrameIntoClientArea(window, &margins);
+
   return OnCreate();
 }
 
@@ -179,6 +183,38 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_NCCALCSIZE: {
+      if (wparam == TRUE) {
+        // Eliminate standard OS title bar and non-client borders so custom
+        // Flutter titlebar seamlessly extends to top without double-bar.
+        return 0;
+      }
+      break;
+    }
+
+    case WM_NCHITTEST: {
+      POINT pt = {LOWORD(lparam), HIWORD(lparam)};
+      ScreenToClient(hwnd, &pt);
+      RECT rc;
+      GetClientRect(hwnd, &rc);
+      const int borderWidth = 6;
+
+      if (pt.y < borderWidth) {
+        if (pt.x < borderWidth) return HTTOPLEFT;
+        if (pt.x >= rc.right - borderWidth) return HTTOPRIGHT;
+        return HTTOP;
+      }
+      if (pt.y >= rc.bottom - borderWidth) {
+        if (pt.x < borderWidth) return HTBOTTOMLEFT;
+        if (pt.x >= rc.right - borderWidth) return HTBOTTOMRIGHT;
+        return HTBOTTOM;
+      }
+      if (pt.x < borderWidth) return HTLEFT;
+      if (pt.x >= rc.right - borderWidth) return HTRIGHT;
+
+      return HTCLIENT;
+    }
+
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();

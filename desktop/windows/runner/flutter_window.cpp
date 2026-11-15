@@ -27,6 +27,43 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // Setup custom window controls channel (minimize, maximize, close, drag)
+  window_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "lofiq/window",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  window_channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    HWND hwnd = this->GetHandle();
+    if (!hwnd) {
+      result->Error("NO_WINDOW", "Window handle is null");
+      return;
+    }
+
+    if (call.method_name() == "minimize") {
+      ::ShowWindow(hwnd, SW_MINIMIZE);
+      result->Success();
+    } else if (call.method_name() == "maximize") {
+      if (::IsZoomed(hwnd)) {
+        ::ShowWindow(hwnd, SW_RESTORE);
+      } else {
+        ::ShowWindow(hwnd, SW_MAXIMIZE);
+      }
+      result->Success();
+    } else if (call.method_name() == "close") {
+      ::PostMessage(hwnd, WM_CLOSE, 0, 0);
+      result->Success();
+    } else if (call.method_name() == "isMaximized") {
+      result->Success(flutter::EncodableValue(::IsZoomed(hwnd) != 0));
+    } else if (call.method_name() == "startDragging") {
+      ::ReleaseCapture();
+      ::SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+      result->Success();
+    } else {
+      result->NotImplemented();
+    }
+  });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -40,6 +77,10 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  if (window_channel_) {
+    window_channel_ = nullptr;
+  }
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

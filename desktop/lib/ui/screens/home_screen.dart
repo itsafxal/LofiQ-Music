@@ -70,12 +70,82 @@ class _HomeScreenState extends State<HomeScreen> {
       sourceUrl: '',
       providerId: 'youtube',
     ),
+    Song(
+      id: 'yt_7NOSDKb0HlU',
+      title: 'Jazzy Lofi Hip Hop - Smooth Vibes',
+      artist: 'Chillhop Music',
+      album: 'Coffee Jazz Sessions',
+      durationSeconds: 210,
+      artworkUrl: 'https://i.ytimg.com/vi/7NOSDKb0HlU/hqdefault.jpg',
+      highResArtworkUrl: 'https://i.ytimg.com/vi/7NOSDKb0HlU/maxresdefault.jpg',
+      sourceUrl: '',
+      providerId: 'youtube',
+    ),
+    Song(
+      id: 'yt_lTRiuFIWV54',
+      title: '1 A.M Study Session - Deep Focus',
+      artist: 'Lofi Girl',
+      album: 'Night Study Tapes',
+      durationSeconds: 275,
+      artworkUrl: 'https://i.ytimg.com/vi/lTRiuFIWV54/hqdefault.jpg',
+      highResArtworkUrl: 'https://i.ytimg.com/vi/lTRiuFIWV54/maxresdefault.jpg',
+      sourceUrl: '',
+      providerId: 'youtube',
+    ),
+    Song(
+      id: 'yt_5wRWniH6Po4',
+      title: 'Rainy Night in Tokyo - Sleep Lofi',
+      artist: 'Tokyo Ambience',
+      album: 'Midnight Rain',
+      durationSeconds: 245,
+      artworkUrl: 'https://i.ytimg.com/vi/5wRWniH6Po4/hqdefault.jpg',
+      highResArtworkUrl: 'https://i.ytimg.com/vi/5wRWniH6Po4/maxresdefault.jpg',
+      sourceUrl: '',
+      providerId: 'youtube',
+    ),
+    Song(
+      id: 'yt_kgx4WGK0oNU',
+      title: 'Cozy Winter Coffee Shop Ambience',
+      artist: 'Kofi Music',
+      album: 'Acoustic Sanctuary',
+      durationSeconds: 290,
+      artworkUrl: 'https://i.ytimg.com/vi/kgx4WGK0oNU/hqdefault.jpg',
+      highResArtworkUrl: 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
+      sourceUrl: '',
+      providerId: 'youtube',
+    ),
   ];
+
+  List<Song> _getFilteredTracks(List<Song> baseTracks) {
+    if (_selectedMood == 'All') return baseTracks;
+    final moodLower = _selectedMood.toLowerCase();
+    final filtered = baseTracks.where((s) {
+      final text = '${s.title} ${s.artist} ${s.album}'.toLowerCase();
+      switch (moodLower) {
+        case 'chill':
+          return text.contains('chill') || text.contains('relax') || text.contains('lofi') || text.contains('smooth');
+        case 'focus':
+          return text.contains('study') || text.contains('focus') || text.contains('coding') || text.contains('session');
+        case 'night':
+          return text.contains('night') || text.contains('midnight') || text.contains('dark') || text.contains('1 a.m');
+        case 'sleep':
+          return text.contains('sleep') || text.contains('rain') || text.contains('soft') || text.contains('cozy');
+        case 'ambient':
+          return text.contains('ambience') || text.contains('ambient') || text.contains('coffee') || text.contains('cafe');
+        case 'beats':
+          return text.contains('beats') || text.contains('hip hop') || text.contains('cyberpunk') || text.contains('jazz');
+        default:
+          return true;
+      }
+    }).toList();
+    return filtered.isNotEmpty ? filtered : baseTracks;
+  }
 
   @override
   Widget build(BuildContext context) {
     final recentSongs = LocalStorage.instance.getAllSongs();
-    final displayTracks = recentSongs.isNotEmpty ? recentSongs : _featuredTracks;
+    final rawTracks = recentSongs.isNotEmpty ? recentSongs : _featuredTracks;
+    final displayTracks = _getFilteredTracks(rawTracks);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28.0),
