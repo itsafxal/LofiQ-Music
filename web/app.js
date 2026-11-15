@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const winInstallerUrl = win.installerUrl || '/downloads/LofiQ-Windows-Setup.exe';
         const winPortableUrl = win.portableUrl || '/downloads/LofiQ-Windows-Portable.zip';
         const winChecksumUrl = win.checksumUrl || '/downloads/SHA256SUMS.txt';
-        const winInstallerCs = win.installerChecksum || '9afea3ae6c38b315a521fe6ddd42698614896b24530c555f6eb12e05950298e4';
-        const winPortableCs = win.portableChecksum || 'db5a2aacba093f4bc4da0b15fdadde4abb8e46fa9a7db771c00abde05f39764b';
+        const winInstallerCs = win.installerChecksum || '77c20ddb0765d04e56bb0009ac3fbbc355b52356314b75ee60ab7f9f61e60ae9';
+        const winPortableCs = win.portableChecksum || '85203b20e50d6e255480cef0f4b8f31a5eec2956db7c08ea03ba25f6e7198c34';
 
         document.querySelectorAll('.dynamic-windows-version').forEach(el => el.textContent = `v${winVer}`);
         document.querySelectorAll('.dynamic-windows-build').forEach(el => el.textContent = `Build ${winCode}`);
