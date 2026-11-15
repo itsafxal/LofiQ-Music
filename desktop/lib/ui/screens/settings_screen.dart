@@ -64,7 +64,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (update != null) {
           _updateStatus = 'New version ${update.versionName} (Build ${update.versionCode}) available from ${update.source}!';
         } else {
-          _updateStatus = 'LofiQ V1.0.3 is up to date (Build 66).';
+          _updateStatus = 'LofiQ V1.0.4 is up to date (Build 67).';
         }
       });
     }
@@ -363,10 +363,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('LofiQ Desktop Edition V1.0.3',
+                            Text('LofiQ Desktop Edition V1.0.4',
                                 style: TextStyle(color: LofiQColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
                             SizedBox(height: 2),
-                            Text('Version Code 66 • Package com.sargamify.app',
+                            Text('Version Code 67 • Package com.lofiq.desktop',
                                 style: TextStyle(color: LofiQColors.textSecondary, fontSize: 12)),
                           ],
                         ),

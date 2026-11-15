@@ -5,7 +5,6 @@ import '../../playback/equalizer/equalizer_controller.dart';
 import '../components/dynamic_ambient_background.dart';
 import '../components/glass/glass_components.dart';
 import '../components/mini_player.dart';
-import '../components/window_titlebar.dart';
 import '../screens/home_screen.dart';
 import '../screens/explore_screen.dart';
 import '../screens/search_screen.dart';
@@ -59,9 +58,6 @@ class _DesktopShellState extends State<DesktopShell> {
       body: DynamicAmbientBackground(
         child: Column(
           children: [
-            // Custom Windows Titlebar
-            const WindowTitlebar(),
-
             // Body: Nav Rail + Content Viewport + Optional Side Panel
             Expanded(
               child: Row(
@@ -174,7 +170,7 @@ class _DesktopShellState extends State<DesktopShell> {
                         ),
                       ),
                       Text(
-                        'DESKTOP V1.0.3',
+                        'DESKTOP V1.0.4',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
