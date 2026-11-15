@@ -44,13 +44,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Extract & Update Windows Metadata
       if (data.windows) {
         const win = data.windows;
-        const winVer = win.versionName || '1.0.4';
-        const winCode = win.versionCode || 67;
-        const winInstallerSize = win.installerSize || '16.7 MB';
-        const winPortableSize = win.portableSize || '19.7 MB';
-        const winInstallerUrl = win.installerUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/LofiQ-v1.0.4-Windows-Setup.exe';
-        const winPortableUrl = win.portableUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/LofiQ-v1.0.4-Windows-Portable.zip';
-        const winChecksumUrl = win.checksumUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.4/SHA256SUMS.txt';
+        const winVer = win.versionName || '1.0.5';
+        const winCode = win.versionCode || 68;
+        const winInstallerSize = win.installerSize || '16.8 MB';
+        const winPortableSize = win.portableSize || '19.8 MB';
+        const winInstallerUrl = win.installerUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/LofiQ-v1.0.5-Windows-Setup.exe';
+        const winPortableUrl = win.portableUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/LofiQ-v1.0.5-Windows-Portable.zip';
+        const winChecksumUrl = win.checksumUrl || 'https://github.com/itsafxal/LofiQ-Music/releases/download/v1.0.5/SHA256SUMS.txt';
         const winInstallerCs = win.installerChecksum || '50eabc47418f505a226fe9322f967f6e753456b52868b4f5442a165b6da277e7';
         const winPortableCs = win.portableChecksum || 'a26602ee8cb258e7b9e5f9b707885a257e068cabfc151b677847bbdbed991ad8';
 

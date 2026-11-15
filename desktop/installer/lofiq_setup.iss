@@ -1,14 +1,14 @@
 ; =====================================================================
 ; LofiQ Desktop Music Player - Production Inno Setup Script
-; Official Version: 1.0.4 (Build 67)
+; Official Version: 1.0.5 (Build 68)
 ; Target Platform: Windows 10 / Windows 11 (64-bit x64)
 ; =====================================================================
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.4"
+  #define MyAppVersion "1.0.5"
 #endif
 #ifndef MyAppVersionNum
-  #define MyAppVersionNum "1.0.4.67"
+  #define MyAppVersionNum "1.0.5.68"
 #endif
 
 #define MyAppName "LofiQ"

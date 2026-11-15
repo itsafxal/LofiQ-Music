@@ -174,7 +174,7 @@ class _DesktopShellState extends State<DesktopShell> {
                         ),
                       ),
                       Text(
-                        'DESKTOP V1.0.4',
+                        'DESKTOP V1.0.5',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,

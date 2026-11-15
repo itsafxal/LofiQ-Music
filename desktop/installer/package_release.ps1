@@ -1,6 +1,6 @@
 # =====================================================================
 # LofiQ Windows Desktop Release Packaging & Code-Signing Pipeline
-# Version: 1.0.4 (Build 67)
+# Version: 1.0.5 (Build 68)
 # =====================================================================
 
 param (
@@ -34,8 +34,8 @@ if (-not $Version) {
     }
 }
 
-if (-not $Version) { $Version = "1.0.4" }
-if (-not $BuildNumber) { $BuildNumber = "67" }
+if (-not $Version) { $Version = "1.0.5" }
+if (-not $BuildNumber) { $BuildNumber = "68" }
 $VersionNum = "$Version.$BuildNumber"
 
 Write-Host "Target Version:      $Version (Build $BuildNumber)" -ForegroundColor Green

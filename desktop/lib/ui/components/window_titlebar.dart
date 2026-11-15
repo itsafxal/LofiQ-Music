@@ -78,7 +78,7 @@ class _WindowTitlebarState extends State<WindowTitlebar> {
                 ),
               ),
               child: const Text(
-                'V1.0.4 Desktop',
+                'V1.0.5 Desktop',
                 style: TextStyle(
                   fontSize: 9.5,
                   fontWeight: FontWeight.w600,

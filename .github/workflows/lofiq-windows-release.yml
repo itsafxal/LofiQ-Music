@@ -221,31 +221,36 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.4' }}
-          name: "LofiQ V1.0.4 (Gapless Playback & Windows Smart App Control Fix)"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.5' }}
+          name: "LofiQ V1.0.5 (Liquid Glass Frameless UI & Native Window Controls)"
           draft: ${{ github.event.inputs.draft == 'true' }}
           prerelease: false
           generate_release_notes: false
           body: |
-            ## LofiQ V1.0.4 Official Production Release (Android & Windows)
+            ## LofiQ V1.0.5 Official Production Release (Windows Desktop & Android)
 
             ### 📦 Windows Desktop Distribution Packages
-            - **Windows Setup Installer:** `LofiQ-v1.0.4-Windows-Setup.exe` (Inno Setup 6, x64, Per-User Clean Install)
-            - **Windows Portable Edition:** `LofiQ-v1.0.4-Windows-Portable.zip` (Standalone x64, Zero-Install)
+            - **Windows Setup Installer:** `LofiQ-v1.0.5-Windows-Setup.exe` (Inno Setup 6, x64, Per-User Clean Install)
+            - **Windows Portable Edition:** `LofiQ-v1.0.5-Windows-Portable.zip` (Standalone x64, Zero-Install)
             - **Cryptographic Verification:** `SHA256SUMS.txt` (SHA-256 Hashes)
 
+            ### ✨ What's New in v1.0.5
+            - **Unified Frameless Liquid Glass Interface:** Eliminated the double title bar with a sleek, dark Liquid Glass top header matching the Android app design system.
+            - **Native Window Controls & Resizing:** Fully functional minimize (`—`), maximize/restore (`□`), and close (`✕`) buttons, plus 4-border edge resizing and title bar window dragging with Windows 11 Aero Snap.
+            - **Live Now Playing Header:** Real-time track ticker integrated directly into the custom window bar.
+            - **Dynamic Home Mood Filtering:** Responsive track and station filtering across Chill, Focus, Night, Sleep, Ambient, and Beats mood chips.
+
             ### 🛡️ Windows 11 Smart App Control & SmartScreen Guidance
-            - **Installer:** Windows 11 Smart App Control monitors applications downloaded from the internet. If blocked with *"Smart App Control blocked an app that may be unsafe"*, users can run the standalone Portable Edition.
+            - **Installer:** If blocked by Smart App Control or SmartScreen on fresh downloads, users can run the standalone Portable Edition.
             - **Portable Edition Unblock Procedure:**
-              1. Download `LofiQ-v1.0.4-Windows-Portable.zip`.
+              1. Download `LofiQ-v1.0.5-Windows-Portable.zip`.
               2. Right-click the ZIP -> **Properties** -> Check **Unblock** -> Click **Apply**.
               3. Extract and double-click `LofiQ.exe`.
-              *(Or in PowerShell: `Unblock-File -Path .\LofiQ-v1.0.4-Windows-Portable.zip`)*
+              *(Or in PowerShell: `Unblock-File -Path .\LofiQ-v1.0.5-Windows-Portable.zip`)*
 
-            ### 🎵 Core Audio Engine Highlights (v1.0.4)
-            - **True Dual-Player Gapless Architecture:** Symmetric Active & Secondary audio slots on both Android (ExoPlayer) and Windows (`media_kit` / `libmpv`).
+            ### 🎵 Core Audio Engine Highlights
+            - **True Dual-Player Gapless Architecture:** Symmetric Active & Secondary audio slots via `media_kit` & `libmpv`.
             - **Early ~10s Silent Preloading:** Resolves and prepares incoming streams silently at 0% volume before the current song ends.
-            - **Instantaneous 0-second Gapless Handover:** Zero tail replay, zero overlap clicks, atomic state swap.
             - **Equal-Power Audio Crossfade:** Cosine/Sine power curves preserving 10-band EQ, Bass Boost, and Spatializer filters.
             - **Windows Integration:** Windows System Media Transport Controls (SMTC) & Hardware Media Key listeners.
 
