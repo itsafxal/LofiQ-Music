@@ -41,3 +41,9 @@
    - Never block audio threads with metadata resolution or reflection. Run all pipeline inspection on Main/IO coroutines.
    - Guard every listener callback against stale ExoPlayer instances during dual-player handovers (`player !== currentObservedPlayer`).
    - The Audio Pipeline dialog must never disrupt, reinitialize, or reset active playback sessions.
+
+7. **Release Integrity & Versioning Invariants**:
+   - Never publish or advertise a release before validating its APK artifact and version code progression.
+   - The About screen and update comparison must always query the runtime `PackageManager` via `AppVersionProvider`, never hardcoded strings or remote metadata.
+   - Never launch the system installer if the downloaded APK's `versionCode` is less than or equal to the currently installed `versionCode`.
+   - Never treat opening the installer or downloading an APK as a completed installation.

@@ -287,16 +287,18 @@ fun ProfileScreen(
                         modifier = Modifier.size(42.dp)
                     )
                     Spacer(modifier = Modifier.width(14.dp))
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val installedVersion = remember { com.lofiq.core.common.AppVersionProvider.resolveVersion(context) }
                     Column {
                         Text(
-                            text = "LofiQ V${com.lofiq.BuildConfig.VERSION_NAME}",
+                            text = "LofiQ ${installedVersion.displayVersion}",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = AccentWhite
                             )
                         )
                         Text(
-                            text = "Music without limits",
+                            text = "${installedVersion.displayBuild} • Music without limits",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextSecondary,
                                 fontSize = 11.5.sp

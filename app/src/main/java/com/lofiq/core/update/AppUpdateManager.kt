@@ -154,6 +154,21 @@ class AppUpdateManager @Inject constructor(
     }
 
     /**
+     * Context-aware update check resolving actual installed package info via PackageManager.
+     */
+    suspend fun checkForUpdate(
+        context: Context,
+        customEndpoint: String? = null
+    ): Result<UpdateInfo> {
+        val installed = com.lofiq.core.common.AppVersionProvider.resolveVersion(context)
+        return checkForUpdate(
+            customEndpoint = customEndpoint,
+            currentVersionCode = installed.versionCode.toInt(),
+            currentVersionName = installed.versionName
+        )
+    }
+
+    /**
      * Check if a newer version of LofiQ is available.
      * Enforces strict request priority:
      * 1. Query PRIMARY (Vercel) endpoint.
@@ -312,7 +327,7 @@ class AppUpdateManager @Inject constructor(
                 }
             }
 
-            // Verify package identity and integrity
+            // Verify package identity, archive integrity, and strict version progression
             if (!verifyApkPackage(context, destinationFile)) {
                 destinationFile.delete()
                 logDiagnostic(
@@ -321,7 +336,7 @@ class AppUpdateManager @Inject constructor(
                     status = "FAILURE",
                     category = FailureCategory.PACKAGE_IDENTITY_MISMATCH
                 )
-                return@withContext Result.failure(SanitizedUpdateException(MSG_ERROR_PACKAGE))
+                return@withContext Result.failure(SanitizedUpdateException("The downloaded package is not newer than the installed version. Update aborted."))
             }
 
             logDiagnostic(
@@ -385,7 +400,7 @@ class AppUpdateManager @Inject constructor(
                 }
             }
 
-            // Verify package identity on fallback download
+            // Verify package identity and version progression on fallback download
             if (!verifyApkPackage(context, destinationFile)) {
                 destinationFile.delete()
                 logDiagnostic(
@@ -394,7 +409,7 @@ class AppUpdateManager @Inject constructor(
                     status = "FAILURE",
                     category = FailureCategory.PACKAGE_IDENTITY_MISMATCH
                 )
-                return@withContext Result.failure(SanitizedUpdateException(MSG_ERROR_PACKAGE))
+                return@withContext Result.failure(SanitizedUpdateException("The downloaded package is not newer than the installed version. Update aborted."))
             }
 
             logDiagnostic(
@@ -628,13 +643,15 @@ class AppUpdateManager @Inject constructor(
     }
 
     /**
-     * Inspects the APK package to verify packageName and valid archive structure.
+     * Inspects the APK package to verify packageName, valid archive structure,
+     * and strict version progression above currently installed versionCode.
      */
     fun verifyApkPackage(
         context: Context,
         apkFile: File,
         expectedPackageName: String = context.packageName,
-        expectedVersionCode: Int? = null
+        expectedVersionCode: Int? = null,
+        minVersionCode: Long? = null
     ): Boolean {
         return try {
             val pm = context.packageManager ?: return true
@@ -647,13 +664,22 @@ class AppUpdateManager @Inject constructor(
                 return false
             }
             val archiveVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                archiveInfo.longVersionCode.toInt()
+                archiveInfo.longVersionCode
             } else {
                 @Suppress("DEPRECATION")
-                archiveInfo.versionCode
+                archiveInfo.versionCode.toLong()
             }
-            if (expectedVersionCode != null && archiveVersionCode != expectedVersionCode) {
+            if (expectedVersionCode != null && archiveVersionCode != expectedVersionCode.toLong()) {
                 Log.e(TAG, "Version code mismatch: downloaded=$archiveVersionCode, expected=$expectedVersionCode")
+                return false
+            }
+            val installedCode = minVersionCode ?: try {
+                com.lofiq.core.common.AppVersionProvider.resolveVersion(context).versionCode
+            } catch (e: Exception) {
+                BuildConfig.VERSION_CODE.toLong()
+            }
+            if (archiveVersionCode <= installedCode) {
+                Log.e(TAG, "Downloaded APK version code ($archiveVersionCode) is not newer than installed version ($installedCode). Aborting install to prevent infinite loop.")
                 return false
             }
             true
@@ -881,7 +907,7 @@ class AppUpdateManager @Inject constructor(
     }
 
     suspend fun checkForUpdateAndNotify(context: Context): Result<UpdateInfo> {
-        val result = checkForUpdate()
+        val result = checkForUpdate(context = context)
         result.onSuccess { info ->
             if (info.hasUpdate) {
                 val isForeground = com.lofiq.LofiQApp.isAppInForeground
@@ -1070,8 +1096,16 @@ class AppUpdateManager @Inject constructor(
         }
     }
 
-    fun installApk(context: Context, apkFile: File) {
+    fun installApk(context: Context, apkFile: File): Result<Unit> {
         try {
+            val installed = com.lofiq.core.common.AppVersionProvider.resolveVersion(context)
+            if (!verifyApkPackage(context, apkFile, minVersionCode = installed.versionCode)) {
+                apkFile.delete()
+                val err = "Installation aborted: downloaded package is not newer than installed version ${installed.versionName} (Build ${installed.versionCode})"
+                Log.e(TAG, err)
+                return Result.failure(IllegalStateException(err))
+            }
+
             dismissUpdateNotification(context)
             val authority = "${context.packageName}.fileprovider"
             val apkUri: Uri = FileProvider.getUriForFile(context, authority, apkFile)
@@ -1082,8 +1116,10 @@ class AppUpdateManager @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
+            return Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed launching APK installation intent", e)
+            return Result.failure(e)
         }
     }
 }

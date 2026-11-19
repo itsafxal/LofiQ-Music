@@ -212,7 +212,7 @@ class SettingsViewModel @Inject constructor(
     fun checkForUpdates() {
         viewModelScope.launch {
             _updateState.update { it.copy(isChecking = true, updateError = null, isUpToDate = false) }
-            val result = appUpdateManager.checkForUpdate()
+            val result = appUpdateManager.checkForUpdate(context)
             result.onSuccess { info ->
                 if (info.hasUpdate) {
                     _updateState.update { it.copy(isChecking = false, updateInfo = info, isUpToDate = false) }
@@ -252,7 +252,14 @@ class SettingsViewModel @Inject constructor(
                 _updateState.update { it.copy(isDownloading = false, updateInfo = null) }
                 appUpdateManager.dismissUpdateNotification(context)
                 appUpdateManager.clearDismissedUpdate(context)
-                appUpdateManager.installApk(context, file)
+                val installResult = appUpdateManager.installApk(context, file)
+                if (installResult.isFailure) {
+                    _updateState.update {
+                        it.copy(
+                            updateError = installResult.exceptionOrNull()?.message ?: "Installation aborted"
+                        )
+                    }
+                }
             }.onFailure { error ->
                 _updateState.update {
                     it.copy(

@@ -136,7 +136,9 @@ fun MainScreen(
                             updateInfo = null
                             appUpdateManager.dismissUpdateNotification(context)
                             appUpdateManager.clearDismissedUpdate(context)
-                            appUpdateManager.installApk(context, file)
+                            appUpdateManager.installApk(context, file).onFailure { err ->
+                                Toast.makeText(context, err.message ?: "Installation aborted", Toast.LENGTH_LONG).show()
+                            }
                         }.onFailure {
                             isDownloadingUpdate = false
                             Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_LONG).show()
@@ -144,7 +146,7 @@ fun MainScreen(
                     }
                 }
             } else {
-                val result = appUpdateManager.checkForUpdate()
+                val result = appUpdateManager.checkForUpdate(context)
                 result.onSuccess { info ->
                     if (info.hasUpdate) {
                         updateInfo = info
@@ -165,7 +167,9 @@ fun MainScreen(
                                     updateInfo = null
                                     appUpdateManager.dismissUpdateNotification(context)
                                     appUpdateManager.clearDismissedUpdate(context)
-                                    appUpdateManager.installApk(context, file)
+                                    appUpdateManager.installApk(context, file).onFailure { err ->
+                                        Toast.makeText(context, err.message ?: "Installation aborted", Toast.LENGTH_LONG).show()
+                                    }
                                 }.onFailure {
                                     isDownloadingUpdate = false
                                     Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_LONG).show()
@@ -584,7 +588,9 @@ fun MainScreen(
                                             updateInfo = null
                                             appUpdateManager.dismissUpdateNotification(context)
                                             appUpdateManager.clearDismissedUpdate(context)
-                                            appUpdateManager.installApk(context, file)
+                                            appUpdateManager.installApk(context, file).onFailure { err ->
+                                                Toast.makeText(context, err.message ?: "Installation aborted", Toast.LENGTH_LONG).show()
+                                            }
                                         }.onFailure {
                                             isDownloadingUpdate = false
                                             Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_LONG).show()
@@ -655,7 +661,7 @@ fun MainScreen(
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = "Current: v${com.lofiq.BuildConfig.VERSION_NAME} • Size: ${update.apkSize.ifBlank { "Unknown" }}",
+                                text = "Current: ${com.lofiq.core.common.AppVersionProvider.resolveVersion(context).displayVersion} • Size: ${update.apkSize.ifBlank { "Unknown" }}",
                                 color = TextSecondary,
                                 fontSize = 12.sp
                             )

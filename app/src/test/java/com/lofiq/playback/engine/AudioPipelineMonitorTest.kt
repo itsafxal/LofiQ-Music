@@ -2,15 +2,11 @@ package com.lofiq.playback.engine
 
 import android.content.Context
 import android.media.AudioManager
-import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
-import androidx.media3.common.PlaybackParameters
-import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.analytics.AnalyticsListener
-import com.lofiq.core.audio.pipeline.DecoderType
 import com.lofiq.core.common.AudioOutputDevice
+import com.lofiq.core.common.AudioOutputRouteType
 import com.lofiq.core.common.AudioRoutingManager
 import com.lofiq.core.common.DispatcherProvider
 import com.lofiq.core.model.PlaybackState
@@ -49,10 +45,10 @@ class AudioPipelineMonitorTest {
     private val playerStateFlow = MutableStateFlow(PlaybackState())
     private val audioRouteFlow = MutableStateFlow(
         AudioOutputDevice(
-            name = "Built-in Speaker",
-            type = AudioOutputDevice.Type.SPEAKER,
-            sampleRate = 48000,
-            channelMask = 2
+            id = "phone_speaker",
+            name = "Phone Speaker",
+            subtitle = "Built-in Speaker",
+            routeType = AudioOutputRouteType.PHONE_SPEAKER
         )
     )
 
@@ -101,8 +97,7 @@ class AudioPipelineMonitorTest {
 
         val info = monitor.pipelineInfo.value
         assertNotNull(info)
-        assertEquals(48000, info.outputStage.sampleRate)
-        assertEquals("Built-in Speaker", info.outputStage.deviceName)
+        assertEquals("Phone Speaker", info.output.deviceName)
     }
 
     @Test
@@ -192,7 +187,6 @@ class AudioPipelineMonitorTest {
             .setAverageBitrate(320000)
             .build()
 
-        // Simulate format change
         monitor.javaClass.getDeclaredMethod(
             "handleAudioFormatChanged",
             ExoPlayer::class.java,
@@ -203,11 +197,10 @@ class AudioPipelineMonitorTest {
         }
 
         val info = monitor.pipelineInfo.value
-        assertEquals(44100, info.trackInfo.sampleRate)
-        assertEquals(320, info.trackInfo.bitrateKbps)
+        assertEquals(44100, info.trackInfo.sampleRateHz)
+        assertEquals(320000, info.trackInfo.bitrateBps)
         assertEquals(2, info.trackInfo.channelCount)
-        assertTrue(info.resamplerStage.isResampling)
-        assertEquals("Android AudioTrack Mixer", info.resamplerStage.engine)
+        assertTrue(info.resampler.isResamplingRequired)
     }
 
     @Test
@@ -247,7 +240,7 @@ class AudioPipelineMonitorTest {
         }
 
         // Must NOT overwrite with stale player 1 data
-        assertNotEquals(128, monitor.pipelineInfo.value.trackInfo.bitrateKbps)
+        assertNotEquals(128000, monitor.pipelineInfo.value.trackInfo.bitrateBps)
     }
 
     @Test
@@ -282,7 +275,7 @@ class AudioPipelineMonitorTest {
         }
 
         val info = monitor.pipelineInfo.value
-        assertEquals("Unknown (VBR)", info.trackInfo.bitrateFormatted)
-        assertFalse("Must never falsely claim lossless for unknown bitrate AAC", info.trackInfo.isLossless)
+        assertEquals("Unknown (VBR)", info.trackInfo.formattedBitrate)
+        assertFalse("Must never falsely claim lossless for unknown bitrate AAC", info.trackInfo.isLossless == true)
     }
 }

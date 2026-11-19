@@ -446,9 +446,11 @@ fun DeveloperScreen(
                         modifier = Modifier.size(36.dp)
                     )
                     Spacer(modifier = Modifier.width(14.dp))
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val installedVersion = remember { com.lofiq.core.common.AppVersionProvider.resolveVersion(context) }
                     Column {
                         Text(
-                            text = "LofiQ V${BuildConfig.VERSION_NAME}",
+                            text = "LofiQ ${installedVersion.displayVersion} (${installedVersion.displayBuild})",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = AccentWhite,

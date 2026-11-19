@@ -260,6 +260,52 @@ if (!fs.existsSync(APK_PATH)) {
   } else {
     warn('apksigner not found in environment; skipped binary signature scheme inspection');
   }
+
+  // 6b. Internal APK Manifest Version Audit (via aapt if available)
+  let aaptBin = null;
+  for (const root of sdkRoots) {
+    const buildToolsDir = path.join(root, 'build-tools');
+    if (fs.existsSync(buildToolsDir)) {
+      const versions = fs.readdirSync(buildToolsDir).sort().reverse();
+      for (const v of versions) {
+        const candidate = path.join(buildToolsDir, v, process.platform === 'win32' ? 'aapt.exe' : 'aapt');
+        if (fs.existsSync(candidate)) {
+          aaptBin = candidate;
+          break;
+        }
+      }
+    }
+    if (aaptBin) break;
+  }
+
+  if (aaptBin) {
+    try {
+      const badging = execSync(`"${aaptBin}" dump badging "${APK_PATH}"`, { encoding: 'utf8' });
+      const pkgMatch = badging.match(/package:\s*name='([^']+)'\s*versionCode='([^']+)'\s*versionName='([^']+)'/);
+      if (pkgMatch) {
+        const [, apkPkg, apkCodeStr, apkName] = pkgMatch;
+        const apkCode = parseInt(apkCodeStr, 10);
+        console.log(`📦 Internal APK Metadata: Package="${apkPkg}", VersionCode=${apkCode}, VersionName="${apkName}"`);
+        if (apkPkg !== 'com.sargamify.app') {
+          error(`APK package name mismatch! Expected "com.sargamify.app", got "${apkPkg}"`);
+        } else {
+          success(`APK package name confirmed: "${apkPkg}"`);
+        }
+        if (apkCode !== versionCode) {
+          error(`APK internal versionCode (${apkCode}) does NOT match release manifest (${versionCode})!`);
+        } else {
+          success(`APK internal versionCode (${apkCode}) matches manifest`);
+        }
+        if (apkName !== versionName) {
+          error(`APK internal versionName ("${apkName}") does NOT match release manifest ("${versionName}")!`);
+        } else {
+          success(`APK internal versionName ("${apkName}") matches manifest`);
+        }
+      }
+    } catch (e) {
+      warn(`aapt inspection encountered an error: ${e.message}`);
+    }
+  }
 }
 
 // 7. Check web/index.html version alignment
