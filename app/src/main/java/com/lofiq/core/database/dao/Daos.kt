@@ -208,11 +208,26 @@ interface MetadataCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(item: CachedMetadataEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun putAll(items: List<CachedMetadataEntity>)
+
     @Query("SELECT * FROM cached_metadata WHERE `key` = :key")
     suspend fun get(key: String): CachedMetadataEntity?
 
+    @Query("SELECT * FROM cached_metadata WHERE `key` IN (:keys)")
+    suspend fun getByKeys(keys: List<String>): List<CachedMetadataEntity>
+
+    @Query("SELECT * FROM cached_metadata WHERE `key` LIKE :prefix || '%'")
+    suspend fun getByPrefix(prefix: String): List<CachedMetadataEntity>
+
     @Query("DELETE FROM cached_metadata WHERE `key` = :key")
     suspend fun delete(key: String)
+
+    @Query("DELETE FROM cached_metadata WHERE `key` LIKE :prefix || '%'")
+    suspend fun deleteByPrefix(prefix: String)
+
+    @Query("DELETE FROM cached_metadata")
+    suspend fun deleteAll()
 
     @Query("DELETE FROM cached_metadata WHERE expiresAt > 0 AND expiresAt < :now")
     suspend fun deleteExpired(now: Long = System.currentTimeMillis())

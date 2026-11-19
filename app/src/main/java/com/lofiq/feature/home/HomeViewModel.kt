@@ -197,11 +197,56 @@ class HomeViewModel @Inject constructor(
     private var currentFeedBatch = 0
     private var isLoadingMoreShelves = false
 
+    private var lastLiveRefreshTime = 0L
+    private var foregroundTimerJob: kotlinx.coroutines.Job? = null
+
     init {
         observeLocalData()
         observeAccountChanges()
-        restoreFeedFromCache()
+        observeForegroundLiveSync()
         loadInitialFeed()
+    }
+
+    private fun observeForegroundLiveSync() {
+        viewModelScope.launch {
+            com.lofiq.LofiQApp.isForegroundFlow.collect { isForeground ->
+                if (isForeground) {
+                    checkAndPerformLiveRefresh()
+                    startForegroundPeriodicTimer()
+                } else {
+                    stopForegroundPeriodicTimer()
+                }
+            }
+        }
+    }
+
+    private fun startForegroundPeriodicTimer() {
+        stopForegroundPeriodicTimer()
+        foregroundTimerJob = viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(5 * 60 * 1000L) // 5-minute lightweight freshness check
+                if (com.lofiq.LofiQApp.isAppInForeground) {
+                    checkAndPerformLiveRefresh()
+                }
+            }
+        }
+    }
+
+    private fun stopForegroundPeriodicTimer() {
+        foregroundTimerJob?.cancel()
+        foregroundTimerJob = null
+    }
+
+    private fun checkAndPerformLiveRefresh(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && (now - lastLiveRefreshTime) < 15 * 60 * 1000L) {
+            LofiQLogger.d(LofiQLogger.Category.CACHE, "Skipping live refresh: cache is fresh (${(now - lastLiveRefreshTime) / 60000}m ago)")
+            return
+        }
+        viewModelScope.launch {
+            silentLiveRefresh()
+            lastLiveRefreshTime = System.currentTimeMillis()
+        }
     }
 
     private fun observeAccountChanges() {
@@ -274,35 +319,6 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 LofiQLogger.w(LofiQLogger.Category.UI, "Error refreshing YouTube recommendations: ${e.message}")
-            }
-        }
-    }
-
-    private fun restoreFeedFromCache() {
-        // Fast path 1: Instant in-memory cache (< 1ms)
-        val memShelves = homeFeedCacheManager.getMemoryCachedShelves()
-        val memArtists = homeFeedCacheManager.getMemoryCachedArtists()
-        if (memShelves.isNotEmpty()) {
-            shelfCache.putAll(memShelves)
-            if (memArtists.isNotEmpty()) {
-                artistCache.clear()
-                artistCache.addAll(memArtists)
-            }
-            rebuildShelves()
-            _uiState.update { it.copy(isInitialLoading = false) }
-        }
-
-        // Fast path 2: Async restore from Room disk cache
-        viewModelScope.launch {
-            val (diskShelves, diskArtists) = homeFeedCacheManager.loadFromDisk()
-            if (diskShelves.isNotEmpty()) {
-                shelfCache.putAll(diskShelves)
-                if (diskArtists.isNotEmpty()) {
-                    artistCache.clear()
-                    artistCache.addAll(diskArtists)
-                }
-                rebuildShelves()
-                _uiState.update { it.copy(isInitialLoading = false) }
             }
         }
     }
@@ -574,13 +590,27 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
             currentFeedBatch = 0
             silentLiveRefresh()
+            lastLiveRefreshTime = System.currentTimeMillis()
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
     fun loadInitialFeed() {
+        // Fast path 1: Instant in-memory cache (< 1ms)
+        val memShelves = homeFeedCacheManager.getMemoryCachedShelves()
+        val memArtists = homeFeedCacheManager.getMemoryCachedArtists()
+        if (memShelves.isNotEmpty()) {
+            shelfCache.putAll(memShelves)
+            if (memArtists.isNotEmpty()) {
+                artistCache.clear()
+                artistCache.addAll(memArtists)
+            }
+            rebuildShelves()
+            _uiState.update { it.copy(isInitialLoading = false) }
+        }
+
+        // Fast path 2: Async restore from Room disk cache
         viewModelScope.launch {
-            // Check disk cache first before showing any loading state
             if (shelfCache.isEmpty()) {
                 val (diskShelves, diskArtists) = homeFeedCacheManager.loadFromDisk()
                 if (diskShelves.isNotEmpty()) {
@@ -590,20 +620,26 @@ class HomeViewModel @Inject constructor(
                         artistCache.addAll(diskArtists)
                     }
                     rebuildShelves()
+                    _uiState.update { it.copy(isInitialLoading = false) }
                 }
             }
 
-            // If we have cached data, DO NOT show skeletons! Render instantly with 0ms gap.
+            // If we have cached data, DO NOT show skeletons! Render instantly.
             if (shelfCache.isEmpty()) {
                 _uiState.update { it.copy(isInitialLoading = true, errorMessage = null) }
                 fetchFeedBatch(0)
+                _uiState.update { it.copy(isInitialLoading = false) }
             } else {
                 _uiState.update { it.copy(isInitialLoading = false, errorMessage = null) }
                 // Stale-While-Revalidate: fetch latest data in background silently
-                silentLiveRefresh()
+                checkAndPerformLiveRefresh()
             }
-            _uiState.update { it.copy(isInitialLoading = false) }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopForegroundPeriodicTimer()
     }
 
     private suspend fun silentLiveRefresh() {

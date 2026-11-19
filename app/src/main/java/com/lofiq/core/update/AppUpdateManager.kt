@@ -832,7 +832,43 @@ class AppUpdateManager @Inject constructor(
             return true
         }
 
-        return (now - lastNotifiedTime) >= TimeUnit.HOURS.toMillis(12)
+        return (now - lastNotifiedTime) >= TimeUnit.HOURS.toMillis(24)
+    }
+
+    /**
+     * Determines whether the app was installed through Google Play Store vs direct APK sideload.
+     */
+    fun isInstalledViaGooglePlay(context: Context): Boolean {
+        return try {
+            val pm = context.packageManager
+            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                pm.getInstallSourceInfo(context.packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstallerPackageName(context.packageName)
+            }
+            installer == "com.android.vending"
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Open Google Play Store listing for in-app or store updates.
+     */
+    fun openGooglePlayStore(context: Context) {
+        val packageName = context.packageName
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(webIntent)
+        }
     }
 
     fun markNotificationShown(context: Context, info: UpdateInfo) {
@@ -927,26 +963,32 @@ class AppUpdateManager @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val title = "LofiQ v${info.versionName} Available! 🚀"
-        val contentText = if (info.releaseNotes.isNotEmpty()) {
-            info.releaseNotes.first().trimStart { it == '•' || it == '-' || it == '*' || it.isWhitespace() }.take(100)
-        } else {
-            "A new version of LofiQ is available to install."
+        val laterIntent = Intent(context, UpdateNotificationReceiver::class.java).apply {
+            action = UpdateNotificationReceiver.ACTION_DISMISS
+            putExtra(UpdateNotificationReceiver.EXTRA_VERSION, info.versionName)
         }
+        val laterPendingIntent = PendingIntent.getBroadcast(
+            context,
+            4003,
+            laterIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val title = "LofiQ Music Update Available"
+        val contentText = "A new version of LofiQ Music is ready. Tap to view the improvements and install."
 
         val bigText = buildString {
-            append("A new update (v${info.versionName}) is ready to download.")
+            append("A new version of LofiQ Music is ready. Tap to view the improvements and install.")
             if (info.releaseNotes.isNotEmpty()) {
-                append("\n\nWhat's new:\n")
+                append("\n\nWhat's new in v${info.versionName}:\n")
                 info.releaseNotes.take(4).forEach { note ->
                     val cleanNote = note.trimStart { it == '•' || it == '-' || it == '*' || it.isWhitespace() }
                     append("• $cleanNote\n")
                 }
             }
             if (info.apkSize.isNotBlank()) {
-                append("\nSize: ${info.apkSize}")
+                append("\nDownload size: ${info.apkSize}")
             }
-            append("\nTap to install the latest version.")
         }.trim()
 
         val largeIcon = runCatching {
@@ -964,6 +1006,7 @@ class AppUpdateManager @Inject constructor(
             .setContentText(contentText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setContentIntent(contentPendingIntent)
+            .setDeleteIntent(laterPendingIntent)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -974,6 +1017,11 @@ class AppUpdateManager @Inject constructor(
                 android.R.drawable.stat_sys_download,
                 "Update Now",
                 downloadPendingIntent
+            )
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "Later",
+                laterPendingIntent
             )
             .build()
 

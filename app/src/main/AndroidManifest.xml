@@ -244,6 +244,15 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Event-Driven Remote Invalidation (Firebase Cloud Messaging) -->
+        <service
+            android:name=".core.fcm.LofiQFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- ========================================== -->
         <!-- Home Screen Music Widgets (BitChord Style)  -->
         <!-- ========================================== -->
@@ -298,6 +307,15 @@
                 <action android:name="com.lofiq.widget.ACTION_SHUFFLE" />
                 <action android:name="com.lofiq.widget.ACTION_TOGGLE_FAVORITE" />
                 <action android:name="com.lofiq.widget.ACTION_UPDATE_ALL" />
+            </intent-filter>
+        </receiver>
+
+        <!-- App Update Action Receiver (Notification Dismissal & Deferral) -->
+        <receiver
+            android:name=".core.update.UpdateNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.lofiq.action.UPDATE_DISMISS" />
             </intent-filter>
         </receiver>
 

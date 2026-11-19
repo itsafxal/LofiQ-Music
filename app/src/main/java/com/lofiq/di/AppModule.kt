@@ -36,14 +36,25 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(
+        diagnosticsTracker: com.lofiq.data.sync.SyncDiagnosticsTracker
+    ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
+        }
+        val diagnosticsInterceptor = okhttp3.Interceptor { chain ->
+            val request = chain.request()
+            val requestBytes = request.body?.contentLength()?.coerceAtLeast(0L) ?: 0L
+            val response = chain.proceed(request)
+            val responseBytes = response.body?.contentLength()?.coerceAtLeast(0L) ?: 0L
+            diagnosticsTracker.recordHttpRequest(requestBytes + responseBytes)
+            response
         }
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
+            .addInterceptor(diagnosticsInterceptor)
             .addInterceptor(logging)
             .build()
     }

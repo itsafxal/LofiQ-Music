@@ -18,6 +18,8 @@ import com.lofiq.data.repository.toDomain
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import com.google.firebase.firestore.ListenerRegistration
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,8 +32,85 @@ class FirestoreSyncRepository @Inject constructor(
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    private var favoritesListenerRegistration: ListenerRegistration? = null
+    private var playlistsListenerRegistration: ListenerRegistration? = null
+    private val realtimeScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + dispatchers.io)
 
     private fun getCurrentUid(): String? = auth.currentUser?.uid
+
+    /**
+     * Start live realtime Firestore snapshot listener for user favorites and playlists while app is active.
+     */
+    fun startRealtimeSync() {
+        val uid = getCurrentUid() ?: return
+        if (favoritesListenerRegistration != null) return // Already active
+
+        try {
+            favoritesListenerRegistration = firestore.collection("users").document(uid)
+                .collection("favorites")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        LofiQLogger.w(LofiQLogger.Category.DATABASE, "Firestore favorites realtime listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        realtimeScope.launch {
+                            val songsToInsert = mutableListOf<Song>()
+                            val favEntities = mutableListOf<FavoriteEntity>()
+                            for (doc in snapshot.documents) {
+                                val songId = doc.getString("songId") ?: doc.getString("id") ?: doc.getString("videoId") ?: doc.id
+                                val title = doc.getString("title") ?: doc.getString("name") ?: ""
+                                val artist = doc.getString("artist") ?: "Unknown Artist"
+                                val album = doc.getString("album") ?: ""
+                                val artworkUrl = doc.getString("artworkUrl") ?: doc.getString("thumbnailUrl") ?: ""
+                                val highResArtworkUrl = doc.getString("highResArtworkUrl") ?: artworkUrl
+                                val durationSeconds = (doc.get("durationSeconds") as? Number)?.toLong() ?: 0L
+                                val providerId = doc.getString("providerId") ?: "youtube"
+                                val sourceUrl = doc.getString("sourceUrl") ?: ""
+                                val addedAt = (doc.get("addedAt") as? Number)?.toLong() ?: System.currentTimeMillis()
+
+                                if (title.isNotBlank() || songId.isNotBlank()) {
+                                    val song = Song(
+                                        id = songId,
+                                        title = title.ifBlank { "Unknown Title" },
+                                        artist = artist,
+                                        album = album,
+                                        durationSeconds = durationSeconds,
+                                        artworkUrl = artworkUrl,
+                                        highResArtworkUrl = highResArtworkUrl,
+                                        sourceUrl = sourceUrl,
+                                        providerId = providerId,
+                                        isFavorite = true,
+                                        addedAt = addedAt
+                                    )
+                                    songsToInsert.add(song)
+                                    favEntities.add(FavoriteEntity(songId = songId, addedAt = addedAt))
+                                }
+                            }
+                            if (songsToInsert.isNotEmpty()) {
+                                songDao.insertAll(songsToInsert.map { it.toEntity() })
+                                favoriteDao.insertAll(favEntities)
+                                LofiQLogger.i(LofiQLogger.Category.DATABASE, "Realtime sync updated ${favEntities.size} favorites in Room")
+                            }
+                        }
+                    }
+                }
+            LofiQLogger.i(LofiQLogger.Category.DATABASE, "Attached Firestore realtime listeners for UID: $uid")
+        } catch (e: Exception) {
+            LofiQLogger.w(LofiQLogger.Category.DATABASE, "Failed to start Firestore realtime sync: ${e.message}")
+        }
+    }
+
+    /**
+     * Cleanly unregister realtime listeners when application goes into background to conserve battery & network.
+     */
+    fun stopRealtimeSync() {
+        favoritesListenerRegistration?.remove()
+        favoritesListenerRegistration = null
+        playlistsListenerRegistration?.remove()
+        playlistsListenerRegistration = null
+        LofiQLogger.d(LofiQLogger.Category.DATABASE, "Unregistered Firestore realtime listeners")
+    }
 
     /**
      * Download user's in-app liked songs and custom playlists from Cloud Firestore into Room DB

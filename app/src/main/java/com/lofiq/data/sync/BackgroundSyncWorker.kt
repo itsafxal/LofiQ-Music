@@ -36,6 +36,7 @@ class BackgroundSyncWorker(
         fun schedulePeriodicSync(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
                 .build()
 
             val syncRequest = PeriodicWorkRequestBuilder<BackgroundSyncWorker>(
@@ -51,7 +52,7 @@ class BackgroundSyncWorker(
                 ExistingPeriodicWorkPolicy.KEEP,
                 syncRequest
             )
-            LofiQLogger.i(LofiQLogger.Category.APP, "Scheduled periodic background data & image sync (every 4 hours)")
+            LofiQLogger.i(LofiQLogger.Category.APP, "Scheduled periodic background data & image sync (every 4 hours, battery not low)")
         }
 
         fun triggerOneTimeSync(context: Context) {
@@ -87,9 +88,13 @@ class BackgroundSyncWorker(
     interface BackgroundSyncEntryPoint {
         fun musicRepository(): MusicRepository
         fun homeFeedCacheManager(): HomeFeedCacheManager
+        fun syncDiagnosticsTracker(): SyncDiagnosticsTracker
     }
 
     override suspend fun doWork(): Result {
+        val startTime = System.currentTimeMillis()
+        var diagnosticsTracker: SyncDiagnosticsTracker? = null
+
         return try {
             LofiQLogger.i(LofiQLogger.Category.CACHE, "Starting background live data & image sync")
 
@@ -99,6 +104,7 @@ class BackgroundSyncWorker(
             )
             val musicRepository = entryPoint.musicRepository()
             val homeFeedCacheManager = entryPoint.homeFeedCacheManager()
+            diagnosticsTracker = entryPoint.syncDiagnosticsTracker()
 
             // 1. Fetch latest trending songs (minimal network: ~25-30 items, ~25KB JSON)
             val trendingSongs = try {
@@ -123,36 +129,50 @@ class BackgroundSyncWorker(
                 homeFeedCacheManager.saveShelf("malayalam_trending", malayalamSongs)
             }
 
-            // 3. Pre-cache high-resolution artworks into Coil disk cache (~1-2MB total data)
+            // 3. Pre-cache high-resolution artworks into Coil disk cache
+            // Metered network check: skip heavy artwork download if on metered mobile data to save bandwidth
+            val connectivityManager = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val isMetered = connectivityManager?.isActiveNetworkMetered ?: false
+
             val allSongs = (trendingSongs + malayalamSongs).distinctBy { it.id }.take(30)
             val imageLoader = Coil.imageLoader(applicationContext)
             var preloadedCount = 0
 
-            for (song in allSongs) {
-                val artworkUrl = ArtworkUtils.getOptimalArtwork(song)
-                if (artworkUrl.isNotBlank()) {
-                    runCatching {
-                        val request = ImageRequest.Builder(applicationContext)
-                            .data(artworkUrl)
-                            .size(500, 500)
-                            .build()
-                        imageLoader.enqueue(request)
-                        preloadedCount++
+            if (!isMetered) {
+                for (song in allSongs) {
+                    val artworkUrl = ArtworkUtils.getOptimalArtwork(song)
+                    if (artworkUrl.isNotBlank()) {
+                        runCatching {
+                            val request = ImageRequest.Builder(applicationContext)
+                                .data(artworkUrl)
+                                .size(500, 500)
+                                .build()
+                            imageLoader.enqueue(request)
+                            preloadedCount++
+                        }
                     }
                 }
+            } else {
+                LofiQLogger.d(LofiQLogger.Category.CACHE, "Metered network detected; skipped large artwork pre-caching to preserve user data budget")
             }
 
             val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().putLong(KEY_LAST_SYNC, System.currentTimeMillis()).apply()
 
+            val durationMs = System.currentTimeMillis() - startTime
+            diagnosticsTracker.recordSyncSuccess(durationMs = durationMs)
+
             LofiQLogger.i(
                 LofiQLogger.Category.CACHE,
-                "Background sync complete: saved ${allSongs.size} live songs and pre-cached $preloadedCount artworks (~1.2MB data used)"
+                "Background sync complete in ${durationMs}ms: saved ${allSongs.size} live songs and pre-cached $preloadedCount artworks (metered=$isMetered)"
             )
             Result.success()
         } catch (e: Exception) {
             LofiQLogger.e(LofiQLogger.Category.CACHE, "Background sync failed: ${e.message}", e)
+            diagnosticsTracker?.recordRetry()
+            diagnosticsTracker?.recordSyncFailure(e.message ?: "Background sync failed")
             Result.retry()
         }
+    }
     }
 }

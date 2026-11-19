@@ -559,29 +559,36 @@ fun MainScreen(
                 title = "New Update Available!",
                 confirmButton = {
                     val confirmContentColor = if (settingsState.activeBrandColor.luminance() > 0.5f) Color.Black else Color.White
+                    val isPlayStore = appUpdateManager?.isInstalledViaGooglePlay(context) == true
+
                     GlassButton(
                         onClick = {
                             if (appUpdateManager != null) {
-                                isDownloadingUpdate = true
-                                updateDownloadProgress = 0f
-                                coroutineScope.launch {
-                                    val result = appUpdateManager.downloadApk(
-                                        context = context,
-                                        apkUrl = update.apkUrl,
-                                        expectedChecksum = update.checksum,
-                                        endpointType = update.resolvedEndpoint
-                                    ) { progress ->
-                                        updateDownloadProgress = progress
-                                    }
-                                    result.onSuccess { file ->
-                                        isDownloadingUpdate = false
-                                        updateInfo = null
-                                        appUpdateManager.dismissUpdateNotification(context)
-                                        appUpdateManager.clearDismissedUpdate(context)
-                                        appUpdateManager.installApk(context, file)
-                                    }.onFailure {
-                                        isDownloadingUpdate = false
-                                        Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_LONG).show()
+                                if (isPlayStore) {
+                                    appUpdateManager.openGooglePlayStore(context)
+                                    updateInfo = null
+                                } else {
+                                    isDownloadingUpdate = true
+                                    updateDownloadProgress = 0f
+                                    coroutineScope.launch {
+                                        val result = appUpdateManager.downloadApk(
+                                            context = context,
+                                            apkUrl = update.apkUrl,
+                                            expectedChecksum = update.checksum,
+                                            endpointType = update.resolvedEndpoint
+                                        ) { progress ->
+                                            updateDownloadProgress = progress
+                                        }
+                                        result.onSuccess { file ->
+                                            isDownloadingUpdate = false
+                                            updateInfo = null
+                                            appUpdateManager.dismissUpdateNotification(context)
+                                            appUpdateManager.clearDismissedUpdate(context)
+                                            appUpdateManager.installApk(context, file)
+                                        }.onFailure {
+                                            isDownloadingUpdate = false
+                                            Toast.makeText(context, "Download failed: ${it.message}", Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
                             }
@@ -607,7 +614,7 @@ fun MainScreen(
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isDownloadingUpdate) "Downloading..." else "Update Now",
+                            text = if (isDownloadingUpdate) "Downloading..." else if (isPlayStore) "Update on Play Store" else "Update Now",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
                             color = confirmContentColor
@@ -640,17 +647,42 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "LofiQ V${update.versionName} (${update.apkSize})",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
+                        Column {
+                            Text(
+                                text = "LofiQ v${update.versionName}",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = "Current: v${com.lofiq.BuildConfig.VERSION_NAME} • Size: ${update.apkSize.ifBlank { "Unknown" }}",
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
                         if (update.releaseDate.isNotBlank()) {
                             Text(
                                 text = update.releaseDate,
                                 color = TextSecondary,
                                 fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    val isPlaying = playbackEngine?.playbackState?.collectAsState()?.value?.isPlaying == true
+                    if (isPlaying) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "ℹ️ Active music playback will pause when installing this update.",
+                                color = TextSecondary,
+                                fontSize = 11.5.sp
                             )
                         }
                     }

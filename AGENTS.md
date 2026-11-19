@@ -16,3 +16,22 @@
    - Never remove `sessionHandoverCallback` or the idempotent player rebind guard in `LofiQMediaSessionService`.
    - Never drop foreground service status during track transitions or buffering.
    - On cold boot, always restore the playback session in a **paused** state (`isPlaying = false`). Never implement silent autoplay on application launch.
+
+3. **Startup Performance & Offline-First Invariants**:
+   - Prioritize reading local cache before performing network requests.
+   - Cached data must never be blocked by remote requests (<500ms startup to cached UI).
+   - Never replace an already populated Home Screen with a full-page spinner or blank skeleton.
+   - Use batch SQLite queries (`getByPrefix`) for shelf deserialization; never loop sequential single-key queries.
+
+4. **Background Synchronization & Battery Protection**:
+   - Background catalog sync must run on `Dispatchers.IO` and must never block ExoPlayer audio threads.
+   - Background work must be bounded, cancelable, and idempotent.
+   - No ordinary background task may depend on exact five-minute timing or continuous polling loops.
+   - Cleanly unregister realtime listeners and cancel foreground timers on activity stop / lifecycle teardown.
+   - Never preload large artwork collections on metered mobile networks.
+
+5. **Smart Application Update Invariants**:
+   - Differentiate Google Play installations from direct APK sideloads.
+   - Direct APK updates must always validate SHA-256 checksum and package identity before triggering the system installer.
+   - Update notifications must be version-deduplicated (suppress repeated notifications for the same version within 24 hours).
+   - Never interrupt or reset active music playback to prompt or install an update. Always warn the user if playback will pause.

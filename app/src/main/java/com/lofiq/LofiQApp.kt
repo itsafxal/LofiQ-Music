@@ -34,6 +34,9 @@ class LofiQApp : Application(), ImageLoaderFactory {
         @Volatile
         var isAppInForeground: Boolean = false
             private set
+
+        private val _isForegroundFlow = kotlinx.coroutines.flow.MutableStateFlow(false)
+        val isForegroundFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = _isForegroundFlow.asStateFlow()
     }
 
     override fun onCreate() {
@@ -81,6 +84,7 @@ class LofiQApp : Application(), ImageLoaderFactory {
             override fun onActivityStarted(activity: Activity) {
                 if (++startedActivities == 1 && !isConfigurationChanging) {
                     isAppInForeground = true
+                    _isForegroundFlow.value = true
                 }
             }
             override fun onActivityResumed(activity: Activity) {}
@@ -89,6 +93,7 @@ class LofiQApp : Application(), ImageLoaderFactory {
                 isConfigurationChanging = activity.isChangingConfigurations
                 if (--startedActivities == 0 && !isConfigurationChanging) {
                     isAppInForeground = false
+                    _isForegroundFlow.value = false
                     runCatching {
                         com.lofiq.data.sync.BackgroundSyncWorker.triggerOneTimeSync(this@LofiQApp)
                     }
