@@ -129,7 +129,38 @@
     <!-- CHANGELOG FEED -->
     <section style="max-width: 900px; margin: 0 auto; padding: 0 24px 80px 24px;">
       
-      <!-- RELEASE 1: Android v1.0.6 (Latest) -->
+      <!-- RELEASE 1: Android v1.0.7 (Latest) -->
+      <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
+        <div class="changelog-header">
+          <div>
+            <div class="changelog-tag" style="background: rgba(255, 255, 255, 0.12); color: #fff;">Android &amp; TV Release</div>
+            <h2 class="changelog-title" style="font-size: 1.4rem;">v1.0.7 (Build 70) — Live Audio Pipeline &amp; Instant Sync</h2>
+            <p class="changelog-date">November 19, 2026</p>
+          </div>
+          <div class="changelog-version-wrap">
+            <span class="version-chip dynamic-version">v1.0.7</span>
+            <span class="version-stable">Latest Stable</span>
+          </div>
+        </div>
+
+        <ul class="changelog-list">
+          <li><span class="bullet">&#10022;</span> 🚀 <strong>Official Production Release (V1.0.7 - Build 70):</strong> Complete multi-platform performance and audio diagnostic release.</li>
+          <li><span class="bullet">&#10022;</span> 🎛️ <strong>Live Audio Pipeline Inspector:</strong> Interactive quality badge launching a real-time 5-stage signal chain modal (Track Info, MediaCodec Decoder, AudioTrack Resampler, DSP Effects, and Hardware Output Route).</li>
+          <li><span class="bullet">&#10022;</span> 🎵 <strong>Screen-Off Playback Reliability:</strong> Dynamic bounded WakeLock management, dual-player promotion handover race guards, and continuous MediaSessionService foreground session continuity.</li>
+          <li><span class="bullet">&#10022;</span> ⚡ <strong>Instant Cold Startup:</strong> Sub-500ms home shelf rendering via batch SQLite deserialization and persistent disk caching.</li>
+          <li><span class="bullet">&#10022;</span> 🔄 <strong>Live Background Sync:</strong> Real-time Firestore synchronization and idempotent WorkManager background catalog maintenance on IO coroutines.</li>
+          <li><span class="bullet">&#10022;</span> 🛡️ <strong>Smart Application Update System:</strong> Direct APK OTA updates with cryptographic SHA-256 package identity verification and non-intrusive notifications.</li>
+        </ul>
+
+        <div style="margin-top: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <a href="/downloads/LofiQ.apk" download="LofiQ.apk" class="liquid-btn-primary dynamic-download-btn" style="text-decoration: none; padding: 8px 18px; font-size: 0.85rem;">
+            <span>Download APK (21.9 MB)</span>
+          </a>
+          <a href="/android-download" style="color: var(--text-silver); text-decoration: none; font-size: 0.85rem;">View Android Page &rarr;</a>
+        </div>
+      </article>
+
+      <!-- RELEASE 2: Android v1.0.6 -->
       <article class="changelog-card liquid-glass-card" style="margin-bottom: 32px;">
         <div class="changelog-header">
           <div>

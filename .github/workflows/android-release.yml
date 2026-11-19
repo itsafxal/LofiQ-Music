@@ -140,6 +140,17 @@ jobs:
         run: |
           mkdir -p web/downloads
           cp app/build/outputs/apk/release/app-release.apk web/downloads/LofiQ.apk
+          NEW_APK_SHA=$(sha256sum web/downloads/LofiQ.apk | awk '{print $1}')
+          echo "Syncing newly assembled APK SHA-256 ($NEW_APK_SHA) into manifest..."
+          node -e "
+            const fs = require('fs');
+            const file = 'web/version.json';
+            const v = JSON.parse(fs.readFileSync(file, 'utf8'));
+            v.checksum = '$NEW_APK_SHA';
+            if (v.android) v.android.checksum = '$NEW_APK_SHA';
+            fs.writeFileSync(file, JSON.stringify(v, null, 2) + '\n');
+          "
+          sed -i "s/^[a-fA-F0-9]\{64\} \*LofiQ\.apk/$NEW_APK_SHA \*LofiQ.apk/" web/downloads/SHA256SUMS.txt || true
           node scripts/validate_release_artifacts.mjs
 
       - name: Prepare Package Release Artifacts
