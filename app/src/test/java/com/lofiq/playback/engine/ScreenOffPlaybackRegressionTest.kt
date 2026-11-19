@@ -13,6 +13,8 @@ import com.lofiq.core.database.dao.FavoriteDao
 import com.lofiq.core.database.dao.PlaybackHistoryDao
 import com.lofiq.core.database.dao.QueueSnapshotDao
 import com.lofiq.core.database.dao.SongDao
+import com.lofiq.core.database.entities.QueueSnapshotEntity
+import com.lofiq.core.database.entities.SongEntity
 import com.lofiq.core.datastore.LofiQPreferences
 import com.lofiq.core.model.AudioQuality
 import com.lofiq.core.model.PlaybackRepeatMode
@@ -469,5 +471,124 @@ class ScreenOffPlaybackRegressionTest {
         verify { audioFocusManager.abandonAudioFocus() }
         assertFalse(engine.playerState.value.isPlaying)
         assertNull(engine.playerState.value.currentSong)
+    }
+
+    private fun songEntity(id: String, durationSec: Long = 180L) = SongEntity(
+        id = id,
+        title = "Track $id",
+        artist = "Artist $id",
+        album = "Album $id",
+        durationSeconds = durationSec,
+        artworkUrl = "",
+        highResArtworkUrl = "",
+        sourceUrl = "",
+        providerId = "jiosaavn",
+        quality = "HIGH",
+        addedAt = System.currentTimeMillis()
+    )
+
+    @Test
+    fun testColdBootRestoresPausedQueueWithoutAutoplay() = runTest(testDispatcher) {
+        val qDao = mockk<QueueSnapshotDao>(relaxed = true)
+        val s1 = songEntity("101")
+        val s2 = songEntity("102")
+        val snapshotList = listOf(
+            QueueSnapshotEntity("101", 0, isCurrent = true),
+            QueueSnapshotEntity("102", 1, isCurrent = false)
+        )
+        coEvery { qDao.getSnapshotItems() } returns snapshotList
+        coEvery { qDao.getPersistedQueue() } returns listOf(s1, s2)
+
+        val prefs = mockk<LofiQPreferences>(relaxed = true)
+        every { prefs.repeatMode } returns MutableStateFlow(PlaybackRepeatMode.OFF)
+        every { prefs.shuffleEnabled } returns MutableStateFlow(false)
+        every { prefs.crossfadeDurationSec } returns MutableStateFlow(8)
+        every { prefs.audioQuality } returns MutableStateFlow(AudioQuality.HIGH)
+        every { prefs.wasExplicitlyStopped } returns MutableStateFlow(false)
+        every { prefs.lastPlayedPositionMs } returns MutableStateFlow(45_000L)
+
+        val coldBootEngine = PlaybackEngine(
+            context = mockk<Context>(relaxed = true).apply {
+                every { filesDir } returns tempDir
+                every { getExternalFilesDir(any()) } returns tempDir
+            },
+            playerSlotA = playerSlotA,
+            playerSlotB = playerSlotB,
+            audioRoutingManager = mockk(relaxed = true),
+            resolverManager = mockk(relaxed = true),
+            resolutionCache = mockk(relaxed = true),
+            prefetchManager = mockk(relaxed = true),
+            songDao = mockk(relaxed = true),
+            favoriteDao = mockk(relaxed = true),
+            historyDao = mockk(relaxed = true),
+            queueSnapshotDao = qDao,
+            preferences = prefs,
+            networkQualityMonitor = mockk(relaxed = true),
+            dispatchers = testDispatchers,
+            audioFocusManager = audioFocusManager,
+            wakeLockManager = wakeLockManager,
+            screenStateMonitor = screenStateMonitor,
+            diagnosticLogger = diagnosticLogger
+        )
+        runCurrent()
+
+        val state = coldBootEngine.playerState.value
+        assertNotNull("Current song must be restored on cold boot", state.currentSong)
+        assertEquals("101", state.currentSong?.id)
+        assertEquals(45_000L, state.currentPositionMs)
+        assertEquals(2, state.queue.size)
+        assertTrue(state.isReady)
+        assertFalse("Playback must remain PAUSED on cold boot (no silent autoplay)", state.isPlaying)
+        assertFalse(slotA.isPlaying)
+        assertFalse(slotB.isPlaying)
+
+        coldBootEngine.release()
+    }
+
+    @Test
+    fun testExplicitStopSuppressesColdBootRestoration() = runTest(testDispatcher) {
+        val qDao = mockk<QueueSnapshotDao>(relaxed = true)
+        val snapshotList = listOf(
+            QueueSnapshotEntity("101", 0, isCurrent = true)
+        )
+        coEvery { qDao.getSnapshotItems() } returns snapshotList
+        coEvery { qDao.getPersistedQueue() } returns listOf(songEntity("101"))
+
+        val prefs = mockk<LofiQPreferences>(relaxed = true)
+        every { prefs.repeatMode } returns MutableStateFlow(PlaybackRepeatMode.OFF)
+        every { prefs.shuffleEnabled } returns MutableStateFlow(false)
+        every { prefs.crossfadeDurationSec } returns MutableStateFlow(8)
+        every { prefs.audioQuality } returns MutableStateFlow(AudioQuality.HIGH)
+        every { prefs.wasExplicitlyStopped } returns MutableStateFlow(true) // USER PRESSED STOP
+
+        val coldBootEngine = PlaybackEngine(
+            context = mockk<Context>(relaxed = true).apply {
+                every { filesDir } returns tempDir
+                every { getExternalFilesDir(any()) } returns tempDir
+            },
+            playerSlotA = playerSlotA,
+            playerSlotB = playerSlotB,
+            audioRoutingManager = mockk(relaxed = true),
+            resolverManager = mockk(relaxed = true),
+            resolutionCache = mockk(relaxed = true),
+            prefetchManager = mockk(relaxed = true),
+            songDao = mockk(relaxed = true),
+            favoriteDao = mockk(relaxed = true),
+            historyDao = mockk(relaxed = true),
+            queueSnapshotDao = qDao,
+            preferences = prefs,
+            networkQualityMonitor = mockk(relaxed = true),
+            dispatchers = testDispatchers,
+            audioFocusManager = audioFocusManager,
+            wakeLockManager = wakeLockManager,
+            screenStateMonitor = screenStateMonitor,
+            diagnosticLogger = diagnosticLogger
+        )
+        runCurrent()
+
+        assertNull(coldBootEngine.playerState.value.currentSong)
+        assertTrue(coldBootEngine.playerState.value.queue.isEmpty())
+
+        coldBootEngine.release()
     }
 }

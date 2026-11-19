@@ -544,6 +544,7 @@ class PlaybackEngine @Inject constructor(
                                 LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Advancing to next local track after error on '${current.title}'")
                                 startPlaybackInternal(currentQueue[currentIndex].song, retryCount = 0)
                             } else {
+                                wakeLockManager.releasePlaybackWakeLock()
                                 _playerState.update {
                                     it.copy(
                                         isBuffering = false,
@@ -581,6 +582,7 @@ class PlaybackEngine @Inject constructor(
                             LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] Fetching infinite track after player error")
                             fetchAndPlayNextInfiniteTrack(retryCount = 0)
                         } else {
+                            wakeLockManager.releasePlaybackWakeLock()
                             _playerState.update {
                                 it.copy(
                                     isBuffering = false,
