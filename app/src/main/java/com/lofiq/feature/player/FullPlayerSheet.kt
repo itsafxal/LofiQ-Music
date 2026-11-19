@@ -89,6 +89,12 @@ import com.lofiq.ui.theme.LocalPerformanceModeEnabled
  * 8. VOLUME SLIDER ROW: System volume ThinSlider with volume icons
  * 9. SECONDARY NAVIGATION: Lyrics icon, Frosted Capsule (Headphones / Artist), and Queue button
  */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface FullPlayerAudioPipelineEntryPoint {
+    fun audioPipelineMonitor(): com.lofiq.playback.engine.AudioPipelineMonitor
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullPlayerSheet(
@@ -99,6 +105,7 @@ fun FullPlayerSheet(
     libraryRepository: com.lofiq.data.repository.LibraryRepository? = null,
     musicRepository: com.lofiq.data.repository.MusicRepository? = null,
     syncManager: com.lofiq.feature.sync.ListenTogetherManager? = null,
+    audioPipelineMonitor: com.lofiq.playback.engine.AudioPipelineMonitor? = null,
     seekbarStyle: com.lofiq.core.model.SeekbarStyle = com.lofiq.ui.theme.LocalSeekbarStyle.current,
     onSeekbarStyleChange: ((com.lofiq.core.model.SeekbarStyle) -> Unit)? = null,
     onOpenEqualizer: (() -> Unit)? = null,
@@ -108,6 +115,17 @@ fun FullPlayerSheet(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val haptics = rememberHaptics()
+
+    val activePipelineMonitor = audioPipelineMonitor ?: remember {
+        runCatching {
+            dagger.hilt.android.EntryPointAccessors.fromApplication(
+                context,
+                FullPlayerAudioPipelineEntryPoint::class.java
+            ).audioPipelineMonitor()
+        }.getOrNull()
+    }
+    val pipelineInfo by (activePipelineMonitor?.pipelineInfo ?: kotlinx.coroutines.flow.MutableStateFlow(com.lofiq.core.audio.pipeline.AudioPipelineInfo())).collectAsState()
+    var showAudioPipelineDialog by remember { mutableStateOf(false) }
     val playerState by playbackEngine.playerState.collectAsState()
     val currentLyrics by playbackEngine.currentLyrics.collectAsState()
     val isLyricsLoading by playbackEngine.isLyricsLoading.collectAsState()
@@ -168,7 +186,9 @@ fun FullPlayerSheet(
     }
 
     BackHandler {
-        if (showQueueSheet) {
+        if (showAudioPipelineDialog) {
+            showAudioPipelineDialog = false
+        } else if (showQueueSheet) {
             showQueueSheet = false
         } else if (showSeekbarStyleSheet) {
             showSeekbarStyleSheet = false
@@ -839,24 +859,12 @@ fun FullPlayerSheet(
                         else -> Color(0xFF38BDF8)      // YouTube Hi-Fi Sky Blue
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(badgeColor.copy(alpha = 0.12f))
-                            .border(1.dp, badgeColor.copy(alpha = 0.28f), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 7.dp, vertical = 2.5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = badgeLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.6.sp,
-                                color = badgeColor
-                            )
-                        )
-                    }
+                    com.lofiq.feature.player.pipeline.AudioPipelineBadge(
+                        badgeLabel = badgeLabel,
+                        badgeColor = badgeColor,
+                        isPlaying = playerState.isPlaying,
+                        onClick = { showAudioPipelineDialog = true }
+                    )
                 }
 
                 // 4. Progress Slider & Timestamps
@@ -1465,6 +1473,14 @@ fun FullPlayerSheet(
                     showSeekbarStyleSheet = false
                 },
                 onDismiss = { showSeekbarStyleSheet = false }
+            )
+        }
+
+        if (showAudioPipelineDialog) {
+            com.lofiq.feature.player.pipeline.AudioPipelineDialog(
+                pipelineInfo = pipelineInfo,
+                onDismissRequest = { showAudioPipelineDialog = false },
+                onOpenEqualizer = onOpenEqualizer
             )
         }
     }

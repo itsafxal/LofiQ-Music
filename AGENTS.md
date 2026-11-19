@@ -35,3 +35,9 @@
    - Direct APK updates must always validate SHA-256 checksum and package identity before triggering the system installer.
    - Update notifications must be version-deduplicated (suppress repeated notifications for the same version within 24 hours).
    - Never interrupt or reset active music playback to prompt or install an update. Always warn the user if playback will pause.
+
+6. **Audio Pipeline & Metadata Invariants**:
+   - Never fabricate bitrate, codec, or bit-perfect claims. Display "Unknown" or "—" when unverified.
+   - Never block audio threads with metadata resolution or reflection. Run all pipeline inspection on Main/IO coroutines.
+   - Guard every listener callback against stale ExoPlayer instances during dual-player handovers (`player !== currentObservedPlayer`).
+   - The Audio Pipeline dialog must never disrupt, reinitialize, or reset active playback sessions.
