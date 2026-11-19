@@ -198,6 +198,8 @@ class ScreenOffPlaybackRegressionTest {
         every { prefs.shuffleEnabled } returns MutableStateFlow(false)
         every { prefs.crossfadeDurationSec } returns MutableStateFlow(8)
         every { prefs.audioQuality } returns MutableStateFlow(AudioQuality.HIGH)
+        every { prefs.wasExplicitlyStopped } returns MutableStateFlow(false)
+        every { prefs.lastPlayedPositionMs } returns MutableStateFlow(0L)
 
         val resolverManager = mockk<ResolverManager>(relaxed = true)
         coEvery { resolverManager.resolve(any()) } answers {
@@ -426,5 +428,46 @@ class ScreenOffPlaybackRegressionTest {
         runCurrent()
 
         assertEquals(1.0f, slotA.volume, 0.01f)
+    }
+
+    @Test
+    fun testPlaybackWakeLockAcquiredAndReleasedOnStateReady() = runTest(testDispatcher) {
+        val s1 = song("1")
+        engine.playQueue(listOf(s1), 0)
+        runCurrent()
+
+        verify { wakeLockManager.acquirePlaybackWakeLock(any()) }
+        verify { wakeLockManager.releasePlaybackWakeLock() }
+    }
+
+    @Test
+    fun testHasActivePlaybackSessionAccurateState() = runTest(testDispatcher) {
+        assertFalse(engine.hasActivePlaybackSession())
+
+        val s1 = song("1")
+        engine.playQueue(listOf(s1), 0)
+        runCurrent()
+
+        assertTrue(engine.hasActivePlaybackSession())
+
+        engine.stop()
+        runCurrent()
+
+        assertFalse(engine.hasActivePlaybackSession())
+    }
+
+    @Test
+    fun testExplicitStopReleasesAllWakeLocksAndClearsState() = runTest(testDispatcher) {
+        val s1 = song("1")
+        engine.playQueue(listOf(s1), 0)
+        runCurrent()
+
+        engine.stop()
+        runCurrent()
+
+        verify { wakeLockManager.releaseAll() }
+        verify { audioFocusManager.abandonAudioFocus() }
+        assertFalse(engine.playerState.value.isPlaying)
+        assertNull(engine.playerState.value.currentSong)
     }
 }

@@ -198,6 +198,9 @@ interface QueueSnapshotDao {
         ORDER BY queue_snapshot.orderIndex ASC
     """)
     suspend fun getPersistedQueue(): List<SongEntity>
+
+    @Query("SELECT * FROM queue_snapshot ORDER BY orderIndex ASC")
+    suspend fun getSnapshotItems(): List<QueueSnapshotEntity>
 }
 
 @Dao

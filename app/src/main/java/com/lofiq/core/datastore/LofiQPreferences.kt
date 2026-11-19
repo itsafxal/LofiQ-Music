@@ -46,6 +46,7 @@ class LofiQPreferences @Inject constructor(
         val CUSTOM_BRAND_COLOR = stringPreferencesKey("custom_brand_color")
         val SEEKBAR_STYLE = stringPreferencesKey("seekbar_style")
         val PERFORMANCE_MODE_ENABLED = booleanPreferencesKey("performance_mode_enabled")
+        val WAS_EXPLICITLY_STOPPED = booleanPreferencesKey("was_explicitly_stopped")
     }
 
     val crossfadeDurationSec: Flow<Int> = dataStore.data
@@ -113,6 +114,10 @@ class LofiQPreferences @Inject constructor(
             prefs[PreferencesKeys.PERFORMANCE_MODE_ENABLED]
                 ?: com.lofiq.core.common.DevicePerformanceManager.shouldDefaultToPerformanceMode(context)
         }
+
+    val wasExplicitlyStopped: Flow<Boolean> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs -> prefs[PreferencesKeys.WAS_EXPLICITLY_STOPPED] ?: false }
 
     val appIconTheme: Flow<String> = dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -208,6 +213,12 @@ class LofiQPreferences @Inject constructor(
     suspend fun setPerformanceModeEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.PERFORMANCE_MODE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setExplicitlyStopped(stopped: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.WAS_EXPLICITLY_STOPPED] = stopped
         }
     }
 }

@@ -9,12 +9,13 @@ import javax.inject.Singleton
 /**
  * Manages targeted, short-lived partial WakeLocks to ensure CPU execution remains active
  * during critical asynchronous operations when the display is OFF:
- * 1. Dual-player crossfade overlap & 40ms volume ramp loops
- * 2. Background stream URL resolution & ExoPlayer secondary buffer preparation
- * 3. Atomic player promotion and MediaSession handover
+ * 1. Dual-player crossfade overlap & 40ms volume ramp loops (transitionWakeLock)
+ * 2. Background stream URL resolution & ExoPlayer secondary buffer preparation (preloadWakeLock)
+ * 3. Primary stream URL resolution & initial track buffer preparation (playbackWakeLock)
+ * 4. Atomic player promotion and MediaSession handover
  *
- * Prevents premature kernel CPU suspension during screen-off transitions without
- * holding permanent or indefinite wake locks.
+ * Prevents premature kernel CPU suspension during screen-off transitions and playback starts
+ * without holding permanent or indefinite wake locks.
  */
 @Singleton
 class PlaybackWakeLockManager @Inject constructor(
@@ -27,6 +28,7 @@ class PlaybackWakeLockManager @Inject constructor(
 
     private var transitionWakeLock: PowerManager.WakeLock? = null
     private var preloadWakeLock: PowerManager.WakeLock? = null
+    private var playbackWakeLock: PowerManager.WakeLock? = null
     private val lock = Any()
 
     fun acquireTransitionWakeLock(durationMs: Long = 20_000L) {
@@ -62,7 +64,7 @@ class PlaybackWakeLockManager @Inject constructor(
         }
     }
 
-    fun acquirePreloadWakeLock(timeoutMs: Long = 15_000L) {
+    fun acquirePreloadWakeLock(timeoutMs: Long = 25_000L) {
         synchronized(lock) {
             runCatching {
                 if (preloadWakeLock?.isHeld == true) {
@@ -74,7 +76,7 @@ class PlaybackWakeLockManager @Inject constructor(
                     "LofiQ:PreloadWakeLock"
                 ).apply {
                     setReferenceCounted(false)
-                    acquire(timeoutMs.coerceIn(3_000L, 30_000L))
+                    acquire(timeoutMs.coerceIn(3_000L, 35_000L))
                 }
                 diagnosticLogger.logWakeLock("ACQUIRED", "PreloadWakeLock", timeoutMs)
             }.onFailure {
@@ -95,8 +97,42 @@ class PlaybackWakeLockManager @Inject constructor(
         }
     }
 
+    fun acquirePlaybackWakeLock(timeoutMs: Long = 25_000L) {
+        synchronized(lock) {
+            runCatching {
+                if (playbackWakeLock?.isHeld == true) {
+                    playbackWakeLock?.release()
+                }
+                val pm = powerManager ?: return@runCatching
+                playbackWakeLock = pm.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "LofiQ:PlaybackWakeLock"
+                ).apply {
+                    setReferenceCounted(false)
+                    acquire(timeoutMs.coerceIn(5_000L, 35_000L))
+                }
+                diagnosticLogger.logWakeLock("ACQUIRED", "PlaybackWakeLock", timeoutMs)
+            }.onFailure {
+                diagnosticLogger.logError("WAKELOCK_ACQUIRE_FAILED", "PlaybackWakeLock: ${it.message}", it)
+            }
+        }
+    }
+
+    fun releasePlaybackWakeLock() {
+        synchronized(lock) {
+            runCatching {
+                if (playbackWakeLock?.isHeld == true) {
+                    playbackWakeLock?.release()
+                    diagnosticLogger.logWakeLock("RELEASED", "PlaybackWakeLock")
+                }
+                playbackWakeLock = null
+            }
+        }
+    }
+
     fun releaseAll() {
         releaseTransitionWakeLock()
         releasePreloadWakeLock()
+        releasePlaybackWakeLock()
     }
 }

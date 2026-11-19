@@ -202,6 +202,7 @@ class PlaybackEngine @Inject constructor(
         preloadJob?.cancel()
         preloadJob = null
         inFlightPreloadSongId = null
+        wakeLockManager.releasePreloadWakeLock()
         if (secondarySongId != null || secondarySlotState != SecondarySlotState.IDLE) {
             LofiQLogger.i(LofiQLogger.Category.PREFETCH, "[PRELOAD] Invalidating secondary preload ($reason)")
         }
@@ -280,6 +281,7 @@ class PlaybackEngine @Inject constructor(
         attachSlotListener(playerSlotB, isSlotA = false)
         observePreferences()
         startPositionTracker()
+        restoreSavedPlaybackSessionIfAvailable()
 
         audioFocusManager.onPausePlayback = {
             diagnosticLogger.logAudioFocus("INTERRUPT_PAUSE", "Focus lost / headphones disconnected -> pausing playback")
@@ -292,6 +294,76 @@ class PlaybackEngine @Inject constructor(
         audioFocusManager.onDuckVolume = { scale ->
             diagnosticLogger.logAudioFocus("INTERRUPT_DUCK", "Duck scale=$scale")
             setMasterVolumeScale(scale)
+        }
+    }
+
+    private fun restoreSavedPlaybackSessionIfAvailable() {
+        engineScope.launch(dispatchers.io) {
+            val explicitlyStopped = preferences.wasExplicitlyStopped.first()
+            if (explicitlyStopped) {
+                diagnosticLogger.logServiceLifecycle("SESSION_RESTORE_SKIPPED", "User explicitly stopped playback previously")
+                return@launch
+            }
+            val snapshotEntities = queueSnapshotDao.getSnapshotItems()
+            if (snapshotEntities.isEmpty()) return@launch
+
+            val persistedEntities = queueSnapshotDao.getPersistedQueue()
+            if (persistedEntities.isEmpty()) return@launch
+
+            val domainSongs = persistedEntities.map { it.toDomain() }
+            val songMap = domainSongs.associateBy { it.id }
+
+            val currentSnapshotItem = snapshotEntities.firstOrNull { it.isCurrent } ?: snapshotEntities.firstOrNull()
+            val targetSong = currentSnapshotItem?.let { songMap[it.songId] } ?: domainSongs.first()
+            val targetIndex = snapshotEntities.indexOfFirst { it.songId == targetSong.id }.coerceAtLeast(0)
+
+            val lastPosMs = preferences.lastPlayedPositionMs.first()
+
+            withContext(dispatchers.main) {
+                commandMutex.withLock {
+                    if (currentQueue.isNotEmpty() || _playerState.value.currentSong != null) {
+                        return@withLock
+                    }
+                    currentQueue.clear()
+                    snapshotEntities.forEachIndexed { idx, item ->
+                        val s = songMap[item.songId]
+                        if (s != null) {
+                            currentQueue.add(
+                                QueueItem(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    song = s,
+                                    originalIndex = idx,
+                                    isCurrent = idx == targetIndex
+                                )
+                            )
+                        }
+                    }
+                    currentIndex = targetIndex
+
+                    _playerState.update {
+                        it.copy(
+                            currentSong = targetSong,
+                            durationMs = targetSong.durationMs,
+                            currentPositionMs = lastPosMs,
+                            queue = currentQueue.map { q -> q.song },
+                            queueItems = currentQueue.toList(),
+                            currentQueueIndex = targetIndex,
+                            isPlaying = false,
+                            isBuffering = false,
+                            isReady = true,
+                            activeProviderId = targetSong.providerId
+                        )
+                    }
+                    diagnosticLogger.logServiceLifecycle(
+                        "SESSION_RESTORED_PAUSED",
+                        "song='${targetSong.title}' pos=${lastPosMs}ms queueSize=${currentQueue.size}"
+                    )
+                    LofiQLogger.i(
+                        LofiQLogger.Category.PLAYBACK,
+                        "[RESTORE] Restored paused playback session for '${targetSong.title}' at ${lastPosMs}ms (queue=${currentQueue.size})"
+                    )
+                }
+            }
         }
     }
 
@@ -357,6 +429,7 @@ class PlaybackEngine @Inject constructor(
                             }
                             Player.STATE_READY -> {
                                 secondarySlotState = SecondarySlotState.READY
+                                wakeLockManager.releasePreloadWakeLock()
                                 // Ensure incoming stays silent and paused at 0 until transition starts
                                 if (!isTransitioning) {
                                     slotPlayer.volume = 0f
@@ -389,6 +462,7 @@ class PlaybackEngine @Inject constructor(
                     Player.STATE_READY -> {
                         consecutiveFailures = 0
                         currentSongRetryCount = 0
+                        wakeLockManager.releasePlaybackWakeLock()
                         _playerState.update {
                             it.copy(
                                 isBuffering = false,
@@ -899,6 +973,11 @@ class PlaybackEngine @Inject constructor(
         val newPrimary = secondaryPlayer
 
         if (secondarySongId != expectedIncomingSong.id || newPrimary.mediaItemCount == 0) {
+            diagnosticLogger.logTermination(
+                PlaybackDiagnosticLogger.CATEGORY_HANDOVER_FAILURE,
+                "Handover aborted: incoming mismatch for '${expectedIncomingSong.title}'",
+                expectedIncomingSong.id
+            )
             diagnosticLogger.logHandover("ABORTED", if (isSlotAActive) "B" else "A", expectedIncomingSong.title, "incoming mismatch")
             LofiQLogger.w(LofiQLogger.Category.PLAYBACK, "[PLAYBACK_RECOVERY] [PLAYER_HANDOVER] Handover aborted: incoming mismatch for '${expectedIncomingSong.title}'")
             cancelFadeAndRestoreVolume(clearPreload = true)
@@ -1260,6 +1339,17 @@ class PlaybackEngine @Inject constructor(
                 val active = activePlayer
                 val secondary = secondaryPlayer
                 if (active.isPlaying) {
+                    val curSong = currentSong
+                    val pos = active.currentPosition.coerceAtLeast(0L)
+                    val dur = active.duration.coerceAtLeast(0L)
+                    diagnosticLogger.logTermination(
+                        PlaybackDiagnosticLogger.CATEGORY_USER_PAUSE,
+                        "User requested pause toggle",
+                        curSong?.id, pos, dur
+                    )
+                    if (curSong != null) {
+                        preferences.saveLastPlayback(curSong.id, pos)
+                    }
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PAUSE_REQUESTED")
                     if (isTransitioning) {
                         isTransitionPaused = true
@@ -1269,9 +1359,12 @@ class PlaybackEngine @Inject constructor(
                     audioFocusManager.abandonAudioFocus()
                     wakeLockManager.releaseAll()
                 } else {
+                    engineScope.launch(dispatchers.io) {
+                        preferences.setExplicitlyStopped(false)
+                    }
                     audioFocusManager.requestAudioFocus()
-                    if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
-                        startPlaybackInternal(currentSong!!)
+                    if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED || active.mediaItemCount == 0) && currentSong != null) {
+                        startPlaybackInternal(currentSong!!, initialSeekMs = _playerState.value.currentPositionMs)
                     } else {
                         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PLAY_REQUESTED")
                         isTransitionPaused = false
@@ -1295,11 +1388,14 @@ class PlaybackEngine @Inject constructor(
     fun play() {
         engineScope.launch {
             commandMutex.withLock {
+                engineScope.launch(dispatchers.io) {
+                    preferences.setExplicitlyStopped(false)
+                }
                 audioFocusManager.requestAudioFocus()
                 val active = activePlayer
                 val secondary = secondaryPlayer
-                if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED) && currentSong != null) {
-                    startPlaybackInternal(currentSong!!)
+                if ((active.playbackState == Player.STATE_IDLE || active.playbackState == Player.STATE_ENDED || active.mediaItemCount == 0) && currentSong != null) {
+                    startPlaybackInternal(currentSong!!, initialSeekMs = _playerState.value.currentPositionMs)
                 } else {
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PLAY_REQUESTED")
                     isTransitionPaused = false
@@ -1322,6 +1418,17 @@ class PlaybackEngine @Inject constructor(
     fun pause() {
         engineScope.launch {
             commandMutex.withLock {
+                val curSong = currentSong
+                val pos = activePlayer.currentPosition.coerceAtLeast(0L)
+                val dur = activePlayer.duration.coerceAtLeast(0L)
+                diagnosticLogger.logTermination(
+                    PlaybackDiagnosticLogger.CATEGORY_USER_PAUSE,
+                    "Explicit user pause requested",
+                    curSong?.id, pos, dur
+                )
+                if (curSong != null) {
+                    preferences.saveLastPlayback(curSong.id, pos)
+                }
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] PAUSE_REQUESTED")
                 if (isTransitioning) {
                     isTransitionPaused = true
@@ -1338,6 +1445,18 @@ class PlaybackEngine @Inject constructor(
     fun stop() {
         engineScope.launch {
             commandMutex.withLock {
+                val curSong = currentSong
+                val pos = activePlayer.currentPosition.coerceAtLeast(0L)
+                val dur = activePlayer.duration.coerceAtLeast(0L)
+                diagnosticLogger.logTermination(
+                    PlaybackDiagnosticLogger.CATEGORY_USER_STOP,
+                    "Explicit user stop requested",
+                    curSong?.id, pos, dur
+                )
+                engineScope.launch(dispatchers.io) {
+                    preferences.setExplicitlyStopped(true)
+                    queueSnapshotDao.clearQueue()
+                }
                 LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$activePlaybackId] STOP_REQUESTED")
                 cancelFadeAndRestoreVolume(clearPreload = true)
                 playbackJob?.cancel()
@@ -2092,7 +2211,7 @@ class PlaybackEngine @Inject constructor(
         secondaryArtworkBytes = null
 
         // Acquire preload WakeLock so background network resolution doesn't get suspended by kernel CPU sleep
-        wakeLockManager.acquirePreloadWakeLock(timeoutMs = 20_000L)
+        wakeLockManager.acquirePreloadWakeLock(timeoutMs = 25_000L)
         diagnosticLogger.logPreload("START", nextSong.title, nextSong.id, targetEpoch)
 
         preloadJob = engineScope.launch(dispatchers.io) {
@@ -2153,9 +2272,15 @@ class PlaybackEngine @Inject constructor(
                     sec.prepare()
                     if (sec.playbackState == Player.STATE_READY) {
                         secondarySlotState = SecondarySlotState.READY
+                        wakeLockManager.releasePreloadWakeLock()
                     }
-                    diagnosticLogger.logPreload("READY", nextSong.title, nextSong.id, targetEpoch, "state=$secondarySlotState")
-                    wakeLockManager.releasePreloadWakeLock()
+                    diagnosticLogger.logPreload(
+                        if (secondarySlotState == SecondarySlotState.READY) "READY" else "PREPARING",
+                        nextSong.title,
+                        nextSong.id,
+                        targetEpoch,
+                        "state=$secondarySlotState"
+                    )
                     LofiQLogger.i(
                         LofiQLogger.Category.PREFETCH,
                         "[SECONDARY_PLAYER] Loaded '${nextSong.title}' into slot ${if (isSlotAActive) "B" else "A"} (state=$secondarySlotState, vol=0%, playWhenReady=false)"
@@ -2185,16 +2310,20 @@ class PlaybackEngine @Inject constructor(
         startPlaybackInternal(song, retryCount)
     }
 
-    private fun startPlaybackInternal(song: Song, retryCount: Int = 0) {
+    private fun startPlaybackInternal(song: Song, retryCount: Int = 0, initialSeekMs: Long = 0L) {
         cancelFadeAndRestoreVolume(clearPreload = true)
         playbackJob?.cancel()
         failedPreloadForTrackIds.clear()
+        wakeLockManager.acquirePlaybackWakeLock(timeoutMs = 25_000L)
+        engineScope.launch(dispatchers.io) {
+            preferences.setExplicitlyStopped(false)
+        }
         playbackJob = engineScope.launch {
-            loadAndPlaySong(song, retryCount)
+            loadAndPlaySong(song, retryCount, initialSeekMs)
         }
     }
 
-    private suspend fun loadAndPlaySong(song: Song, retryCount: Int = 0) {
+    private suspend fun loadAndPlaySong(song: Song, retryCount: Int = 0, initialSeekMs: Long = 0L) {
         val reqId = java.util.UUID.randomUUID().toString().take(8)
         activePlaybackId = reqId
 
@@ -2221,7 +2350,7 @@ class PlaybackEngine @Inject constructor(
                 isPlaying = true,
                 isCrossfading = false,
                 errorMessage = null,
-                currentPositionMs = 0L,
+                currentPositionMs = initialSeekMs,
                 durationMs = song.durationMs
             )
         }
@@ -2259,16 +2388,20 @@ class PlaybackEngine @Inject constructor(
                     state = "PREPARE_AND_PLAY",
                     isPlaying = true,
                     playWhenReady = true,
-                    posMs = 0L,
+                    posMs = initialSeekMs,
                     durMs = song.durationMs,
                     reason = "startPlaybackInternal:reqId=$reqId"
                 )
-                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$reqId][slot=${if (isSlotAActive) "A" else "B"}] PREPARE & PLAY")
+                LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$reqId][slot=${if (isSlotAActive) "A" else "B"}] PREPARE & PLAY at ${initialSeekMs}ms")
                 active.volume = masterVolumeScale
                 active.setAudioAttributes(mediaAudioAttributes, false)
                 active.repeatMode = Player.REPEAT_MODE_OFF
                 active.playWhenReady = true
-                active.setMediaItem(mediaItem, /* resetPosition = */ true)
+                if (initialSeekMs > 0L) {
+                    active.setMediaItem(mediaItem, initialSeekMs)
+                } else {
+                    active.setMediaItem(mediaItem, /* resetPosition = */ true)
+                }
                 active.prepare()
                 active.play()
             }
@@ -2358,9 +2491,16 @@ class PlaybackEngine @Inject constructor(
             triggerUpcomingPrefetch()
 
         } catch (e: CancellationException) {
+            wakeLockManager.releasePlaybackWakeLock()
             LofiQLogger.d(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$reqId] Playback job cancelled for '${song.title}'")
             throw e
         } catch (e: Exception) {
+            wakeLockManager.releasePlaybackWakeLock()
+            diagnosticLogger.logTermination(
+                PlaybackDiagnosticLogger.CATEGORY_STREAM_ERROR,
+                "Playback failed for '${song.title}': ${e.message}",
+                song.id
+            )
             LofiQLogger.e(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$reqId] FAILED: ${e.message}", e)
             consecutiveFailures++
 
@@ -2402,20 +2542,23 @@ class PlaybackEngine @Inject constructor(
                 val active = activePlayer
                 val pos = active.currentPosition.coerceAtLeast(0L)
                 val curSong = currentSong
-                val expectedDur = curSong?.durationMs ?: 0L
+                val expectedDur = maxOf(curSong?.durationMs ?: 0L, (curSong?.durationSeconds ?: 0L) * 1000L, active.duration.coerceAtLeast(0L))
                 val isPrematureEnd = expectedDur > 30_000L && (pos < 20_000L || (pos < expectedDur - 15_000L && pos < (expectedDur * 0.85f).toLong()))
 
                 if (isPrematureEnd && curSong != null && currentSongRetryCount < 2) {
                     currentSongRetryCount++
+                    diagnosticLogger.logTermination(
+                        PlaybackDiagnosticLogger.CATEGORY_PREMATURE_EOF,
+                        "Premature EOF detected at ${pos}ms for '${curSong.title}' (expected ${expectedDur}ms, attempt $currentSongRetryCount/2)",
+                        curSong.id, pos, expectedDur
+                    )
                     LofiQLogger.w(
                         LofiQLogger.Category.PLAYBACK,
-                        "[PLAYBACK_RECOVERY] Premature EOF detected at ${pos}ms for '${curSong.title}' (expected ${expectedDur}ms). Recovering active player at current pos (attempt $currentSongRetryCount/2)."
+                        "[PLAYBACK_RECOVERY] Premature EOF detected at ${pos}ms for '${curSong.title}' (expected ${expectedDur}ms). Invalidation & recovery at current pos (attempt $currentSongRetryCount/2)."
                     )
-                    active.prepare()
-                    if (pos > 0) {
-                        active.seekTo(pos)
-                    }
-                    active.play()
+                    wakeLockManager.acquirePlaybackWakeLock(25_000L)
+                    resolutionCache.invalidate("${curSong.id}_${curSong.quality.name}")
+                    startPlaybackInternal(curSong, retryCount = 0, initialSeekMs = pos)
                     return@withLock
                 }
 
@@ -2527,6 +2670,18 @@ class PlaybackEngine @Inject constructor(
             )
         }
         queueSnapshotDao.replaceQueue(snapshot)
+    }
+
+    fun hasActivePlaybackSession(): Boolean {
+        val state = _playerState.value
+        if (state.isPlaying || state.isBuffering || state.isCrossfading) return true
+        if (isTransitioning) return true
+        if (playbackJob?.isActive == true) return true
+        val active = activePlayer
+        if (active.playWhenReady && active.playbackState != Player.STATE_IDLE && active.playbackState != Player.STATE_ENDED) {
+            return true
+        }
+        return false
     }
 
     val currentSong: Song?

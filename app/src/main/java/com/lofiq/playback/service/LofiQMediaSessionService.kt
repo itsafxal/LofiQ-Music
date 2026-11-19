@@ -192,27 +192,12 @@ class LofiQMediaSessionService : MediaSessionService() {
         // Synchronous handover coordination: immediately re-bind MediaSession to promoted player
         // BEFORE the outgoing player is silenced/stopped in performPlayerHandoverLocked.
         playbackEngine.sessionHandoverCallback = { nextActive ->
-            val session = mediaSession
-            if (session != null) {
-                session.player = createForwardingPlayer(nextActive)
-                onUpdateNotification(session, startInForegroundRequired = true)
-                diagnosticLogger.logServiceLifecycle(
-                    "SESSION_PLAYER_PROMOTED_SYNCHRONOUSLY",
-                    "slotSessionId=${nextActive.audioSessionId}, isPlaying=${nextActive.isPlaying}"
-                )
-            }
+            bindSessionToPlayer(nextActive, "SYNCHRONOUS_HANDOVER")
         }
 
         serviceScope.launch {
             playbackEngine.activePlayerFlow.drop(1).collect { nextActive ->
-                mediaSession?.let { session ->
-                    session.player = createForwardingPlayer(nextActive)
-                    onUpdateNotification(session, startInForegroundRequired = true)
-                }
-                LofiQLogger.i(
-                    LofiQLogger.Category.PLAYBACK,
-                    "[PLAYER_HANDOVER] Updated MediaSession active ForwardingPlayer (sessionId=${nextActive.audioSessionId})"
-                )
+                bindSessionToPlayer(nextActive, "ASYNC_FLOW_COLLECTOR")
             }
         }
         runCatching {
@@ -220,11 +205,29 @@ class LofiQMediaSessionService : MediaSessionService() {
         }
     }
 
+    private fun bindSessionToPlayer(nextActive: ExoPlayer, reason: String) {
+        val session = mediaSession ?: return
+        val current = session.player
+        if (current is ForwardingPlayer && current.wrappedPlayer === nextActive) {
+            diagnosticLogger.logServiceLifecycle(
+                "SESSION_PLAYER_REBIND_SKIPPED",
+                "reason=$reason (already bound to sessionId=${nextActive.audioSessionId})"
+            )
+            return
+        }
+        session.player = createForwardingPlayer(nextActive)
+        onUpdateNotification(session, startInForegroundRequired = true)
+        diagnosticLogger.logServiceLifecycle(
+            "SESSION_PLAYER_BOUND",
+            "reason=$reason, slotSessionId=${nextActive.audioSessionId}, isPlaying=${nextActive.isPlaying}"
+        )
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         diagnosticLogger.logServiceLifecycle("ON_START_COMMAND", "flags=$flags, startId=$startId")
         mediaSession?.let { session ->
-            if (playbackEngine.playerState.value.isPlaying) {
+            if (playbackEngine.hasActivePlaybackSession()) {
                 onUpdateNotification(session, startInForegroundRequired = true)
             }
         }
@@ -236,10 +239,11 @@ class LofiQMediaSessionService : MediaSessionService() {
         val isPlayerPlaying = session.player.playWhenReady &&
             session.player.playbackState != Player.STATE_IDLE &&
             session.player.playbackState != Player.STATE_ENDED
-        val mustStayInForeground = startInForegroundRequired || isEnginePlaying || isPlayerPlaying
-        diagnosticLogger.logServiceLifecycle(
+        val hasActiveSession = playbackEngine.hasActivePlaybackSession()
+        val mustStayInForeground = startInForegroundRequired || isEnginePlaying || isPlayerPlaying || hasActiveSession
+        diagnosticLogger.logNotificationUpdate(
             "ON_UPDATE_NOTIFICATION",
-            "mustStayInForeground=$mustStayInForeground (req=$startInForegroundRequired, enginePlaying=$isEnginePlaying, playerPlaying=$isPlayerPlaying)"
+            "mustStayInForeground=$mustStayInForeground (req=$startInForegroundRequired, enginePlaying=$isEnginePlaying, playerPlaying=$isPlayerPlaying, activeSession=$hasActiveSession)"
         )
         super.onUpdateNotification(session, mustStayInForeground)
     }
@@ -256,9 +260,12 @@ class LofiQMediaSessionService : MediaSessionService() {
             return
         }
 
-        val player = mediaSession?.player
-        if (player == null || !player.playWhenReady || player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
+        // Only stop if there is no active playback session (e.g. paused or stopped)
+        if (!playbackEngine.hasActivePlaybackSession()) {
+            diagnosticLogger.logServiceLifecycle("ON_TASK_REMOVED", "Stopping service because no active playback session")
             stopSelf()
+        } else {
+            diagnosticLogger.logServiceLifecycle("ON_TASK_REMOVED", "Keeping service alive because playback session is active")
         }
     }
 
