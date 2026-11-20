@@ -716,7 +716,7 @@ class AppUpdateManagerTest {
             versionCode = 65
         }
         every { mockPackageManager.getPackageArchiveInfo(dummyFile.absolutePath, 0) } returns validPackageInfo
-        assertTrue(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65))
+        assertTrue(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65, minVersionCode = 64L))
 
         // Mismatched package name
         val mismatchedPackageInfo = PackageInfo().apply {
@@ -725,11 +725,11 @@ class AppUpdateManagerTest {
             versionCode = 65
         }
         every { mockPackageManager.getPackageArchiveInfo(dummyFile.absolutePath, 0) } returns mismatchedPackageInfo
-        assertFalse(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65))
+        assertFalse(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65, minVersionCode = 64L))
 
         // Corrupted archive (returns null archive info)
         every { mockPackageManager.getPackageArchiveInfo(dummyFile.absolutePath, 0) } returns null
-        assertFalse(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65))
+        assertFalse(manager.verifyApkPackage(mockContext, dummyFile, "com.sargamify.app", 65, minVersionCode = 64L))
     }
 
     // ==========================================
