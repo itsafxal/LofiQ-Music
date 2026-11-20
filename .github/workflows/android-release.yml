@@ -91,6 +91,14 @@ jobs:
       - name: Run Android Release Unit Tests
         run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
 
+      - name: Upload Test Reports on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+
       - name: Assemble Signed Production Release APK
         env:
           RELEASE_KEYSTORE_PATH: keystore/lofiq-release.jks

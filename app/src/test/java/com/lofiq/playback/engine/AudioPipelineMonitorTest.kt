@@ -147,7 +147,7 @@ class AudioPipelineMonitorTest {
             title = "Midnight Lofi Keys",
             artist = "Lofi Artist",
             providerId = "saavn",
-            durationMs = 180000L
+            durationSeconds = 180L
         )
 
         playerStateFlow.value = PlaybackState(
