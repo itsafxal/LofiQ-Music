@@ -89,14 +89,29 @@ jobs:
         run: node test/firestore_rules_test.js
 
       - name: Run Android Release Unit Tests
-        run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
+        run: ./gradlew testReleaseUnitTest --info --stacktrace --no-daemon
+
+      - name: Dump Failing Tests on Failure
+        if: failure()
+        run: |
+          echo "::error::Unit tests failed. Inspecting test-results..."
+          if [ -d "app/build/test-results/testReleaseUnitTest" ]; then
+            for f in app/build/test-results/testReleaseUnitTest/*.xml; do
+              if grep -q '<failure' "$f"; then
+                echo "=========================================="
+                echo "FAILURES IN: $f"
+                echo "=========================================="
+                cat "$f"
+              fi
+            done
+          fi
 
       - name: Upload Test Reports on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-reports
-          path: app/build/reports/tests/
+          path: app/build/
           if-no-files-found: ignore
 
       - name: Assemble Signed Production Release APK
