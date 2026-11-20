@@ -89,21 +89,21 @@ jobs:
         run: node test/firestore_rules_test.js
 
       - name: Run Android Release Unit Tests
-        run: ./gradlew testReleaseUnitTest --info --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew testReleaseUnitTest --no-daemon --stacktrace 2>&1 | tee gradle_test.log
 
-      - name: Dump Failing Tests on Failure
+      - name: Dump Failure Logs
         if: failure()
         run: |
-          if [ -d "app/build/test-results/testReleaseUnitTest" ]; then
-            for f in app/build/test-results/testReleaseUnitTest/*.xml; do
-              if grep -q '<failure' "$f"; then
-                echo "::error file=$f::Test failure detected in $(basename $f)"
-                while IFS= read -r line; do
-                  echo "::error::$line"
-                done < "$f"
-              fi
-            done
-          fi
+          echo "::error::Release build/test failed. Displaying compilation & test errors:"
+          grep -E "e: |ERROR|FAILURE|Compilation error|Caused by:" gradle_test.log | head -n 40 | while read -r line; do
+            echo "::error::$line"
+          done
+          echo "::error::--- Tail of gradle_test.log ---"
+          tail -n 40 gradle_test.log | while read -r line; do
+            echo "::error::$line"
+          done
 
       - name: Upload Test Reports on Failure
         if: failure()
