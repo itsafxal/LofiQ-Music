@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = versionManifest;
 
       // Extract Android Metadata
-      const androidVersion = data.android?.versionName || data.versionName || '1.0.7';
-      const androidCode = data.android?.versionCode || data.versionCode || 70;
+      const androidVersion = data.android?.versionName || data.versionName || '1.0.8';
+      const androidCode = data.android?.versionCode || data.versionCode || 71;
       const androidSize = data.android?.apkSize || data.apkSize || '21.9 MB';
       const androidDate = data.android?.releaseDate || data.releaseDate || '2026-11-19';
       const androidApkUrl = data.android?.apkUrl || data.apkUrl || '/downloads/LofiQ.apk';

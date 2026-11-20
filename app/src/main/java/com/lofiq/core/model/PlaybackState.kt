@@ -24,6 +24,8 @@ data class PlaybackProgress(
         get() = if (durationMs > 0) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
 }
 
+typealias PlaybackState = LofiQPlayerState
+
 data class LofiQPlayerState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,

@@ -1,34 +1,34 @@
 {
-  "versionCode": 70,
-  "versionName": "1.0.7",
+  "versionCode": 71,
+  "versionName": "1.0.8",
   "minSupportedVersion": 1,
-  "releaseDate": "2026-11-19",
+  "releaseDate": "2026-11-20",
   "apkUrl": "/downloads/LofiQ.apk",
   "apkSize": "21.9 MB",
   "checksum": "0d99ea073cce8b14e56a1a8ae91e3dd3ba04ef6972c7a7124364c0d21ddc0e8d",
   "releaseNotes": [
-    "🚀 Official Production Release (V1.0.7 - Build 70)",
-    "🎛️ Live Audio Pipeline Inspector: Interactive quality badge launching a real-time 5-stage signal chain modal (Track Info, MediaCodec Decoder, AudioTrack Resampler, DSP Effects, Hardware Output Route).",
-    "🎵 Permanent Screen-Off Playback Reliability: Bounded WakeLock management, dual-player handover race guards, and continuous MediaSessionService foreground session continuity.",
-    "⚡ Instant Cold Startup: Sub-500ms home shelf rendering via batch SQLite deserialization and persistent disk caching.",
-    "🔄 Live Background Catalog Sync: Idempotent WorkManager synchronization running on background IO coroutines.",
-    "🛡️ Cryptographic OTA Update Verification: Strict SHA-256 package verification, version-deduplicated notifications, and Play Protect multi-scheme signature validation."
+    "🚀 Official Production Release (V1.0.8 - Build 71)",
+    "🛡️ Permanent Update System & Version Synchronization Fix: Runtime package identity resolved from PackageManager, permanently eliminating version mismatch and infinite update loops.",
+    "🔍 Pre-Install APK Integrity Verification: Bounded archive inspection enforcing strict versionCode progression before invoking system installer.",
+    "⚡ High-Performance Playback & 60fps Compose UI: StateFlow isolation, sub-500ms cold startup, debounced lifecycle jobs.",
+    "🎛️ Live BitChord-Inspired Audio Pipeline Inspector: Real-time 5-stage signal chain modal with hardware output reporting.",
+    "🎵 Permanent Screen-Off Playback Reliability: Bounded WakeLock management, dual-player handover race guards, and continuous MediaSessionService foreground session continuity."
   ],
   "android": {
-    "versionCode": 70,
-    "versionName": "1.0.7",
+    "versionCode": 71,
+    "versionName": "1.0.8",
     "minSupportedVersion": 1,
-    "releaseDate": "2026-11-19",
+    "releaseDate": "2026-11-20",
     "apkUrl": "/downloads/LofiQ.apk",
     "apkSize": "21.9 MB",
     "checksum": "0d99ea073cce8b14e56a1a8ae91e3dd3ba04ef6972c7a7124364c0d21ddc0e8d",
     "releaseNotes": [
-      "🚀 Official Production Release (V1.0.7 - Build 70)",
-      "🎛️ Live Audio Pipeline Inspector: Interactive quality badge launching a real-time 5-stage signal chain modal (Track Info, MediaCodec Decoder, AudioTrack Resampler, DSP Effects, Hardware Output Route).",
-      "🎵 Permanent Screen-Off Playback Reliability: Bounded WakeLock management, dual-player handover race guards, and continuous MediaSessionService foreground session continuity.",
-      "⚡ Instant Cold Startup: Sub-500ms home shelf rendering via batch SQLite deserialization and persistent disk caching.",
-      "🔄 Live Background Catalog Sync: Idempotent WorkManager synchronization running on background IO coroutines.",
-      "🛡️ Cryptographic OTA Update Verification: Strict SHA-256 package verification, version-deduplicated notifications, and Play Protect multi-scheme signature validation."
+      "🚀 Official Production Release (V1.0.8 - Build 71)",
+      "🛡️ Permanent Update System & Version Synchronization Fix: Runtime package identity resolved from PackageManager, permanently eliminating version mismatch and infinite update loops.",
+      "🔍 Pre-Install APK Integrity Verification: Bounded archive inspection enforcing strict versionCode progression before invoking system installer.",
+      "⚡ High-Performance Playback & 60fps Compose UI: StateFlow isolation, sub-500ms cold startup, debounced lifecycle jobs.",
+      "🎛️ Live BitChord-Inspired Audio Pipeline Inspector: Real-time 5-stage signal chain modal with hardware output reporting.",
+      "🎵 Permanent Screen-Off Playback Reliability: Bounded WakeLock management, dual-player handover race guards, and continuous MediaSessionService foreground session continuity."
     ]
   },
   "windows": {

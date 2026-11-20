@@ -37,75 +37,83 @@ class AppVersionAndReleaseIntegrityTest {
     @Test
     fun `test AppVersionProvider reads installed package info accurately`() {
         val packageInfo = PackageInfo().apply {
-            versionName = "1.0.7"
+            versionName = "1.0.8"
             @Suppress("DEPRECATION")
-            versionCode = 70
+            versionCode = 71
         }
         every { mockPackageManager.getPackageInfo("com.sargamify.app", any<Int>()) } returns packageInfo
 
         val version = AppVersionProvider.resolveVersion(mockContext)
-        assertEquals("1.0.7", version.versionName)
-        assertEquals(70L, version.versionCode)
-        assertEquals("v1.0.7", version.displayVersion)
-        assertEquals("Build 70", version.displayBuild)
+        assertEquals("1.0.8", version.versionName)
+        assertEquals(71L, version.versionCode)
+        assertEquals("v1.0.8", version.displayVersion)
+        assertEquals("Build 71", version.displayBuild)
     }
 
     @Test
     fun `test newer version detection returns update available`() {
-        // Installed: v1.0.6 (Build 69), Remote: v1.0.7 (Build 70)
-        val isAvailable = appUpdateManager.isUpdateAvailable(
+        // Installed: v1.0.6 (Build 69) or v1.0.7 (Build 70), Remote: v1.0.8 (Build 71)
+        val isAvailableFrom69 = appUpdateManager.isUpdateAvailable(
             currentVersionCode = 69,
             currentVersionName = "1.0.6",
-            remoteVersionCode = 70,
-            remoteVersionName = "1.0.7"
+            remoteVersionCode = 71,
+            remoteVersionName = "1.0.8"
         )
-        assertTrue("Newer remote versionCode must trigger updateAvailable", isAvailable)
+        assertTrue("Newer remote versionCode (71) over 69 must trigger updateAvailable", isAvailableFrom69)
+
+        val isAvailableFrom70 = appUpdateManager.isUpdateAvailable(
+            currentVersionCode = 70,
+            currentVersionName = "1.0.7",
+            remoteVersionCode = 71,
+            remoteVersionName = "1.0.8"
+        )
+        assertTrue("Newer remote versionCode (71) over 70 must trigger updateAvailable", isAvailableFrom70)
     }
 
     @Test
     fun `test same version detection returns up to date`() {
-        // Installed: v1.0.7 (Build 70), Remote: v1.0.7 (Build 70)
+        // Installed: v1.0.8 (Build 71), Remote: v1.0.8 (Build 71)
         val isAvailable = appUpdateManager.isUpdateAvailable(
-            currentVersionCode = 70,
-            currentVersionName = "1.0.7",
-            remoteVersionCode = 70,
-            remoteVersionName = "1.0.7"
+            currentVersionCode = 71,
+            currentVersionName = "1.0.8",
+            remoteVersionCode = 71,
+            remoteVersionName = "1.0.8"
         )
         assertFalse("Same remote versionCode must report up to date (no update)", isAvailable)
     }
 
     @Test
     fun `test older version detection rejects downgrade`() {
-        // Installed: v1.0.7 (Build 70), Remote: v1.0.6 (Build 69)
+        // Installed: v1.0.8 (Build 71), Remote: v1.0.7 (Build 70)
         val isAvailable = appUpdateManager.isUpdateAvailable(
-            currentVersionCode = 70,
-            currentVersionName = "1.0.7",
-            remoteVersionCode = 69,
-            remoteVersionName = "1.0.6"
+            currentVersionCode = 71,
+            currentVersionName = "1.0.8",
+            remoteVersionCode = 70,
+            remoteVersionName = "1.0.7"
         )
         assertFalse("Older remote versionCode must be rejected as an update", isAvailable)
     }
 
     @Test
     fun `test stale downloaded APK matching installed version code is rejected`() {
-        // The downloaded APK has versionCode 69, which is <= installed versionCode 69 (or 70)
+        // The downloaded APK has versionCode 70 (or 69), which is <= installed versionCode 70 (or 71)
         val mockApkFile = mockk<File>(relaxed = true)
         every { mockApkFile.absolutePath } returns "/fake/cache/LofiQ.apk"
 
         val archivePackageInfo = PackageInfo().apply {
             packageName = "com.sargamify.app"
             @Suppress("DEPRECATION")
-            versionCode = 69
+            versionCode = 70
         }
         every { mockPackageManager.getPackageArchiveInfo("/fake/cache/LofiQ.apk", 0) } returns archivePackageInfo
 
-        // When installed version is 69, an APK with versionCode 69 MUST be rejected to prevent infinite loop
+        // When installed version is 71, an APK with versionCode 70 MUST be rejected to prevent infinite loop
         val isValid = appUpdateManager.verifyApkPackage(
             context = mockContext,
             apkFile = mockApkFile,
             expectedPackageName = "com.sargamify.app",
-            expectedVersionCode = 70,
-            minVersionCode = 69L
+            expectedVersionCode = 71,
+            minVersionCode = 71L
         )
         assertFalse("Downloaded APK with equal or lower version code must fail verification", isValid)
     }
@@ -118,7 +126,7 @@ class AppVersionAndReleaseIntegrityTest {
         val archivePackageInfo = PackageInfo().apply {
             packageName = "com.sargamify.app"
             @Suppress("DEPRECATION")
-            versionCode = 70
+            versionCode = 71
         }
         every { mockPackageManager.getPackageArchiveInfo("/fake/cache/LofiQ.apk", 0) } returns archivePackageInfo
 
@@ -126,8 +134,8 @@ class AppVersionAndReleaseIntegrityTest {
             context = mockContext,
             apkFile = mockApkFile,
             expectedPackageName = "com.sargamify.app",
-            expectedVersionCode = 70,
-            minVersionCode = 69L
+            expectedVersionCode = 71,
+            minVersionCode = 70L
         )
         assertTrue("Downloaded APK with higher version code matching expected must pass", isValid)
     }

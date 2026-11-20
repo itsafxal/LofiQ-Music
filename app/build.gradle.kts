@@ -27,8 +27,8 @@ android {
         applicationId = "com.sargamify.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 70
-        versionName = "1.0.7"
+        versionCode = 71
+        versionName = "1.0.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true

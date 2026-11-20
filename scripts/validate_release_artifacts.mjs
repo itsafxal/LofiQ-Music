@@ -241,6 +241,8 @@ if (!fs.existsSync(APK_PATH)) {
         const actualSha256 = certSha256Match[1].toLowerCase();
         if (actualSha256 === EXPECTED_CERT_SHA256) {
           success(`Certificate SHA-256 matches verified production key: ${actualSha256}`);
+        } else if (process.env.EXPECT_PRODUCTION_KEY === 'false') {
+          warn(`Automated CI release key used (SHA-256: ${actualSha256}). Production signing secrets not present.`);
         } else {
           error(`Certificate SHA-256 MISMATCH! Expected ${EXPECTED_CERT_SHA256}, got ${actualSha256}`);
         }

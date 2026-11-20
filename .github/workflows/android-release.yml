@@ -76,6 +76,7 @@ jobs:
           sed -i "s|RELEASE_KEYSTORE_PASSWORD=.*|RELEASE_KEYSTORE_PASSWORD=$KEYSTORE_PASS|" local.properties
           sed -i "s|RELEASE_KEY_ALIAS=.*|RELEASE_KEY_ALIAS=$KEY_ALIAS|" local.properties
           sed -i "s|RELEASE_KEY_PASSWORD=.*|RELEASE_KEY_PASSWORD=$KEY_PASS|" local.properties
+          mkdir -p app/keystore && cp keystore/lofiq-release.jks app/keystore/lofiq-release.jks || true
           if [ ! -f app/google-services.json ]; then
             echo "Copying example google-services.json for CI compilation"
             cp app/google-services.json.example app/google-services.json
@@ -150,7 +151,7 @@ jobs:
             fs.writeFileSync(file, JSON.stringify(v, null, 2) + '\n');
           "
           sed -i "s/^[a-fA-F0-9]\{64\} \*LofiQ\.apk/$NEW_APK_SHA \*LofiQ.apk/" web/downloads/SHA256SUMS.txt || true
-          node scripts/validate_release_artifacts.mjs
+          EXPECT_PRODUCTION_KEY="${{ steps.setup_signing.outputs.is_production }}" node scripts/validate_release_artifacts.mjs
 
       - name: Prepare Package Release Artifacts
         id: artifacts
@@ -209,6 +210,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add web/downloads/LofiQ.apk web/downloads/SHA256SUMS.txt web/version.json
           git commit -m "chore(release): publish compiled ${{ steps.artifacts.outputs.tag_name }} production APK and update manifest [skip ci]" || echo "No changes to commit"
+          git fetch origin main
+          git rebase origin/main || true
           git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

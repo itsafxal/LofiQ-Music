@@ -107,7 +107,7 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         if (appUpdateManager != null) {
-            val result = appUpdateManager.checkForUpdate()
+            val result = appUpdateManager.checkForUpdate(context)
             result.onSuccess { info ->
                 if (info.hasUpdate && appUpdateManager.shouldPromptAutomaticUpdate(context, info)) {
                     updateInfo = info
