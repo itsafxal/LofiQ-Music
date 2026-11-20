@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = versionManifest;
 
       // Extract Android Metadata
-      const androidVersion = data.android?.versionName || data.versionName || '1.0.6';
-      const androidCode = data.android?.versionCode || data.versionCode || 69;
-      const androidSize = data.android?.apkSize || data.apkSize || '21.8 MB';
-      const androidDate = data.android?.releaseDate || data.releaseDate || '2026-11-14';
+      const androidVersion = data.android?.versionName || data.versionName || '1.0.7';
+      const androidCode = data.android?.versionCode || data.versionCode || 70;
+      const androidSize = data.android?.apkSize || data.apkSize || '21.9 MB';
+      const androidDate = data.android?.releaseDate || data.releaseDate || '2026-11-19';
       const androidApkUrl = data.android?.apkUrl || data.apkUrl || '/downloads/LofiQ.apk';
-      const androidChecksum = data.android?.checksum || data.checksum || '7ea4f8fc130160ae1bd2b468c1d5f1ab6626767551c539bc795b0336fa1612bb';
+      const androidChecksum = data.android?.checksum || data.checksum || '0d99ea073cce8b14e56a1a8ae91e3dd3ba04ef6972c7a7124364c0d21ddc0e8d';
 
       // Update Android DOM Elements
       document.querySelectorAll('.dynamic-version').forEach(el => el.textContent = `v${androidVersion}`);

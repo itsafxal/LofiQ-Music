@@ -53,6 +53,18 @@ class PlaybackDiagnosticLogger @Inject constructor(
         // Canonical termination categories
         const val CATEGORY_USER_STOP = "USER_STOP"
         const val CATEGORY_USER_PAUSE = "USER_PAUSE"
+        const val CATEGORY_USER_PLAY = "USER_PLAY"
+        const val CATEGORY_AUTO_ADVANCE = "AUTO_ADVANCE"
+        const val CATEGORY_MANUAL_NEXT = "MANUAL_NEXT"
+        const val CATEGORY_SECONDARY_PREPARED = "SECONDARY_PREPARED"
+        const val CATEGORY_HANDOVER_STARTED = "HANDOVER_STARTED"
+        const val CATEGORY_HANDOVER_COMPLETED = "HANDOVER_COMPLETED"
+        const val CATEGORY_STALE_CALLBACK_IGNORED = "STALE_CALLBACK_IGNORED"
+        const val CATEGORY_UNEXPECTED_PLAYWHENREADY_FALSE = "UNEXPECTED_PLAYWHENREADY_FALSE"
+        const val CATEGORY_AUDIO_FOCUS_INTERRUPTION = "AUDIO_FOCUS_INTERRUPTION"
+        const val CATEGORY_TRACK_READY_BUT_PAUSED = "TRACK_READY_BUT_PAUSED"
+        const val CATEGORY_RESOURCE_CLEANUP = "RESOURCE_CLEANUP"
+        const val CATEGORY_UI_JANK_DETECTED = "UI_JANK_DETECTED"
         const val CATEGORY_AUDIO_FOCUS_LOSS = "AUDIO_FOCUS_LOSS"
         const val CATEGORY_STREAM_ERROR = "STREAM_ERROR"
         const val CATEGORY_PREMATURE_EOF = "PREMATURE_EOF"
@@ -313,6 +325,32 @@ class PlaybackDiagnosticLogger @Inject constructor(
     fun logWakeLock(event: String, tag: String, timeoutMs: Long = 0) {
         val timeoutStr = if (timeoutMs > 0) " timeout=${timeoutMs}ms" else ""
         log(Log.INFO, CATEGORY_WAKELOCK_EVENT, "event=$event tag='$tag'$timeoutStr")
+    }
+
+    fun logPlayWhenReadyChange(
+        slot: String,
+        oldPwr: Boolean,
+        newPwr: Boolean,
+        reason: String,
+        playbackIntent: String,
+        playbackState: String,
+        isPlaying: Boolean,
+        trackId: String? = null
+    ) {
+        val isUnexpected = !newPwr && playbackIntent == "PLAY"
+        val category = if (isUnexpected) CATEGORY_UNEXPECTED_PLAYWHENREADY_FALSE else "PLAY_WHEN_READY"
+        val level = if (isUnexpected) Log.WARN else Log.INFO
+        log(
+            level = level,
+            category = category,
+            message = "slot=$slot pwr=$oldPwr->$newPwr reason='$reason' intent=$playbackIntent state=$playbackState isPlaying=$isPlaying",
+            trackId = trackId
+        )
+    }
+
+    fun logPlaybackIntent(event: String, intent: String, trackId: String? = null, details: String = "") {
+        val extra = if (details.isNotBlank()) " | $details" else ""
+        log(Log.INFO, "PLAYBACK_INTENT", "event=$event intent=$intent$extra", trackId = trackId)
     }
 
     fun logError(event: String, message: String, throwable: Throwable? = null) {

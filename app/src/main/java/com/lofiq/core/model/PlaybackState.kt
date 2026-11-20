@@ -1,5 +1,29 @@
 package com.lofiq.core.model
 
+/**
+ * Authoritative playback intent model separating explicit user intent from
+ * transient ExoPlayer state (buffering, EOF, preloading, audio focus).
+ */
+enum class PlaybackIntent {
+    PLAY,                      // User or auto-advance intended active audio playback
+    USER_PAUSED,               // User explicitly tapped pause
+    USER_STOPPED,              // User explicitly tapped stop
+    AUDIO_FOCUS_LOSS_TRANSIENT // Playback temporarily suspended by external audio focus loss
+}
+
+/**
+ * Lightweight, high-frequency playback progress state isolated from
+ * monolithic UI recomposition.
+ */
+data class PlaybackProgress(
+    val positionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val bufferedMs: Long = 0L
+) {
+    val progressFraction: Float
+        get() = if (durationMs > 0) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
+}
+
 data class LofiQPlayerState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
@@ -17,7 +41,8 @@ data class LofiQPlayerState(
     val isReady: Boolean = false,
     val activeProviderId: String? = null,
     val isCrossfading: Boolean = false,
-    val activeAudioSessionId: Int = 0
+    val activeAudioSessionId: Int = 0,
+    val playbackIntent: PlaybackIntent = PlaybackIntent.USER_PAUSED
 ) {
     val progressFraction: Float
         get() = if (durationMs > 0) (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f

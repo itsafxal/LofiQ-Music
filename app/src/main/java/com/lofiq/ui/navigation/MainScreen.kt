@@ -88,6 +88,8 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route ?: NavScreen.HOME.route
 
     val completedImport by (spotifyImportHelper?.lastCompletedImport ?: kotlinx.coroutines.flow.MutableStateFlow(null)).collectAsState()
+    val currentSong by playbackEngine.currentSongFlow.collectAsState()
+    val isPlaying by playbackEngine.isPlayingFlow.collectAsState()
     val playerState by playbackEngine.playerState.collectAsState()
     val userAccount by profileViewModel.authRepository.userAccount.collectAsStateWithLifecycle(initialValue = UserAccount.GUEST)
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -95,7 +97,7 @@ fun MainScreen(
     var contextMenuSong by remember { mutableStateOf<com.lofiq.core.model.Song?>(null) }
     var showListenTogetherSheet by remember { mutableStateOf(false) }
     var listenTogetherInitialMode by remember { mutableStateOf(ListenTogetherMode.CHOICE) }
-    val effectsController = remember { AudioEffectsController(context.applicationContext) }
+    val effectsController = playbackEngine.audioEffectsController
     val activeSyncManager = syncManager ?: remember { com.lofiq.feature.sync.ListenTogetherManager(com.lofiq.core.common.DefaultDispatcherProvider()) }
 
     // Automatic In-App Update Checking State on Launch
@@ -222,7 +224,7 @@ fun MainScreen(
         ) {
         // Dynamic Atmospheric Song Theme Backdrop
         AmbientAppAtmosphere(
-            currentSong = playerState.currentSong
+            currentSong = currentSong
         )
 
         // Fullscreen edge-to-edge content: screens scroll seamlessly behind floating controls
@@ -333,7 +335,7 @@ fun MainScreen(
                     onNavigateToLocalMusic = { navController.navigate("local_music") },
                     onNavigateToAppearance = { navController.navigate("appearance_theme") },
                     onNavigateToDeveloper = { navController.navigate("developer") },
-                    hasActiveSong = playerState.currentSong != null
+                    hasActiveSong = currentSong != null
                 )
             }
             composable("explore") {
@@ -362,14 +364,14 @@ fun MainScreen(
                     onNavigateToAppearance = { navController.navigate("appearance_theme") },
                     onNavigateToSeekbarStyle = { navController.navigate("seekbar_style") },
                     onNavigateToDeveloper = { navController.navigate("developer") },
-                    hasActiveSong = playerState.currentSong != null
+                    hasActiveSong = currentSong != null
                 )
             }
             composable("developer") {
                 DeveloperScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDiagnostics = { navController.navigate("resolver_diagnostics") },
-                    hasActiveSong = playerState.currentSong != null
+                    hasActiveSong = currentSong != null
                 )
             }
             composable("appearance_theme") {
@@ -389,7 +391,7 @@ fun MainScreen(
             composable("app_icon_theme") {
                 AppIconStudioScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    hasActiveSong = playerState.currentSong != null,
+                    hasActiveSong = currentSong != null,
                     viewModel = settingsViewModel
                 )
             }
@@ -424,7 +426,7 @@ fun MainScreen(
         ) {
             // Persistent Mini Player above Bottom Nav Bar with fluid shared-element entrance/exit
             AnimatedVisibility(
-                visible = playerState.currentSong != null && !isFullPlayerVisible,
+                visible = currentSong != null && !isFullPlayerVisible,
                 enter = if (effectivePerformanceMode) {
                     slideInVertically(initialOffsetY = { it }) + fadeIn(tween(150))
                 } else {
@@ -505,7 +507,7 @@ fun MainScreen(
 
         // Animated Fullscreen Player Overlay with fluid spring physics & shared-element feel
         AnimatedVisibility(
-            visible = isFullPlayerVisible && playerState.currentSong != null,
+            visible = isFullPlayerVisible && currentSong != null,
             enter = if (effectivePerformanceMode) {
                 slideInVertically(initialOffsetY = { it }, animationSpec = tween(240)) + fadeIn(tween(200))
             } else {

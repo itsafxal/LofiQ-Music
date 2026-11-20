@@ -61,7 +61,8 @@ class PlaybackEngine @Inject constructor(
     val audioFocusManager: PlaybackAudioFocusManager = PlaybackAudioFocusManager(context, dispatchers, PlaybackDiagnosticLogger(context)),
     val wakeLockManager: PlaybackWakeLockManager = PlaybackWakeLockManager(context, PlaybackDiagnosticLogger(context)),
     val screenStateMonitor: ScreenStateMonitor = ScreenStateMonitor(context, PlaybackDiagnosticLogger(context)),
-    val diagnosticLogger: PlaybackDiagnosticLogger = PlaybackDiagnosticLogger(context)
+    val diagnosticLogger: PlaybackDiagnosticLogger = PlaybackDiagnosticLogger(context),
+    val audioEffectsController: com.lofiq.feature.equalizer.AudioEffectsController = com.lofiq.feature.equalizer.AudioEffectsController(context)
 ) {
     companion object {
         const val PRELOAD_TARGET_MS = 10_000L
@@ -162,6 +163,33 @@ class PlaybackEngine @Inject constructor(
     private var playbackJob: Job? = null
     private var preloadJob: Job? = null
     private var volumeFadeJob: Job? = null
+    private var recommendationsJob: Job? = null
+    private var artworkJob: Job? = null
+    private var prefetchArtworkJob: Job? = null
+
+    // Playback Intent & Transition State Invariants
+    @Volatile
+    private var playbackIntent: PlaybackIntent = PlaybackIntent.USER_PAUSED
+
+    @Volatile
+    private var isHandoverInProgress: Boolean = false
+
+    // Isolated, high-frequency progress flow (polled only by seekbars, preventing parent UI recomposition)
+    private val _playbackProgress = MutableStateFlow(PlaybackProgress())
+    val playbackProgress: StateFlow<PlaybackProgress> = _playbackProgress.asStateFlow()
+
+    // Dedicated stable flows for UI observers (HomeScreen, MainScreen, AmbientAppAtmosphere)
+    private val _currentSongFlow = MutableStateFlow<Song?>(null)
+    val currentSongFlow: StateFlow<Song?> = _currentSongFlow.asStateFlow()
+
+    private val _isPlayingFlow = MutableStateFlow<Boolean>(false)
+    val isPlayingFlow: StateFlow<Boolean> = _isPlayingFlow.asStateFlow()
+
+    private val _currentTrackIdFlow = MutableStateFlow<String?>(null)
+    val currentTrackIdFlow: StateFlow<String?> = _currentTrackIdFlow.asStateFlow()
+
+    fun getPlaybackIntent(): PlaybackIntent = playbackIntent
+    fun isHandoverInProgress(): Boolean = isHandoverInProgress
 
     private var activePlaybackId: String = ""
     private var consecutiveFailures = 0
@@ -285,10 +313,12 @@ class PlaybackEngine @Inject constructor(
 
         audioFocusManager.onPausePlayback = {
             diagnosticLogger.logAudioFocus("INTERRUPT_PAUSE", "Focus lost / headphones disconnected -> pausing playback")
+            playbackIntent = PlaybackIntent.AUDIO_FOCUS_LOSS_TRANSIENT
             pause()
         }
         audioFocusManager.onResumePlayback = {
             diagnosticLogger.logAudioFocus("INTERRUPT_RESUME", "Focus regained -> resuming playback")
+            playbackIntent = PlaybackIntent.PLAY
             play()
         }
         audioFocusManager.onDuckVolume = { scale ->
@@ -339,6 +369,11 @@ class PlaybackEngine @Inject constructor(
                         }
                     }
                     currentIndex = targetIndex
+                    playbackIntent = PlaybackIntent.USER_PAUSED
+                    _currentSongFlow.value = targetSong
+                    _currentTrackIdFlow.value = targetSong.id
+                    _isPlayingFlow.value = false
+                    _playbackProgress.value = PlaybackProgress(lastPosMs, targetSong.durationMs, 0L)
 
                     _playerState.update {
                         it.copy(
@@ -351,7 +386,8 @@ class PlaybackEngine @Inject constructor(
                             isPlaying = false,
                             isBuffering = false,
                             isReady = true,
-                            activeProviderId = targetSong.providerId
+                            activeProviderId = targetSong.providerId,
+                            playbackIntent = PlaybackIntent.USER_PAUSED
                         )
                     }
                     diagnosticLogger.logServiceLifecycle(
@@ -371,6 +407,30 @@ class PlaybackEngine @Inject constructor(
         slotPlayer.addListener(object : Player.Listener {
             private fun isFromActiveSlot(): Boolean = isSlotA == isSlotAActive
 
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                diagnosticLogger.logPlayWhenReadyChange(
+                    slot = if (isSlotA) "A" else "B",
+                    playWhenReady = playWhenReady,
+                    reason = reason,
+                    isActive = isFromActiveSlot()
+                )
+                if (isFromActiveSlot()) {
+                    _isPlayingFlow.value = slotPlayer.isPlaying && playWhenReady
+                    if (!playWhenReady && playbackIntent == PlaybackIntent.PLAY && !isTransitioning && !isHandoverInProgress) {
+                        diagnosticLogger.logTermination(
+                            PlaybackDiagnosticLogger.CATEGORY_UNEXPECTED_PLAYWHENREADY_FALSE,
+                            "Active player unexpectedly cleared playWhenReady while intent was PLAY (reason=$reason)",
+                            currentSong?.id ?: ""
+                        )
+                        // Preserve intended playback continuity
+                        slotPlayer.playWhenReady = true
+                        if (slotPlayer.playbackState == Player.STATE_READY) {
+                            slotPlayer.play()
+                        }
+                    }
+                }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 diagnosticLogger.logPlayerState(
                     slot = if (isSlotA) "A" else "B",
@@ -383,8 +443,9 @@ class PlaybackEngine @Inject constructor(
                 )
                 if (isFromActiveSlot()) {
                     LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[MEDIA3][id=$activePlaybackId][slot=${if (isSlotA) "A" else "B"}] IS_PLAYING=$isPlaying")
+                    _isPlayingFlow.value = isPlaying
                     updateState()
-                } else if (isPlaying && !isTransitioning) {
+                } else if (isPlaying && !isTransitioning && !isHandoverInProgress) {
                     // Safety invariant: secondary player must never output audio before transition begins
                     LofiQLogger.w(LofiQLogger.Category.PREFETCH, "[SECONDARY_PLAYER] Guard triggered: pausing premature secondary playback")
                     runCatching {
@@ -415,6 +476,7 @@ class PlaybackEngine @Inject constructor(
                 )
 
                 if (!isFromActiveSlot()) {
+                    if (isHandoverInProgress) return
                     // Secondary slot readiness tracking
                     if (secondarySongId != null) {
                         when (playbackState) {
@@ -431,7 +493,7 @@ class PlaybackEngine @Inject constructor(
                                 secondarySlotState = SecondarySlotState.READY
                                 wakeLockManager.releasePreloadWakeLock()
                                 // Ensure incoming stays silent and paused at 0 until transition starts
-                                if (!isTransitioning) {
+                                if (!isTransitioning && !isHandoverInProgress) {
                                     slotPlayer.volume = 0f
                                     slotPlayer.playWhenReady = false
                                     if (slotPlayer.isPlaying) slotPlayer.pause()
@@ -443,7 +505,7 @@ class PlaybackEngine @Inject constructor(
                                 )
                             }
                             Player.STATE_ENDED -> {
-                                if (!isTransitioning) {
+                                if (!isTransitioning && !isHandoverInProgress) {
                                     LofiQLogger.w(LofiQLogger.Category.PREFETCH, "[SECONDARY_PLAYER] Ended unexpectedly during preload for '${secondarySong?.title}'")
                                 }
                             }
@@ -463,6 +525,9 @@ class PlaybackEngine @Inject constructor(
                         consecutiveFailures = 0
                         currentSongRetryCount = 0
                         wakeLockManager.releasePlaybackWakeLock()
+                        if (playbackIntent == PlaybackIntent.PLAY && !slotPlayer.isPlaying && slotPlayer.playWhenReady) {
+                            slotPlayer.play()
+                        }
                         _playerState.update {
                             it.copy(
                                 isBuffering = false,
@@ -739,6 +804,7 @@ class PlaybackEngine @Inject constructor(
                             else -> 0L
                         }
                         val buffered = active.bufferedPosition.coerceAtLeast(0L)
+                        _playbackProgress.value = PlaybackProgress(pos, effectiveDur, buffered)
                         _playerState.update {
                             it.copy(
                                 currentPositionMs = pos,
@@ -987,149 +1053,161 @@ class PlaybackEngine @Inject constructor(
             return
         }
 
-        val incomingArtwork = secondaryArtworkBytes
-        val incomingMediaItem = secondaryPreparedMediaItem
+        isHandoverInProgress = true
+        try {
+            val incomingArtwork = secondaryArtworkBytes
+            val incomingMediaItem = secondaryPreparedMediaItem
 
-        diagnosticLogger.logHandover(
-            "START",
-            promotedSlot = if (isSlotAActive) "B" else "A",
-            incomingTrack = expectedIncomingSong.title,
-            details = "isGapless=$isGapless"
-        )
-
-        // 1. Ensure incoming player owns audible output at full volume and starts/stays playing
-        newPrimary.volume = masterVolumeScale
-        newPrimary.playWhenReady = true
-        if (!newPrimary.isPlaying && newPrimary.playbackState == Player.STATE_READY) {
-            newPrimary.play()
-        }
-
-        // 2. Ensure AudioFocus is continuously held by LofiQ at the application level
-        audioFocusManager.ensureAudioFocus()
-
-        // 3. Atomic slot promotion
-        isSlotAActive = !isSlotAActive
-        _activePlayerFlow.value = newPrimary
-
-        // 4. CRITICAL FIX: Synchronously promote incoming player to MediaSession BEFORE stopping outgoing player!
-        // This guarantees MediaSession & MediaSessionService never see a stopped/idle session player, preventing
-        // stopForeground(false) from ever dropping the service to background during screen-off handover.
-        sessionHandoverCallback?.invoke(newPrimary)
-        diagnosticLogger.logHandover(
-            "SESSION_PLAYER_PROMOTED",
-            promotedSlot = if (isSlotAActive) "A" else "B",
-            incomingTrack = expectedIncomingSong.title,
-            details = "activePlaybackId=$activePlaybackId"
-        )
-
-        // 5. Silence and release old primary media resources so it becomes clean secondary slot.
-        // Because mediaSession was already synchronously re-bound to newPrimary in Step 4,
-        // this cleanup cannot affect MediaSession or foreground service status!
-        runCatching {
-            oldPrimary.volume = 0f
-            oldPrimary.playWhenReady = false
-            oldPrimary.pause()
-            oldPrimary.stop()
-            oldPrimary.clearMediaItems()
-        }
-        diagnosticLogger.logHandover("OLD_PRIMARY_CLEANED", if (isSlotAActive) "B" else "A", expectedIncomingSong.title)
-
-        // 5. Update queue pointer & track metadata
-        val targetIdx = findTargetIndexForSong(expectedIncomingSong.id)
-        val updatedSong: Song
-        if (targetIdx != -1) {
-            if (!isExplicitQueue && targetIdx > 0) {
-                val remaining = currentQueue.drop(targetIdx)
-                currentQueue.clear()
-                currentQueue.addAll(remaining)
-                currentIndex = 0
-            } else {
-                currentIndex = targetIdx
-            }
-            updatedSong = currentQueue[currentIndex].song
-        } else {
-            updatedSong = expectedIncomingSong
-        }
-
-        activePlaybackId = java.util.UUID.randomUUID().toString().take(8)
-        currentSongRetryCount = 0
-        consecutiveFailures = 0
-
-        // 6. Reset secondary & transition state for the next cycle (Song C will preload at 10s!)
-        preloadEpoch++
-        preloadJob?.cancel()
-        preloadJob = null
-        inFlightPreloadSongId = null
-        secondarySlotState = SecondarySlotState.IDLE
-        secondarySong = null
-        secondarySongId = null
-        secondaryPreparedMediaItem = null
-        secondaryArtworkBytes = null
-        failedPreloadForTrackIds.clear()
-        lastBufferingWaitLogSongId = null
-        isTransitioning = false
-        isTransitionPaused = false
-        transitionTargetSongId = null
-        currentCrossfadeT = 0f
-
-        // 7. Apply cached artwork onto MediaSession playlistMetadata if ready
-        if (incomingArtwork != null && incomingMediaItem != null) {
-            runCatching {
-                val updatedMeta = incomingMediaItem.mediaMetadata.buildUpon()
-                    .setArtworkData(incomingArtwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                    .build()
-                newPrimary.playlistMetadata = updatedMeta
-            }
-        }
-
-        val actualPosMs = newPrimary.currentPosition.coerceAtLeast(0L)
-        val actualDurMs = if (newPrimary.duration > 0L) newPrimary.duration else updatedSong.durationMs
-        val sessionId = newPrimary.audioSessionId
-
-        _playerState.update {
-            it.copy(
-                currentSong = updatedSong,
-                activeProviderId = updatedSong.providerId,
-                isPlaying = true,
-                isBuffering = newPrimary.playbackState == Player.STATE_BUFFERING,
-                isReady = newPrimary.playbackState == Player.STATE_READY,
-                isCrossfading = false,
-                errorMessage = null,
-                currentPositionMs = actualPosMs,
-                durationMs = actualDurMs,
-                queue = currentQueue.map { it.song },
-                queueItems = currentQueue.mapIndexed { idx, it -> it.copy(originalIndex = idx, isCurrent = idx == currentIndex) },
-                currentQueueIndex = currentIndex,
-                activeAudioSessionId = sessionId
+            diagnosticLogger.logHandover(
+                "START",
+                promotedSlot = if (isSlotAActive) "B" else "A",
+                incomingTrack = expectedIncomingSong.title,
+                details = "isGapless=$isGapless"
             )
-        }
-        updateState()
-        wakeLockManager.releaseTransitionWakeLock()
-        diagnosticLogger.logHandover("COMPLETE", if (isSlotAActive) "A" else "B", updatedSong.title)
 
-        LofiQLogger.i(
-            LofiQLogger.Category.PLAYBACK,
-            "[PLAYER_HANDOVER] ${if (isGapless) "GAPLESS" else "CROSSFADE"} handover complete -> activeSlot=${if (isSlotAActive) "A" else "B"}, track='${updatedSong.title}', pos=${actualPosMs}ms, sessionId=$sessionId"
-        )
+            // 1. Atomic slot promotion FIRST so slot listeners treat newPrimary as ACTIVE immediately
+            isSlotAActive = !isSlotAActive
+            _activePlayerFlow.value = newPrimary
 
-        fetchLyricsForSong(updatedSong)
-        if (updatedSong.providerId != "local" && updatedSong.providerId != "local_download") {
-            fetchSmartRecommendations(updatedSong, autoAppend = !isExplicitQueue, targetCount = 10)
-        }
-        engineScope.launch(dispatchers.io) {
-            runCatching {
-                songDao.incrementPlayCount(updatedSong.id)
-                historyDao.recordHistory(
-                    PlaybackHistoryEntity(
-                        songId = updatedSong.id,
-                        playedAt = System.currentTimeMillis(),
-                        durationPlayedSeconds = 0
-                    )
-                )
-                persistQueue()
+            // 2. Synchronously promote incoming player to MediaSession BEFORE stopping outgoing player!
+            // This guarantees MediaSession & MediaSessionService never see a stopped/idle session player, preventing
+            // stopForeground(false) from ever dropping the service to background during screen-off handover.
+            sessionHandoverCallback?.invoke(newPrimary)
+            diagnosticLogger.logHandover(
+                "SESSION_PLAYER_PROMOTED",
+                promotedSlot = if (isSlotAActive) "A" else "B",
+                incomingTrack = expectedIncomingSong.title,
+                details = "activePlaybackId=$activePlaybackId"
+            )
+
+            // 3. Ensure AudioFocus is continuously held by LofiQ at the application level
+            audioFocusManager.ensureAudioFocus()
+
+            // 4. Ensure incoming player owns audible output at full volume and plays if intent is PLAY
+            newPrimary.volume = masterVolumeScale
+            val shouldPlay = (playbackIntent == PlaybackIntent.PLAY)
+            newPrimary.playWhenReady = shouldPlay
+            if (shouldPlay && !newPrimary.isPlaying && newPrimary.playbackState == Player.STATE_READY) {
+                newPrimary.play()
             }
+
+            // 5. Silence and release old primary media resources so it becomes clean secondary slot.
+            // Because mediaSession was already synchronously re-bound to newPrimary,
+            // this cleanup cannot affect MediaSession or foreground service status!
+            runCatching {
+                oldPrimary.volume = 0f
+                oldPrimary.playWhenReady = false
+                oldPrimary.pause()
+                oldPrimary.stop()
+                oldPrimary.clearMediaItems()
+            }
+            diagnosticLogger.logHandover("OLD_PRIMARY_CLEANED", if (isSlotAActive) "A" else "B", expectedIncomingSong.title)
+
+            // 6. Update queue pointer & track metadata
+            val targetIdx = findTargetIndexForSong(expectedIncomingSong.id)
+            val updatedSong: Song
+            if (targetIdx != -1) {
+                if (!isExplicitQueue && targetIdx > 0) {
+                    val remaining = currentQueue.drop(targetIdx)
+                    currentQueue.clear()
+                    currentQueue.addAll(remaining)
+                    currentIndex = 0
+                } else {
+                    currentIndex = targetIdx
+                }
+                updatedSong = currentQueue[currentIndex].song
+            } else {
+                updatedSong = expectedIncomingSong
+            }
+
+            activePlaybackId = java.util.UUID.randomUUID().toString().take(8)
+            currentSongRetryCount = 0
+            consecutiveFailures = 0
+
+            // 7. Reset secondary & transition state for the next cycle
+            preloadEpoch++
+            preloadJob?.cancel()
+            preloadJob = null
+            inFlightPreloadSongId = null
+            secondarySlotState = SecondarySlotState.IDLE
+            secondarySong = null
+            secondarySongId = null
+            secondaryPreparedMediaItem = null
+            secondaryArtworkBytes = null
+            failedPreloadForTrackIds.clear()
+            lastBufferingWaitLogSongId = null
+            isTransitioning = false
+            isTransitionPaused = false
+            transitionTargetSongId = null
+            currentCrossfadeT = 0f
+
+            // 8. Apply cached artwork onto MediaSession playlistMetadata if ready
+            if (incomingArtwork != null && incomingMediaItem != null) {
+                runCatching {
+                    val updatedMeta = incomingMediaItem.mediaMetadata.buildUpon()
+                        .setArtworkData(incomingArtwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        .build()
+                    newPrimary.playlistMetadata = updatedMeta
+                }
+            }
+
+            val actualPosMs = newPrimary.currentPosition.coerceAtLeast(0L)
+            val actualDurMs = if (newPrimary.duration > 0L) newPrimary.duration else updatedSong.durationMs
+            val sessionId = newPrimary.audioSessionId
+
+            _currentSongFlow.value = updatedSong
+            _currentTrackIdFlow.value = updatedSong.id
+            _isPlayingFlow.value = shouldPlay
+            _playbackProgress.value = PlaybackProgress(actualPosMs, actualDurMs, newPrimary.bufferedPosition)
+
+            _playerState.update {
+                it.copy(
+                    currentSong = updatedSong,
+                    activeProviderId = updatedSong.providerId,
+                    isPlaying = shouldPlay,
+                    isBuffering = newPrimary.playbackState == Player.STATE_BUFFERING,
+                    isReady = newPrimary.playbackState == Player.STATE_READY,
+                    isCrossfading = false,
+                    errorMessage = null,
+                    currentPositionMs = actualPosMs,
+                    durationMs = actualDurMs,
+                    queue = currentQueue.map { it.song },
+                    queueItems = currentQueue.mapIndexed { idx, it -> it.copy(originalIndex = idx, isCurrent = idx == currentIndex) },
+                    currentQueueIndex = currentIndex,
+                    activeAudioSessionId = sessionId,
+                    playbackIntent = playbackIntent
+                )
+            }
+            updateState()
+            wakeLockManager.releaseTransitionWakeLock()
+            diagnosticLogger.logHandover("COMPLETE", if (isSlotAActive) "A" else "B", updatedSong.title)
+
+            LofiQLogger.i(
+                LofiQLogger.Category.PLAYBACK,
+                "[PLAYER_HANDOVER] ${if (isGapless) "GAPLESS" else "CROSSFADE"} handover complete -> activeSlot=${if (isSlotAActive) "A" else "B"}, track='${updatedSong.title}', pos=${actualPosMs}ms, sessionId=$sessionId"
+            )
+
+            fetchLyricsForSong(updatedSong)
+            if (updatedSong.providerId != "local" && updatedSong.providerId != "local_download") {
+                fetchSmartRecommendations(updatedSong, autoAppend = !isExplicitQueue, targetCount = 10)
+            }
+            engineScope.launch(dispatchers.io) {
+                runCatching {
+                    songDao.incrementPlayCount(updatedSong.id)
+                    historyDao.recordHistory(
+                        PlaybackHistoryEntity(
+                            songId = updatedSong.id,
+                            playedAt = System.currentTimeMillis(),
+                            durationPlayedSeconds = 0
+                        )
+                    )
+                    persistQueue()
+                }
+            }
+            checkAndReplenishQueue()
+        } finally {
+            isHandoverInProgress = false
         }
-        checkAndReplenishQueue()
     }
 
     private fun findTargetIndexForSong(songId: String): Int {
@@ -1145,6 +1223,8 @@ class PlaybackEngine @Inject constructor(
     fun playSong(song: Song) {
         engineScope.launch {
             commandMutex.withLock {
+                playbackIntent = PlaybackIntent.PLAY
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "User called playSong('${song.title}')")
                 consecutiveFailures = 0
                 isExplicitQueue = false
                 if (currentSong?.id == song.id &&
@@ -1181,6 +1261,8 @@ class PlaybackEngine @Inject constructor(
         if (songs.isEmpty()) return
         engineScope.launch {
             commandMutex.withLock {
+                playbackIntent = PlaybackIntent.PLAY
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "User called playQueue(size=${songs.size}, startIndex=$startIndex)")
                 consecutiveFailures = 0
                 isExplicitQueue = songs.size > 1
                 val targetIndex = startIndex.coerceIn(0, songs.size - 1)
@@ -1224,6 +1306,8 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 if (targetIndex !in currentQueue.indices) return@withLock
+                playbackIntent = PlaybackIntent.PLAY
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "User called playQueueItem($targetIndex)")
                 consecutiveFailures = 0
                 cancelFadeAndRestoreVolume(clearPreload = true)
                 failedPreloadForTrackIds.clear()
@@ -1390,6 +1474,8 @@ class PlaybackEngine @Inject constructor(
     fun play() {
         engineScope.launch {
             commandMutex.withLock {
+                playbackIntent = PlaybackIntent.PLAY
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "User called play()")
                 engineScope.launch(dispatchers.io) {
                     preferences.setExplicitlyStopped(false)
                 }
@@ -1420,6 +1506,8 @@ class PlaybackEngine @Inject constructor(
     fun pause() {
         engineScope.launch {
             commandMutex.withLock {
+                playbackIntent = PlaybackIntent.USER_PAUSED
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.USER_PAUSED, "User called pause()")
                 val curSong = currentSong
                 val pos = activePlayer.currentPosition.coerceAtLeast(0L)
                 val dur = activePlayer.duration.coerceAtLeast(0L)
@@ -1447,6 +1535,8 @@ class PlaybackEngine @Inject constructor(
     fun stop() {
         engineScope.launch {
             commandMutex.withLock {
+                playbackIntent = PlaybackIntent.USER_STOPPED
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.USER_STOPPED, "User called stop()")
                 val curSong = currentSong
                 val pos = activePlayer.currentPosition.coerceAtLeast(0L)
                 val dur = activePlayer.duration.coerceAtLeast(0L)
@@ -1487,6 +1577,8 @@ class PlaybackEngine @Inject constructor(
         engineScope.launch {
             commandMutex.withLock {
                 if (currentQueue.isEmpty()) return@withLock
+                playbackIntent = PlaybackIntent.PLAY
+                diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "User called next()")
                 consecutiveFailures = 0
 
                 val nextSong = getNextSong()
@@ -1505,9 +1597,6 @@ class PlaybackEngine @Inject constructor(
                     if (!wasAlreadyFadingSame && sec.currentPosition > 50L) {
                         sec.seekTo(0L)
                     }
-                    sec.volume = masterVolumeScale
-                    sec.playWhenReady = true
-                    sec.play()
                     performPlayerHandoverLocked(expectedIncomingSong = nextSong, isGapless = true)
                     return@withLock
                 }
@@ -2313,6 +2402,8 @@ class PlaybackEngine @Inject constructor(
     }
 
     private fun startPlaybackInternal(song: Song, retryCount: Int = 0, initialSeekMs: Long = 0L) {
+        playbackIntent = PlaybackIntent.PLAY
+        diagnosticLogger.logPlaybackIntent(PlaybackIntent.PLAY, "startPlaybackInternal('${song.title}')")
         cancelFadeAndRestoreVolume(clearPreload = true)
         playbackJob?.cancel()
         failedPreloadForTrackIds.clear()
@@ -2330,6 +2421,11 @@ class PlaybackEngine @Inject constructor(
         activePlaybackId = reqId
 
         LofiQLogger.i(LofiQLogger.Category.PLAYBACK, "[PLAYBACK][id=$reqId] PLAY_REQUEST for '${song.title}' [id: ${song.id}] (attempt=${retryCount + 1})")
+
+        _currentSongFlow.value = song
+        _currentTrackIdFlow.value = song.id
+        _isPlayingFlow.value = true
+        _playbackProgress.value = PlaybackProgress(initialSeekMs, song.durationMs, 0L)
 
         val isLocalDeviceTrack = song.providerId == "local" ||
                 song.id.startsWith("content://") ||
@@ -2353,7 +2449,8 @@ class PlaybackEngine @Inject constructor(
                 isCrossfading = false,
                 errorMessage = null,
                 currentPositionMs = initialSeekMs,
-                durationMs = song.durationMs
+                durationMs = song.durationMs,
+                playbackIntent = PlaybackIntent.PLAY
             )
         }
         updateState()
@@ -2410,7 +2507,8 @@ class PlaybackEngine @Inject constructor(
 
             val artworkUrl = song.highResArtworkUrl.ifEmpty { song.artworkUrl }
             if (artworkUrl.isNotEmpty()) {
-                engineScope.launch(dispatchers.io) {
+                artworkJob?.cancel()
+                artworkJob = engineScope.launch(dispatchers.io) {
                     runCatching {
                         val loader = coil.Coil.imageLoader(context)
                         val req = coil.request.ImageRequest.Builder(context)
@@ -2585,9 +2683,6 @@ class PlaybackEngine @Inject constructor(
                     if (sec.currentPosition > 50L) {
                         sec.seekTo(0L)
                     }
-                    sec.volume = masterVolumeScale
-                    sec.playWhenReady = true
-                    sec.play()
                     performPlayerHandoverLocked(expectedIncomingSong = nextSong, isGapless = true)
                     return@withLock
                 }

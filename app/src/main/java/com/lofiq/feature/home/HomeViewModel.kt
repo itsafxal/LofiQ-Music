@@ -199,6 +199,7 @@ class HomeViewModel @Inject constructor(
 
     private var lastLiveRefreshTime = 0L
     private var foregroundTimerJob: kotlinx.coroutines.Job? = null
+    private var prefetchShelfArtworksJob: kotlinx.coroutines.Job? = null
 
     init {
         observeLocalData()
@@ -557,6 +558,11 @@ class HomeViewModel @Inject constructor(
                 libraryRepository.observeFavorites()
             ) { history, favorites ->
                 Pair(history, favorites)
+            }.distinctUntilChanged { old, new ->
+                old.first.size == new.first.size &&
+                old.second.size == new.second.size &&
+                old.first.firstOrNull()?.id == new.first.firstOrNull()?.id &&
+                old.second.firstOrNull()?.id == new.second.firstOrNull()?.id
             }.collect { (history, favorites) ->
                 val prevTopArtist = cachedUserTaste?.topArtists?.firstOrNull()?.artistName
                 historySongs = history
@@ -2234,16 +2240,18 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun prefetchShelfArtworks(shelves: List<HomeShelf>) {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        prefetchShelfArtworksJob?.cancel()
+        prefetchShelfArtworksJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val imageLoader = coil.Coil.imageLoader(context)
-            val songsToPreload = shelves.take(6).flatMap { it.songs.take(4) }.distinctBy { it.id }
+            val songsToPreload = shelves.take(4).flatMap { it.songs.take(3) }.distinctBy { it.id }
             for (song in songsToPreload) {
+                if (!kotlinx.coroutines.isActive) break
                 val artworkUrl = com.lofiq.core.common.ArtworkUtils.getOptimalArtwork(song)
                 if (artworkUrl.isNotBlank()) {
                     runCatching {
                         val req = coil.request.ImageRequest.Builder(context)
                             .data(artworkUrl)
-                            .size(300, 300)
+                            .size(240, 240)
                             .build()
                         imageLoader.enqueue(req)
                     }

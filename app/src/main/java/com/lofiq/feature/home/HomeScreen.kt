@@ -59,7 +59,8 @@ fun HomeScreen(
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val playerState by viewModel.playbackEngine.playerState.collectAsStateWithLifecycle()
+    val currentSong by viewModel.playbackEngine.currentSongFlow.collectAsStateWithLifecycle()
+    val isPlaying by viewModel.playbackEngine.isPlayingFlow.collectAsStateWithLifecycle()
     val userAccount by viewModel.userAccount.collectAsStateWithLifecycle()
     val spotifyAccount by viewModel.spotifyAccount.collectAsStateWithLifecycle()
     val isAuthenticating by viewModel.isAuthenticating.collectAsStateWithLifecycle()
@@ -92,8 +93,8 @@ fun HomeScreen(
             typeLabel = "ARTIST",
             artworkUrl = artist.artworkUrl,
             tracks = tracksToDisplay,
-            isPlaying = playerState.isPlaying,
-            currentSongId = playerState.currentSong?.id,
+            isPlaying = isPlaying,
+            currentSongId = currentSong?.id,
             onBack = {
                 selectedArtistForDetail = null
                 viewModel.clearArtistCatalog()
@@ -128,8 +129,8 @@ fun HomeScreen(
             typeLabel = "COLLECTION",
             artworkUrl = shelf.songs.firstOrNull()?.highResArtworkUrl?.ifEmpty { shelf.songs.firstOrNull()?.artworkUrl } ?: "",
             tracks = shelf.songs,
-            isPlaying = playerState.isPlaying,
-            currentSongId = playerState.currentSong?.id,
+            isPlaying = isPlaying,
+            currentSongId = currentSong?.id,
             onBack = { selectedShelfForDetail = null },
             onPlaySong = { song, queue ->
                 haptics.play(Haptic.Tap)
@@ -191,7 +192,7 @@ fun HomeScreen(
             )
         }
     ) {
-        val bottomScrollPadding = if (playerState.currentSong != null) 220.dp else 155.dp
+        val bottomScrollPadding = if (currentSong != null) 220.dp else 155.dp
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -464,8 +465,8 @@ fun HomeScreen(
                     ShelfLayout.CAROUSEL -> {
                         HomeCarouselShelf(
                             shelf = shelf,
-                            currentSong = playerState.currentSong,
-                            isPlaying = playerState.isPlaying,
+                            currentSong = currentSong,
+                            isPlaying = isPlaying,
                             onSongClick = { song ->
                                 haptics.play(Haptic.Tap)
                                 viewModel.playSong(song, shelf.songs)
@@ -479,8 +480,8 @@ fun HomeScreen(
                     ShelfLayout.COMPACT_GRID -> {
                         HomeCompactGridShelf(
                             shelf = shelf,
-                            currentSong = playerState.currentSong,
-                            isPlaying = playerState.isPlaying,
+                            currentSong = currentSong,
+                            isPlaying = isPlaying,
                             onSongClick = { song ->
                                 haptics.play(Haptic.Tap)
                                 viewModel.playSong(song, shelf.songs)
@@ -510,8 +511,8 @@ fun HomeScreen(
                     ShelfLayout.FEATURED_LARGE -> {
                         HomeFeaturedLargeShelf(
                             shelf = shelf,
-                            currentSong = playerState.currentSong,
-                            isPlaying = playerState.isPlaying,
+                            currentSong = currentSong,
+                            isPlaying = isPlaying,
                             onSongClick = { song ->
                                 haptics.play(Haptic.Tap)
                                 viewModel.playSong(song, shelf.songs)

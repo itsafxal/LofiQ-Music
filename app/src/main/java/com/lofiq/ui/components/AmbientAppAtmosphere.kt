@@ -33,7 +33,12 @@ import com.lofiq.ui.theme.LocalPerformanceModeEnabled
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private val paletteCache = mutableMapOf<String, ArtworkAtmospherePalette>()
+// Bounded LRU cache (max 20 entries) to prevent memory accumulation across multi-song listening sessions
+private val paletteCache = object : LinkedHashMap<String, ArtworkAtmospherePalette>(25, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ArtworkAtmospherePalette>?): Boolean {
+        return size > 20
+    }
+}
 
 /**
  * Global Exact-Color Dynamic Ambient Atmosphere Backdrop
@@ -63,7 +68,7 @@ fun AmbientAppAtmosphere(
             return@LaunchedEffect
         }
 
-        val cached = paletteCache[currentSong.id]
+        val cached = synchronized(paletteCache) { paletteCache[currentSong.id] }
         if (cached != null) {
             currentPalette = cached
             return@LaunchedEffect
@@ -90,7 +95,7 @@ fun AmbientAppAtmosphere(
                 val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
                 if (bitmap != null) {
                     val palette = ArtworkColorUtils.extractAtmospherePalette(bitmap)
-                    paletteCache[currentSong.id] = palette
+                    synchronized(paletteCache) { paletteCache[currentSong.id] = palette }
                     currentPalette = palette
                 } else {
                     currentPalette = null

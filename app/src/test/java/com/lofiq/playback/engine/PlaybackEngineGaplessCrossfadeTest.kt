@@ -15,6 +15,8 @@ import com.lofiq.core.database.dao.QueueSnapshotDao
 import com.lofiq.core.database.dao.SongDao
 import com.lofiq.core.datastore.LofiQPreferences
 import com.lofiq.core.model.AudioQuality
+import com.lofiq.core.model.PlaybackIntent
+import com.lofiq.core.model.PlaybackProgress
 import com.lofiq.core.model.PlaybackRepeatMode
 import com.lofiq.core.model.Song
 import com.lofiq.resolver.cache.ResolutionCache
@@ -476,6 +478,63 @@ class PlaybackEngineGaplessCrossfadeTest {
         repeatFlow.value = PlaybackRepeatMode.ONE
         runCurrent()
         assertEquals(Player.STATE_IDLE, slotB.playbackState)
+    }
+
+    @Test
+    fun `playback intent transitions and handover preserve play intent`() = runEngineTest {
+        val s1 = song("s1", 60)
+        val s2 = song("s2", 60)
+        slotA.durationMs = 60_000L
+
+        engine.playQueue(listOf(s1, s2), 0)
+        runCurrent()
+
+        assertEquals(PlaybackIntent.PLAY, engine.getPlaybackIntent())
+        assertEquals("s1", engine.currentSongFlow.value?.id)
+        assertTrue(engine.isPlayingFlow.value)
+
+        // User pause updates intent to USER_PAUSED
+        engine.pause()
+        runCurrent()
+        assertEquals(PlaybackIntent.USER_PAUSED, engine.getPlaybackIntent())
+        assertFalse(engine.isPlayingFlow.value)
+
+        // Resuming updates intent back to PLAY
+        engine.play()
+        runCurrent()
+        assertEquals(PlaybackIntent.PLAY, engine.getPlaybackIntent())
+        assertTrue(engine.isPlayingFlow.value)
+
+        // Next preserves PLAY intent
+        engine.next()
+        runCurrent()
+        assertEquals(PlaybackIntent.PLAY, engine.getPlaybackIntent())
+        assertEquals("s2", engine.currentSongFlow.value?.id)
+
+        // Explicit stop sets USER_STOPPED
+        engine.stop()
+        runCurrent()
+        assertEquals(PlaybackIntent.USER_STOPPED, engine.getPlaybackIntent())
+    }
+
+    @Test
+    fun `isolated playback progress flow updates without altering song flow`() = runEngineTest {
+        val s1 = song("s1", 120)
+        slotA.durationMs = 120_000L
+
+        engine.playSong(s1)
+        runCurrent()
+
+        assertEquals(0L, engine.playbackProgress.value.positionMs)
+        assertEquals("s1", engine.currentSongFlow.value?.id)
+
+        slotA.positionMs = 15_000L
+        advanceTimeBy(300L)
+        runCurrent()
+
+        assertEquals(15_000L, engine.playbackProgress.value.positionMs)
+        assertEquals(120_000L, engine.playbackProgress.value.durationMs)
+        assertEquals("s1", engine.currentSongFlow.value?.id)
     }
 }
 

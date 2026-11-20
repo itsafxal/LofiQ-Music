@@ -29,6 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -118,7 +119,13 @@ class AudioPipelineMonitor @Inject constructor(
 
     private fun observePlaybackState() {
         scope.launch {
-            playbackEngine.playerState.collect { state ->
+            playbackEngine.playerState
+                .distinctUntilChanged { old, new ->
+                    old.currentSong?.id == new.currentSong?.id &&
+                    old.activeProviderId == new.activeProviderId &&
+                    old.isPlaying == new.isPlaying
+                }
+                .collect { state ->
                 val song = state.currentSong
                 if (song != null) {
                     val activeProvider = (state.activeProviderId ?: song.providerId).lowercase()

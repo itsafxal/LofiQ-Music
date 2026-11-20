@@ -47,3 +47,8 @@
    - The About screen and update comparison must always query the runtime `PackageManager` via `AppVersionProvider`, never hardcoded strings or remote metadata.
    - Never launch the system installer if the downloaded APK's `versionCode` is less than or equal to the currently installed `versionCode`.
    - Never treat opening the installer or downloading an APK as a completed installation.
+
+8. **Playback Intent & Recomposition Invariants**:
+   - `playbackIntent` must be explicitly updated on all user controls (`play()`, `pause()`, `stop()`) and respected across automatic track handovers. Handover must never pause an incoming track unless intent is `USER_PAUSED` or `USER_STOPPED`.
+   - Never observe high-frequency `playerState` (200ms ticks) in root composables (`HomeScreen`, `MainScreen`). Root UI must observe isolated `currentSongFlow` and `isPlayingFlow` to maintain a 60fps render budget.
+   - All auxiliary coroutine jobs (smart recommendations, artwork fetches, shelf preloading) must be cancelled and debounced before launching new requests on track changes.
