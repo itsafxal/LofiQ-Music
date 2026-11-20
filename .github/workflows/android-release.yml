@@ -94,14 +94,13 @@ jobs:
       - name: Dump Failing Tests on Failure
         if: failure()
         run: |
-          echo "::error::Unit tests failed. Inspecting test-results..."
           if [ -d "app/build/test-results/testReleaseUnitTest" ]; then
             for f in app/build/test-results/testReleaseUnitTest/*.xml; do
               if grep -q '<failure' "$f"; then
-                echo "=========================================="
-                echo "FAILURES IN: $f"
-                echo "=========================================="
-                cat "$f"
+                echo "::error file=$f::Test failure detected in $(basename $f)"
+                while IFS= read -r line; do
+                  echo "::error::$line"
+                done < "$f"
               fi
             done
           fi
